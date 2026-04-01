@@ -34,6 +34,7 @@ import { setKnowledgeSearchDb }        from "../tool-integration/internal/search
 import { setDocumentsToolDb }          from "../tool-integration/internal/list-documents.js";
 import { loadMcpConfig }               from "../tool-integration/mcp-config.js";
 import { McpLifecycleManager }         from "../tool-integration/mcp-lifecycle.js";
+import { toolCallRouter }              from "../tool-integration/tool-call-router.js";
 
 const logger = createLogger("orchestrator-bootstrap");
 
@@ -124,6 +125,11 @@ export async function bootstrapOrchestrator(
     registerMcpServers(registry, mcpConfig.servers);
     mcpLifecycle.registerServers(mcpConfig.servers);
     mcpLifecycle.startIdleWatcher();
+
+    // Wire tool call router so agents can dispatch via toolCallRouter.createDispatcher()
+    toolCallRouter.setDb(db);
+    toolCallRouter.setToolManager(toolManager);
+    toolCallRouter.setMcpLifecycle(mcpLifecycle);
 
     for (const entry of mcpConfig.servers.filter((s) => s.auto_start === true)) {
       mcpLifecycle.startServer(entry.id).catch((err: unknown) => {
