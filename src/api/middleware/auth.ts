@@ -38,13 +38,20 @@ const logger = createLogger("api-server");
 // The handler enforces its own ticket-based auth (consumeTicket), so no Bearer
 // token is needed at the middleware layer.  Unauthenticated requests without a
 // valid ticket are rejected by the handler with AUTH-001.
-const PUBLIC_PATHS = new Set(["/api/v1/health", "/api/v1/events"]);
+// /api/v1/org/public is the Glasscheibe unauthenticated org-chart endpoint (P348).
+const PUBLIC_PATHS = new Set([
+  "/api/v1/health",
+  "/api/v1/events",
+  "/api/v1/org/public",
+]);
 
 /** Path prefixes that bypass authentication (GUI static files, SPA routes) */
 const PUBLIC_PREFIXES = [
   "/assets/", "/favicon", "/api/v1/locale",
   // Read-only static catalogs — no secrets, safe to serve without auth
   "/api/v1/starter-agents", "/api/v1/starter-divisions",
+  // Glasscheibe sub-paths (e.g. /api/v1/org/public/live)
+  "/api/v1/org/public/",
 ];
 
 /**

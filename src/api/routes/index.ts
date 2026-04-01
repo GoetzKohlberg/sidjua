@@ -55,6 +55,8 @@ import { registerScheduleRoutes }        from "./schedule.js";
 import type { ScheduleRouteServices, CronSchedulerLike, TaskStoreLike as ScheduleTaskStoreLike } from "./schedule.js";
 export type { ScheduleRouteServices, CronSchedulerLike, ScheduleTaskStoreLike };
 import { registerOrgChartRoutes }        from "./org-chart.js";
+import { registerOrgPublicRoutes }       from "./org-public.js";
+import type { OrgPublicRouteServices }   from "./org-public.js";
 import { registerTokenRoutes }           from "./tokens.js";
 import type { TokenStore }               from "../token-store.js";
 import { apply }                         from "../../apply/index.js";
@@ -90,6 +92,7 @@ export {
   registerTokenRoutes,
   registerEventRoutes,
   registerOrgChartRoutes,
+  registerOrgPublicRoutes,
 };
 
 
@@ -121,6 +124,8 @@ export interface AllRouteServices {
   tokenStore?:    TokenStore | null;
   /** Returns the current API key — used by the SSE events handler for ticket validation. */
   getApiKey?:     () => string;
+  /** P348: Glasscheibe public org chart — CORS origin (default "*"). */
+  publicCorsDomain?: string;
 }
 
 
@@ -196,6 +201,15 @@ export function registerAllRoutes(app: Hono, services: AllRouteServices = {}): v
     manager:   sseManager,
     db:        db ?? null,
   });
+
+  // P348: Glasscheibe — public (unauthenticated) org chart tree + live SSE
+  if (db !== null) {
+    registerOrgPublicRoutes(app, {
+      db,
+      manager: sseManager,
+      ...(services.publicCorsDomain !== undefined ? { corsOrigin: services.publicCorsDomain } : {}),
+    });
+  }
 
   // Activity stream routes (always register — emitter degrades gracefully without DB)
   registerActivityRoutes(app, {});
