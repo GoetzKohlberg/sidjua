@@ -62,8 +62,10 @@ export class AgentLoop {
   private _paused = false;
   private readonly _activeTaskIds = new Set<string>();
   private readonly _waitingTaskIds = new Set<string>();
-  private _lastCheckpointTime = Date.now();
-  private _lastMemoryCheckTime = Date.now();
+  private _lastCheckpointTime    = Date.now();
+  private _checkpointFailCount   = 0;
+  private _checkpointBackoffUntil = 0;
+  private _lastMemoryCheckTime   = Date.now();
   private readonly _decompositionValidator = new DecompositionValidator();
   private readonly _sleepMs: number;
   private readonly _memoryCheckIntervalMs: number;
@@ -652,10 +654,27 @@ Then the appropriate RESULT/SUMMARY/CONFIDENCE or PLAN section.`;
 
   private async _maybeSaveCheckpoint(): Promise<void> {
     const now = Date.now();
+
+    // Exponential backoff on repeated failures
+    if (now < this._checkpointBackoffUntil) return;
+
     if (now - this._lastCheckpointTime < this.definition.checkpoint_interval_ms) return;
 
-    await this._saveCheckpoint();
-    this._lastCheckpointTime = now;
+    try {
+      await this._saveCheckpoint();
+      this._lastCheckpointTime    = now;
+      this._checkpointFailCount   = 0;
+      this._checkpointBackoffUntil = 0;
+    } catch (err: unknown) {
+      this._checkpointFailCount++;
+      // Backoff: 2s, 4s, 8s, 16s, 32s, cap at 60s
+      const backoffMs = Math.min(2000 * Math.pow(2, this._checkpointFailCount - 1), 60_000);
+      this._checkpointBackoffUntil = now + backoffMs;
+      this.logger.warn("AGENT", `Checkpoint save failed (attempt ${this._checkpointFailCount}, next retry in ${backoffMs}ms)`, {
+        agent_id: this.definition.id,
+        error:    err instanceof Error ? err.message : String(err),
+      });
+    }
   }
 
   private async _saveCheckpoint(): Promise<void> {
@@ -673,31 +692,25 @@ Then the appropriate RESULT/SUMMARY/CONFIDENCE or PLAN section.`;
       }
     }
 
-    try {
-      const version = await this.providers.checkpointManager.save({
-        agent_id: this.definition.id,
-        timestamp: new Date().toISOString(),
-        version: 0, // will be overwritten by manager
-        state: this.getState(),
-        task_states: taskStates,
-        memory_snapshot: this.providers.memoryManager.serialize(),
-      });
+    // Let errors propagate to _maybeSaveCheckpoint for backoff handling
+    const version = await this.providers.checkpointManager.save({
+      agent_id: this.definition.id,
+      timestamp: new Date().toISOString(),
+      version: 0, // will be overwritten by manager
+      state: this.getState(),
+      task_states: taskStates,
+      memory_snapshot: this.providers.memoryManager.serialize(),
+    });
 
-      this._state.last_checkpoint = new Date().toISOString();
+    this._state.last_checkpoint = new Date().toISOString();
 
-      this.logger.debug("AGENT", "Checkpoint saved", {
-        agent_id: this.definition.id,
-        version,
-      });
+    this.logger.debug("AGENT", "Checkpoint saved", {
+      agent_id: this.definition.id,
+      version,
+    });
 
-      // Keep only last 5
-      await this.providers.checkpointManager.cleanup(this.definition.id, 5);
-    } catch (err) {
-      this.logger.error("AGENT", "Checkpoint save failed", {
-        agent_id: this.definition.id,
-        error: String(err),
-      });
-    }
+    // Keep only last 5
+    await this.providers.checkpointManager.cleanup(this.definition.id, 5);
   }
 
   // ---------------------------------------------------------------------------

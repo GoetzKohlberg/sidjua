@@ -21,9 +21,10 @@ let _configPath: string | undefined;
 export function setMcpInstallerConfigPath(p: string | undefined): void { _configPath = p; }
 
 export const installMcpServerTool: InternalToolDef = {
-  id:          "internal-install-mcp-server",
-  name:        "install_mcp_server",
-  description: "Install an MCP server from the registry (npm or Docker)",
+  id:                "internal-install-mcp-server",
+  name:              "install_mcp_server",
+  description:       "Install an MCP server from the registry (npm or Docker)",
+  callerRestriction: "orchestrator",
   capabilities: [{
     name:        "install",
     description: "Install an MCP server. Adds to mcp-servers.yaml.",

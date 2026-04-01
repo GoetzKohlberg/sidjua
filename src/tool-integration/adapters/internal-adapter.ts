@@ -35,18 +35,23 @@ export interface InternalToolDef {
   description: string;
   capabilities: InternalCapabilityDef[];
   execute: InternalToolFunction;
+  /** If set to "orchestrator", the tool may only be called from the orchestrator context. */
+  callerRestriction?: "orchestrator";
 }
 
 export class InternalToolAdapter implements ToolAdapter {
   readonly id: string;
   /** Reuse "composite" ToolType — internal tools are native TS function composites. */
   readonly type: ToolType = "composite";
+  /** Forwarded from InternalToolDef — undefined means no restriction. */
+  readonly callerRestriction: "orchestrator" | undefined;
 
   private readonly def: InternalToolDef;
 
   constructor(def: InternalToolDef) {
-    this.id  = def.id;
-    this.def = def;
+    this.id                 = def.id;
+    this.def                = def;
+    this.callerRestriction  = def.callerRestriction;
   }
 
   async connect(): Promise<void> { /* no-op — always available */ }

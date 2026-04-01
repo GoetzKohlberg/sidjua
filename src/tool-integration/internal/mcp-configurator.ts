@@ -92,9 +92,10 @@ function addMcpToolToRole(roleId: string, serverId: string): boolean {
 // ---------------------------------------------------------------------------
 
 export const configureMcpServerTool: InternalToolDef = {
-  id:          "internal-configure-mcp-server",
-  name:        "configure_mcp_server",
-  description: "Configure credentials and role assignments for an installed MCP server",
+  id:                "internal-configure-mcp-server",
+  name:              "configure_mcp_server",
+  description:       "Configure credentials and role assignments for an installed MCP server",
+  callerRestriction: "orchestrator",
   capabilities: [{
     name:        "configure",
     description: "Set environment variables (credentials), assign to agent roles, and optionally auto-start the server.",

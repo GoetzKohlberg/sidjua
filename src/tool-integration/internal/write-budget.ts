@@ -24,9 +24,10 @@ function currentMonthStart(): string {
 }
 
 export const writeBudgetTool: InternalToolDef = {
-  id:          "internal-write-budget",
-  name:        "set_budget_limit",
-  description: "Set or update budget limits per agent or division",
+  id:                "internal-write-budget",
+  name:              "set_budget_limit",
+  description:       "Set or update budget limits per agent or division",
+  callerRestriction: "orchestrator",
   capabilities: [
     {
       name:              "set_budget",

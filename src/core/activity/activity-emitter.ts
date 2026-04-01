@@ -98,9 +98,62 @@ export class ActivityEmitter {
     return id;
   }
 
-  /** Emit multiple events atomically (sequential — keeps timestamp ordering). */
+  /** Emit multiple events atomically in a single transaction. */
   emitBatch(events: ActivityEvent[]): string[] {
-    return events.map((e) => this.emit(e));
+    if (events.length === 0) return [];
+
+    const ids: string[]              = [];
+    const records: ActivityRecord[]  = [];
+
+    for (const event of events) {
+      const id = randomUUID();
+      ids.push(id);
+      records.push({
+        ...event,
+        id,
+        timestamp: new Date().toISOString(),
+        severity:  event.severity  ?? "info",
+        division:  event.division  ?? "default",
+        source:    event.source    ?? "internal",
+        details:   event.details   ?? {},
+        metadata:  event.metadata  ?? {},
+      });
+    }
+
+    // Bulk insert in a single transaction (best-effort — never throws to caller)
+    if (this.db !== null) {
+      try {
+        const insert = this.db.prepare<unknown[], void>(
+          `INSERT INTO activity_events
+             (id, timestamp, event_type, category, agent_id, division, user_id,
+              severity, title, details, metadata, source, parent_id, session_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        );
+        this.db.transaction(() => {
+          for (const r of records) {
+            insert.run(
+              r.id, r.timestamp, r.event_type, r.category,
+              r.agent_id ?? null, r.division, r.user_id ?? null,
+              r.severity, r.title,
+              JSON.stringify(r.details), JSON.stringify(r.metadata),
+              r.source, r.parent_id ?? null, r.session_id ?? null,
+            );
+          }
+        })();
+      } catch (err: unknown) {
+        logger.warn(
+          "activity_batch_write_failed",
+          `Batch write of ${events.length} events failed (non-fatal)`,
+          { metadata: { error: err instanceof Error ? err.message : String(err), count: events.length } },
+        );
+      }
+    }
+
+    for (const record of records) {
+      this._notifyListeners(record);
+    }
+
+    return ids;
   }
 
   /**

@@ -38,11 +38,13 @@ const DEFAULT_RATE_CONFIG: RateLimitConfig = {};
 
 
 export interface ToolCallContext {
-  agent_id: string;
-  tier:     1 | 2 | 3;
-  division: string;
-  task_id?: string;
-  tools:    { internal: string[]; mcp: string[] };
+  agent_id:      string;
+  tier:          1 | 2 | 3;
+  division:      string;
+  task_id?:      string;
+  tools:         { internal: string[]; mcp: string[] };
+  /** Caller origin — absent or "agent" is treated as agent context (most restrictive). */
+  caller_source?: "agent" | "orchestrator";
 }
 
 export interface ToolCallResult {
@@ -262,6 +264,18 @@ export class ToolCallRouter {
       return {
         success:    false,
         error:      `Internal tool '${toolName}' not registered`,
+        duration_ms: Date.now() - startMs,
+      };
+    }
+
+    // Enforce caller restriction: orchestrator-only tools cannot be called from agent context
+    if (
+      adapter.callerRestriction === "orchestrator" &&
+      ctx.caller_source !== "orchestrator"
+    ) {
+      return {
+        success:    false,
+        error:      `Tool '${toolName}' is restricted to orchestrator-level callers`,
         duration_ms: Date.now() - startMs,
       };
     }

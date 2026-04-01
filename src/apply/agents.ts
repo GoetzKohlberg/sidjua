@@ -24,6 +24,7 @@ import { ApplyError, type StepResult } from "../types/apply.js";
 import type { Database }     from "../utils/db.js";
 import type { ParsedConfig } from "../types/config.js";
 import { logger }            from "../utils/logger.js";
+import { MAX_AGENTS_FREE }   from "../core/constants.js";
 
 
 // ---------------------------------------------------------------------------
@@ -120,6 +121,26 @@ export function parseUserAgentFile(filePath: string): AgentEntry | null {
 
 /** Upsert one agent row — idempotent (INSERT … ON CONFLICT DO UPDATE). */
 export function upsertAgentRow(db: Database, entry: AgentEntry, now: string): void {
+  // Enforce Free tier agent limit (same check as AgentRegistry.create).
+  // Only applies to NEW agents — updating an existing agent is always allowed.
+  const existing = db.prepare<[string], { id: string }>(
+    "SELECT id FROM agent_definitions WHERE id = ?",
+  ).get(entry.id);
+
+  if (existing === undefined) {
+    const countRow = db.prepare<[], { count: number }>(
+      "SELECT COUNT(*) AS count FROM agent_definitions WHERE status != 'deleted'",
+    ).get() as { count: number } | undefined;
+    const total = countRow?.count ?? 0;
+
+    if (total >= MAX_AGENTS_FREE) {
+      throw new Error(
+        `Agent limit reached (${MAX_AGENTS_FREE} for Free tier). ` +
+        `Remove unused agents or upgrade to SIDJUA Enterprise.`,
+      );
+    }
+  }
+
   db.prepare<
     [string, string, number, string, string, string, string, string, string, string, string, string, string],
     void
