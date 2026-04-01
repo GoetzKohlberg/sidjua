@@ -16,6 +16,7 @@
 
 import type { TaskEvent, CreateTaskInput, ManagementSummary } from "../tasks/types.js";
 import type { Message } from "../types/provider.js";
+import type { RoleToolConfig } from "../defaults/loader.js";
 
 // Re-export for convenience
 export type { TaskEvent, CreateTaskInput, ManagementSummary, Message };
@@ -38,6 +39,8 @@ export interface AgentDefinition {
   heartbeat_interval_ms: number;       // how often agent pings watchdog (default: 10000)
   max_retries: number;                 // restart attempts before escalation (default: 3)
   metadata: Record<string, unknown>;
+  /** Tool RBAC config from role YAML (P340/P342). Optional — populated at agent start. */
+  tools?: RoleToolConfig;
 }
 
 

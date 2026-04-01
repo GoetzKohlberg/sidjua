@@ -17,6 +17,7 @@ import { SkillLoader }       from "./skill-loader.js";
 import type { AgentDefinition, SkillDefinition } from "./types.js";
 import type { Task }          from "../tasks/types.js";
 import type { LLMMessage }    from "../providers/types.js";
+import type { LLMToolSchema } from "../tool-integration/tool-schema-builder.js";
 import { createLogger }       from "../core/logger.js";
 
 const logger = createLogger("reasoning-loop");
@@ -69,7 +70,7 @@ export class PromptBuilder {
    *   3. Constraints from skill.md
    *   4. Governance preamble
    */
-  buildSystemPrompt(agent: AgentDefinition, tools: ToolDescription[]): string {
+  buildSystemPrompt(agent: AgentDefinition, tools: ToolDescription[], externalTools?: LLMToolSchema[]): string {
     const skill = this._skillCache.get(agent.skill_file);
     const parts: string[] = [];
 
@@ -110,6 +111,18 @@ export class PromptBuilder {
       `- Do not attempt to access resources outside your division without explicit authorization.\n` +
       `- Confidence scores must be honest — do not inflate.`,
     );
+
+    // 5. External tool capabilities (injected from ToolSchemaBuilder)
+    if (externalTools !== undefined && externalTools.length > 0) {
+      const toolList = externalTools
+        .map((t) => `- **${t.function.name}**: ${t.function.description}`)
+        .join("\n");
+      parts.push(
+        `# Available Tools\n\n` +
+        `You have access to the following tools. To use a tool, call the \`use_tool\` decision ` +
+        `with the tool name and parameters.\n\n${toolList}`,
+      );
+    }
 
     return parts.join("\n\n");
   }

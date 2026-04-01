@@ -42,6 +42,8 @@ import type { MemoryManager }     from "./memory.js";
 import type { CheckpointManager } from "./checkpoint.js";
 import type { PromptBuilder }   from "./prompt-builder.js";
 import type { ActionExecutor }  from "./action-executor.js";
+import { toolSchemaBuilder }    from "../tool-integration/tool-schema-builder.js";
+import type { RbacContext }     from "../tool-integration/tool-rbac.js";
 import type { Task }            from "../tasks/types.js";
 import type { TaskStore }       from "../tasks/store.js";
 import type { TaskEventBus }    from "../tasks/event-bus.js";
@@ -163,8 +165,34 @@ export class AgentReasoningLoop {
       description: t.description,
     }));
 
+    // Build external tool schemas (internal + MCP) for this agent
+    const rbacCtx: RbacContext = {
+      agent_id: agent.id,
+      tier:     agent.tier,
+      division: agent.division,
+      tools:    agent.tools ?? { internal: [], mcp: [] },
+    };
+    const { schemas: externalTools, tokenEstimate, toolCount } = toolSchemaBuilder.buildForAgent(rbacCtx);
+
+    if (tokenEstimate > 2_000) {
+      logger.warn("tool_schema_token_budget", "Tool schemas exceed 2000 tokens — consider reducing tool assignments", {
+        metadata: { agent_id: agent.id, tools: toolCount, token_estimate: tokenEstimate },
+      });
+    }
+
+    // Truncate if over 4000-token budget (keep internal tools, trim from end)
+    const MAX_TOOL_TOKENS = 4_000;
+    if (tokenEstimate > MAX_TOOL_TOKENS) {
+      const maxSchemas = Math.floor(MAX_TOOL_TOKENS / 50);
+      const original   = externalTools.length;
+      externalTools.splice(maxSchemas);
+      logger.warn("tool_schema_truncated", "Tool schemas truncated to fit token budget", {
+        metadata: { agent_id: agent.id, kept: externalTools.length, original },
+      });
+    }
+
     // Build initial conversation
-    const systemPrompt  = promptBuilder.buildSystemPrompt(agent, toolDescriptions);
+    const systemPrompt  = promptBuilder.buildSystemPrompt(agent, toolDescriptions, externalTools);
     const memoryContext = await memoryManager.getRelevantMemories(task, 800);
     const taskPrompt    = promptBuilder.buildTaskPrompt(task, memoryContext);
 
