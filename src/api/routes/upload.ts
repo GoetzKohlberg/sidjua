@@ -13,21 +13,24 @@
 import type { Hono }    from 'hono';
 import { createLogger } from '../../core/logger.js';
 import { requireScope } from '../middleware/require-scope.js';
-import type { UploadStore } from '../../uploads/upload-store.js';
-import type { FileStorage } from '../../uploads/file-storage.js';
-import { detectMimeType }   from '../../uploads/file-storage.js';
+import type { UploadStore }        from '../../uploads/upload-store.js';
+import type { FileStorage }         from '../../uploads/file-storage.js';
+import { detectMimeType }           from '../../uploads/file-storage.js';
+import type { ExtractionService }   from '../../uploads/extraction-service.js';
 
 const logger = createLogger('upload-api');
 
 export interface UploadRouteServices {
-  uploadStore:  UploadStore;
-  fileStorage:  FileStorage;
+  uploadStore:        UploadStore;
+  fileStorage:        FileStorage;
+  /** Optional: triggers async text extraction after upload. */
+  extractionService?: ExtractionService;
   /** Optional callback: emit an SSE event after upload completes. */
-  emitEvent?:   (event: Record<string, unknown>) => void;
+  emitEvent?:         (event: Record<string, unknown>) => void;
 }
 
 export function registerUploadRoutes(app: Hono, services: UploadRouteServices): void {
-  const { uploadStore, fileStorage, emitEvent } = services;
+  const { uploadStore, fileStorage, extractionService, emitEvent } = services;
 
   /**
    * POST /api/v1/chat/:agentId/upload
@@ -89,6 +92,15 @@ export function registerUploadRoutes(app: Hono, services: UploadRouteServices): 
       logger.info('upload_complete', `Uploaded ${filename} (${buffer.length} bytes) for agent ${agentId}`, {
         metadata: { agentId, uploadId: record.id },
       });
+
+      // Fire-and-forget: extract text asynchronously after returning the response
+      if (extractionService !== undefined) {
+        void extractionService.processUpload(record.id).catch((err: unknown) => {
+          logger.error('extraction_trigger_failed', `Background extraction failed for ${record.id}`, {
+            metadata: { error: err instanceof Error ? err.message : String(err) },
+          });
+        });
+      }
 
       return c.json({
         upload_id:         record.id,

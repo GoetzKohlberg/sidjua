@@ -64,6 +64,7 @@ import { registerUploadRoutes }          from "./upload.js";
 import type { UploadRouteServices }      from "./upload.js";
 import type { UploadStore }              from "../../uploads/upload-store.js";
 import type { FileStorage }              from "../../uploads/file-storage.js";
+import type { ExtractionService }        from "../../uploads/extraction-service.js";
 import { apply }                         from "../../apply/index.js";
 
 import type { AgentRegistryLike }   from "./agents.js";
@@ -135,6 +136,8 @@ export interface AllRouteServices {
   /** P351: File upload services — optional. Routes omitted if absent. */
   uploadStore?: UploadStore | null;
   fileStorage?: FileStorage | null;
+  /** P352: Async text extraction after upload — optional. */
+  extractionService?: ExtractionService | null;
 }
 
 
@@ -224,9 +227,10 @@ export function registerAllRoutes(app: Hono, services: AllRouteServices = {}): v
   // P351: File upload in agent chats
   if (services.uploadStore != null && services.fileStorage != null) {
     registerUploadRoutes(app, {
-      uploadStore: services.uploadStore,
-      fileStorage: services.fileStorage,
-      emitEvent:   (evt) => { void sseManager.broadcast(evt as any); },
+      uploadStore:       services.uploadStore,
+      fileStorage:       services.fileStorage,
+      extractionService: services.extractionService ?? undefined,
+      emitEvent:         (evt) => { void sseManager.broadcast(evt as any); },
     });
   }
 

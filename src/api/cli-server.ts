@@ -48,6 +48,7 @@ import { TokenStore }                from "./token-store.js";
 import { chmodSync }                 from "node:fs";
 import { UploadStore }               from "../uploads/upload-store.js";
 import { FileStorage }               from "../uploads/file-storage.js";
+import { ExtractionService }         from "../uploads/extraction-service.js";
 
 import { SIDJUA_VERSION } from "../version.js";
 
@@ -408,6 +409,13 @@ export function registerServerCommands(program: Command): void {
         baseDir:      join(opts.workDir, 'data', 'uploads'),
         maxSizeBytes: 10 * 1024 * 1024,
       });
+      const extractionService = uploadStore !== null
+        ? new ExtractionService(uploadStore)
+        : null;
+      // Re-process any uploads that were pending/processing before last shutdown
+      if (extractionService !== null) {
+        void extractionService.processPending().catch((_e: unknown) => { /* best effort */ });
+      }
       registerAllRoutes(server.app, {
         db,
         workDir:      opts.workDir,
@@ -419,6 +427,7 @@ export function registerServerCommands(program: Command): void {
         getApiKey:    getActiveApiKey,
         uploadStore,
         fileStorage,
+        extractionService,
       });
 
       // ── GUI static file serving ───────────────────────────────────────────────

@@ -79,6 +79,14 @@ export class UploadStore {
     return rows.map((r) => this.mapRow(r));
   }
 
+  /** Return all uploads whose extraction_status is pending or processing. */
+  getPending(): UploadRecord[] {
+    const rows = this.db.prepare(
+      `SELECT * FROM uploads WHERE extraction_status IN ('pending', 'processing') ORDER BY uploaded_at ASC`,
+    ).all() as Record<string, unknown>[];
+    return rows.map((r) => this.mapRow(r));
+  }
+
   updateExtractionStatus(
     id: string,
     status: UploadRecord['extraction_status'],
