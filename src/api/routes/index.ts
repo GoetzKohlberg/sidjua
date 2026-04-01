@@ -60,6 +60,10 @@ import type { OrgPublicRouteServices }   from "./org-public.js";
 import { registerOrgImportRoutes }       from "./org-import.js";
 import { registerTokenRoutes }           from "./tokens.js";
 import type { TokenStore }               from "../token-store.js";
+import { registerUploadRoutes }          from "./upload.js";
+import type { UploadRouteServices }      from "./upload.js";
+import type { UploadStore }              from "../../uploads/upload-store.js";
+import type { FileStorage }              from "../../uploads/file-storage.js";
 import { apply }                         from "../../apply/index.js";
 
 import type { AgentRegistryLike }   from "./agents.js";
@@ -128,6 +132,9 @@ export interface AllRouteServices {
   getApiKey?:     () => string;
   /** P348: Glasscheibe public org chart — CORS origin (default "*"). */
   publicCorsDomain?: string;
+  /** P351: File upload services — optional. Routes omitted if absent. */
+  uploadStore?: UploadStore | null;
+  fileStorage?: FileStorage | null;
 }
 
 
@@ -211,6 +218,15 @@ export function registerAllRoutes(app: Hono, services: AllRouteServices = {}): v
       db,
       manager: sseManager,
       ...(services.publicCorsDomain !== undefined ? { corsOrigin: services.publicCorsDomain } : {}),
+    });
+  }
+
+  // P351: File upload in agent chats
+  if (services.uploadStore != null && services.fileStorage != null) {
+    registerUploadRoutes(app, {
+      uploadStore: services.uploadStore,
+      fileStorage: services.fileStorage,
+      emitEvent:   (evt) => { void sseManager.broadcast(evt as any); },
     });
   }
 

@@ -12,11 +12,13 @@ import { AgentIcon }     from '../components/shared/AgentIcon';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import type { StarterAgentsResponse, ProviderConfigResponse } from '../api/types';
 import { GUI_ERRORS } from '../i18n/gui-errors';
+import { ChatUploadZone, PaperclipButton } from '../components/chat/ChatUploadZone';
+import { FileReferenceCard }               from '../components/chat/FileReferenceCard';
 
 
 interface Message {
   id:          string;
-  role:        'user' | 'assistant' | 'tool_call' | 'tool_result';
+  role:        'user' | 'assistant' | 'tool_call' | 'tool_result' | 'file_upload';
   content:     string;
   timestamp:   string;
   isStreaming?: boolean;
@@ -24,6 +26,10 @@ interface Message {
   toolSuccess?: boolean;
   toolData?:   unknown;
   toolError?:  string | null;
+  uploadFilename?:  string;
+  uploadSize?:      number;
+  uploadMimetype?:  string;
+  uploadStatus?:    string;
 }
 
 interface StarterAgentShape {
@@ -261,6 +267,18 @@ function ToolResultCard({ message }: { message: Message }) {
 function MessageBubble({ message }: { message: Message }) {
   if (message.role === 'tool_call')   return <ToolCallCard   message={message} />;
   if (message.role === 'tool_result') return <ToolResultCard message={message} />;
+  if (message.role === 'file_upload') {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+        <FileReferenceCard
+          filename={message.uploadFilename ?? 'file'}
+          sizeBytes={message.uploadSize ?? 0}
+          mimetype={message.uploadMimetype ?? 'application/octet-stream'}
+          extractionStatus={message.uploadStatus}
+        />
+      </div>
+    );
+  }
 
   const isUser = message.role === 'user';
 
@@ -426,10 +444,14 @@ function ChatInput({
   onSend,
   disabled,
   disabledReason,
+  onOpenFilePicker,
+  uploadInProgress,
 }: {
-  onSend:         (message: string) => void;
-  disabled:       boolean;
-  disabledReason?: string;
+  onSend:           (message: string) => void;
+  disabled:         boolean;
+  disabledReason?:  string;
+  onOpenFilePicker?: () => void;
+  uploadInProgress?: boolean;
 }) {
   const [value, setValue] = useState('');
   const textareaRef       = useRef<HTMLTextAreaElement>(null);
@@ -478,6 +500,12 @@ function ChatInput({
         </div>
       )}
       <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+        {onOpenFilePicker && (
+          <PaperclipButton
+            onClick={onOpenFilePicker}
+            disabled={disabled || uploadInProgress}
+          />
+        )}
         <textarea
           ref={textareaRef}
           value={value}
@@ -925,11 +953,34 @@ export function Chat() {
       />
 
       {/* Input */}
-      <ChatInput
-        onSend={(msg) => { void handleSend(msg); }}
+      <ChatUploadZone
+        agentId={agentId}
+        conversationId={convId ?? undefined}
+        baseUrl={baseUrl}
+        authHeaders={() => client ? client.authHeaders() : {}}
+        onUploadComplete={(upload) => {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id:              crypto.randomUUID(),
+              role:            'file_upload' as const,
+              content:         '',
+              timestamp:       new Date().toISOString(),
+              uploadFilename:  upload.filename,
+              uploadSize:      upload.size_bytes,
+              uploadMimetype:  upload.mimetype,
+              uploadStatus:    upload.extraction_status,
+            },
+          ]);
+        }}
         disabled={inputDisabled || isStreaming}
-        disabledReason={inputDisabledMsg}
-      />
+      >
+        <ChatInput
+          onSend={(msg) => { void handleSend(msg); }}
+          disabled={inputDisabled || isStreaming}
+          disabledReason={inputDisabledMsg}
+        />
+      </ChatUploadZone>
     </div>
   );
 }

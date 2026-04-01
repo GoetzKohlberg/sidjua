@@ -46,6 +46,8 @@ import { bootstrapOrchestrator }     from "../orchestrator/bootstrap.js";
 import type { OrchestratorProcess }  from "../orchestrator/orchestrator.js";
 import { TokenStore }                from "./token-store.js";
 import { chmodSync }                 from "node:fs";
+import { UploadStore }               from "../uploads/upload-store.js";
+import { FileStorage }               from "../uploads/file-storage.js";
 
 import { SIDJUA_VERSION } from "../version.js";
 
@@ -401,6 +403,11 @@ export function registerServerCommands(program: Command): void {
       }
 
       // ── Register all API routes (agents, tasks, costs, audit, etc.) ──────────
+      const uploadStore  = db !== null ? new UploadStore(db) : null;
+      const fileStorage  = new FileStorage({
+        baseDir:      join(opts.workDir, 'data', 'uploads'),
+        maxSizeBytes: 10 * 1024 * 1024,
+      });
       registerAllRoutes(server.app, {
         db,
         workDir:      opts.workDir,
@@ -410,6 +417,8 @@ export function registerServerCommands(program: Command): void {
         integration:  null,
         tokenStore,
         getApiKey:    getActiveApiKey,
+        uploadStore,
+        fileStorage,
       });
 
       // ── GUI static file serving ───────────────────────────────────────────────

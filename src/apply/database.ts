@@ -208,7 +208,41 @@ const V3_ORG_CHART: DbMigration = {
   `,
 };
 
-export const MIGRATIONS: DbMigration[] = [V1_INITIAL, V2_COST_TYPE, V3_ORG_CHART];
+/**
+ * V4: uploads table for P351 Chat File Upload Handler.
+ * Stores metadata for files uploaded via the chat interface.
+ */
+const V4_UPLOADS: DbMigration = {
+  version: "4.0",
+  description: "P351: add uploads table for chat file upload handler",
+  up: `
+    CREATE TABLE IF NOT EXISTS uploads (
+      id                TEXT PRIMARY KEY,
+      agent_id          TEXT NOT NULL,
+      conversation_id   TEXT,
+      filename          TEXT NOT NULL,
+      mimetype          TEXT NOT NULL,
+      size_bytes        INTEGER NOT NULL,
+      file_path         TEXT NOT NULL,
+      extracted_text    TEXT,
+      extraction_status TEXT DEFAULT 'pending',
+      embedded          INTEGER DEFAULT 0,
+      qdrant_point_ids  TEXT,
+      uploaded_at       TEXT DEFAULT (datetime('now')),
+      uploaded_by       TEXT DEFAULT 'user'
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_uploads_agent        ON uploads(agent_id);
+    CREATE INDEX IF NOT EXISTS idx_uploads_conversation ON uploads(conversation_id);
+  `,
+  down: `
+    DROP INDEX IF EXISTS idx_uploads_conversation;
+    DROP INDEX IF EXISTS idx_uploads_agent;
+    DROP TABLE IF EXISTS uploads;
+  `,
+};
+
+export const MIGRATIONS: DbMigration[] = [V1_INITIAL, V2_COST_TYPE, V3_ORG_CHART, V4_UPLOADS];
 
 
 /**
