@@ -25,7 +25,13 @@ import { initTaskEventBridge }         from "../core/activity/bridges/task-event
 import { ToolRegistry }                from "../tool-integration/tool-registry.js";
 import { ToolManager }                 from "../tool-integration/tool-manager.js";
 import { InternalToolAdapter }         from "../tool-integration/adapters/internal-adapter.js";
-import { INTERNAL_TOOLS_SYSTEM }       from "../tool-integration/internal/index.js";
+import { ALL_INTERNAL_TOOLS }          from "../tool-integration/internal/index.js";
+import { setAuditToolDb }              from "../tool-integration/internal/audit-trail.js";
+import { setBudgetToolDb }             from "../tool-integration/internal/read-budget.js";
+import { setSpendingToolDb }           from "../tool-integration/internal/read-spending.js";
+import { setWriteBudgetToolDb }        from "../tool-integration/internal/write-budget.js";
+import { setKnowledgeSearchDb }        from "../tool-integration/internal/search-knowledge-base.js";
+import { setDocumentsToolDb }          from "../tool-integration/internal/list-documents.js";
 
 const logger = createLogger("orchestrator-bootstrap");
 
@@ -99,8 +105,15 @@ export async function bootstrapOrchestrator(
 
   // Register internal (native) tools — best-effort, non-fatal
   try {
-    const registry   = new ToolRegistry(db);
+    const registry    = new ToolRegistry(db);
     const toolManager = new ToolManager(db, registry);
+    // Inject DB references for tools that query the database directly
+    setAuditToolDb(db);
+    setBudgetToolDb(db);
+    setSpendingToolDb(db);
+    setWriteBudgetToolDb(db);
+    setDocumentsToolDb(db);    // list-documents
+    setKnowledgeSearchDb(db);  // enable FTS fallback search in search-knowledge-base
     registerInternalTools(registry, toolManager);
   } catch (_e) { /* non-fatal — orchestrator runs without tools if migrations haven't run */ }
 
@@ -115,7 +128,7 @@ export function registerInternalTools(
   registry: ToolRegistry,
   toolManager: ToolManager,
 ): void {
-  for (const def of INTERNAL_TOOLS_SYSTEM) {
+  for (const def of ALL_INTERNAL_TOOLS) {
     // Check if already registered (getById throws if not found)
     let exists = false;
     try { registry.getById(def.id); exists = true; } catch (_e) { /* not found */ }
