@@ -21,7 +21,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup && mkdir -p dist/roles dist/divisions dist/knowledge dist/i18n/messages locales && cp src/i18n/messages/en.json dist/i18n/messages/en.json && cp src/core/backup-checkpoint-worker.cjs dist/backup-checkpoint-worker.cjs && cp src/defaults/roles/*.yaml dist/roles/ && cp src/defaults/divisions/*.yaml dist/divisions/ && cp src/defaults/knowledge/*.md dist/knowledge/ && cp src/defaults/approved-providers.json dist/ && cp src/locales/*.json locales/ && node -e \"const v=JSON.parse(require('fs').readFileSync('package.json','utf8')).version;require('fs').writeFileSync('dist/.version',v);\"",
+    "build": "tsup && mkdir -p dist/roles dist/divisions dist/knowledge dist/i18n/messages locales && cp src/i18n/messages/en.json dist/i18n/messages/en.json && cp src/core/backup-checkpoint-worker.cjs dist/backup-checkpoint-worker.cjs && cp src/defaults/roles/*.yaml dist/roles/ && cp src/defaults/divisions/*.yaml dist/divisions/ && cp src/defaults/knowledge/*.md dist/knowledge/ && cp src/defaults/approved-providers.json dist/ && mkdir -p dist/defaults && cp src/defaults/org-chart-default.json dist/defaults/ && cp src/locales/*.json locales/ && node -e \"const v=JSON.parse(require('fs').readFileSync('package.json','utf8')).version;require('fs').writeFileSync('dist/.version',v);\"",
     "dev": "tsup --watch",
     "test": "vitest run",
     "test:watch": "vitest",

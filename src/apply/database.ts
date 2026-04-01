@@ -25,6 +25,7 @@ import { ApplyError, type StepResult } from "../types/apply.js";
 import { openDatabase, runMigrations, type Database, type DbMigration } from "../utils/db.js";
 import { loadDefaultDivisions } from "../defaults/loader.js";
 import { logger } from "../utils/logger.js";
+import { seedOrgChart, assignOrphanAgents } from "../org-chart/org-chart-seeder.js";
 
 
 const V1_INITIAL: DbMigration = {
@@ -259,6 +260,9 @@ export function applyDatabase(
     if (!agentColNames.has("role_title")) {
       db.exec("ALTER TABLE agents ADD COLUMN role_title TEXT");
     }
+    if (!agentColNames.has("org_level")) {
+      db.exec("ALTER TABLE agents ADD COLUMN org_level INTEGER");
+    }
     // Only create the index once all columns exist
     if (!agentColNames.has("reports_to")) {
       db.exec("CREATE INDEX IF NOT EXISTS idx_agents_reports_to ON agents(reports_to)");
@@ -286,10 +290,16 @@ export function applyDatabase(
     const budgetsInitialised = ensureBudgetRows(db, config);
     logger.info("DATABASE", `Budget rows initialised: ${budgetsInitialised}`);
 
+    // Seed org chart hierarchy (C-level positions for core agents) — idempotent
+    const orgSeeded       = seedOrgChart(db);
+    const orphansAssigned = assignOrphanAgents(db);
+    logger.info("DATABASE", `Org chart: ${orgSeeded} agents positioned, ${orphansAssigned} orphans assigned`);
+
     const summary =
       `${migrationsApplied} migrations applied, ` +
       `${inserted + updated} divisions synced, ` +
-      `${budgetsInitialised} budget rows`;
+      `${budgetsInitialised} budget rows, ` +
+      `${orgSeeded} org positions`;
 
     return {
       result: {
@@ -297,7 +307,7 @@ export function applyDatabase(
         success: true,
         duration_ms: Date.now() - start,
         summary,
-        details: { migrationsApplied, inserted, updated, deactivated, budgetsInitialised },
+        details: { migrationsApplied, inserted, updated, deactivated, budgetsInitialised, orgSeeded, orphansAssigned },
       },
       db,
     };

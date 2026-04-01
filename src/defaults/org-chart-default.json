@@ -1,0 +1,58 @@
+{
+  "$schema": "org-chart-default",
+  "version": "1.0",
+  "description": "Default C-Suite mapping for the 6 core SIDJUA agents",
+  "root": {
+    "id": "ceo",
+    "name": "CEO",
+    "role_title": "Chief Executive Officer",
+    "org_level": 0,
+    "type": "human"
+  },
+  "agents": [
+    {
+      "match": { "division": "it", "fallback_name": "IT" },
+      "role_title": "Chief Technology Officer",
+      "reports_to_root": true,
+      "org_level": 1
+    },
+    {
+      "match": { "division": "guide", "fallback_name": "Guide" },
+      "role_title": "Chief of Staff",
+      "reports_to_root": true,
+      "org_level": 1
+    },
+    {
+      "match": { "division": "finance", "fallback_name": "Finance" },
+      "role_title": "Chief Financial Officer",
+      "reports_to_root": true,
+      "org_level": 1
+    },
+    {
+      "match": { "division": "auditor", "fallback_name": "Auditor" },
+      "role_title": "Chief Compliance Officer",
+      "reports_to_root": true,
+      "org_level": 1
+    },
+    {
+      "match": { "division": "hr", "fallback_name": "HR" },
+      "role_title": "Chief Human Resources Officer",
+      "reports_to_root": true,
+      "org_level": 1
+    },
+    {
+      "match": { "division": "librarian", "fallback_name": "Librarian" },
+      "role_title": "Chief Knowledge Officer",
+      "reports_to_root": true,
+      "org_level": 1
+    }
+  ],
+  "divisions_hierarchy": [
+    { "code": "it",        "parent_division_code": null, "budget_allocation": 0.25 },
+    { "code": "guide",     "parent_division_code": null, "budget_allocation": 0.10 },
+    { "code": "finance",   "parent_division_code": null, "budget_allocation": 0.15 },
+    { "code": "auditor",   "parent_division_code": null, "budget_allocation": 0.15 },
+    { "code": "hr",        "parent_division_code": null, "budget_allocation": 0.15 },
+    { "code": "librarian", "parent_division_code": null, "budget_allocation": 0.20 }
+  ]
+}
