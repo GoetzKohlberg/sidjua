@@ -39,10 +39,12 @@ const logger = createLogger("api-server");
 // token is needed at the middleware layer.  Unauthenticated requests without a
 // valid ticket are rejected by the handler with AUTH-001.
 // /api/v1/org/public is the Glasscheibe unauthenticated org-chart endpoint (P348).
+// /widget/glasscheibe.js is the embeddable widget script (P349).
 const PUBLIC_PATHS = new Set([
   "/api/v1/health",
   "/api/v1/events",
   "/api/v1/org/public",
+  "/widget/glasscheibe.js",
 ]);
 
 /** Path prefixes that bypass authentication (GUI static files, SPA routes) */
@@ -52,6 +54,8 @@ const PUBLIC_PREFIXES = [
   "/api/v1/starter-agents", "/api/v1/starter-divisions",
   // Glasscheibe sub-paths (e.g. /api/v1/org/public/live)
   "/api/v1/org/public/",
+  // Embeddable widget files (future /widget/* assets are also public)
+  "/widget/",
 ];
 
 /**
