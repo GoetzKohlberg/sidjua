@@ -24,4 +24,5 @@ role:
       - search_mcp_registry
       - install_mcp_server
       - configure_mcp_server
+      - import_org_chart
     mcp: []

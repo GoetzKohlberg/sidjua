@@ -33,6 +33,7 @@ import { ingestDocumentTool }      from "./ingest-document.js";
 import { searchMcpRegistryTool }  from "./mcp-registry-search.js";
 import { installMcpServerTool }   from "./mcp-installer.js";
 import { configureMcpServerTool } from "./mcp-configurator.js";
+import { importOrgChartTool }     from "./import-org-chart.js";
 
 // ── Exports ────────────────────────────────────────────────────────────────
 
@@ -60,14 +61,15 @@ export const INTERNAL_TOOLS_KNOWLEDGE: InternalToolDef[] = [
   ingestDocumentTool,
 ];
 
-/** HR/MCP-App-Store internal tools (P344). */
+/** HR/MCP-App-Store internal tools (P344/P350). */
 export const INTERNAL_TOOLS_HR: InternalToolDef[] = [
   searchMcpRegistryTool,
   installMcpServerTool,
   configureMcpServerTool,
+  importOrgChartTool,
 ];
 
-/** All 15 internal tools. */
+/** All 16 internal tools. */
 export const ALL_INTERNAL_TOOLS: InternalToolDef[] = [
   ...INTERNAL_TOOLS_SYSTEM,
   ...INTERNAL_TOOLS_GOVERNANCE,
@@ -91,4 +93,5 @@ export {
   searchMcpRegistryTool,
   installMcpServerTool,
   configureMcpServerTool,
+  importOrgChartTool,
 };

@@ -57,6 +57,7 @@ export type { ScheduleRouteServices, CronSchedulerLike, ScheduleTaskStoreLike };
 import { registerOrgChartRoutes }        from "./org-chart.js";
 import { registerOrgPublicRoutes }       from "./org-public.js";
 import type { OrgPublicRouteServices }   from "./org-public.js";
+import { registerOrgImportRoutes }       from "./org-import.js";
 import { registerTokenRoutes }           from "./tokens.js";
 import type { TokenStore }               from "../token-store.js";
 import { apply }                         from "../../apply/index.js";
@@ -93,6 +94,7 @@ export {
   registerEventRoutes,
   registerOrgChartRoutes,
   registerOrgPublicRoutes,
+  registerOrgImportRoutes,
 };
 
 
@@ -145,6 +147,7 @@ export function registerAllRoutes(app: Hono, services: AllRouteServices = {}): v
     registerTaskRoutes(app,              { db });
     registerDivisionRoutes(app,          { db });
     registerOrgChartRoutes(app,          { db });
+    registerOrgImportRoutes(app,         { db });
     registerCostRoutes(app,              { db });
     registerAuditRoutes(app,             { db });
     registerExecutionRoutes(app,         { db, ...(services.eventBus != null ? { eventBus: services.eventBus } : {}) });
