@@ -1,0 +1,33 @@
+{
+  "version": "1.0",
+  "updated": "2026-04-01",
+  "global": [
+    { "id": "filesystem",          "name": "Filesystem",          "package": "@modelcontextprotocol/server-filesystem",         "tags": ["files", "read", "write"] },
+    { "id": "github",              "name": "GitHub",              "package": "@modelcontextprotocol/server-github",             "tags": ["git", "code", "issues", "pr"] },
+    { "id": "gitlab",              "name": "GitLab",              "package": "@modelcontextprotocol/server-gitlab",             "tags": ["git", "code", "ci"] },
+    { "id": "slack",               "name": "Slack",               "package": "@modelcontextprotocol/server-slack",              "tags": ["chat", "messaging", "team"] },
+    { "id": "google-drive",        "name": "Google Drive",        "package": "@modelcontextprotocol/server-gdrive",             "tags": ["files", "docs", "cloud"] },
+    { "id": "google-sheets",       "name": "Google Sheets",       "package": "@modelcontextprotocol/server-google-sheets",      "tags": ["spreadsheet", "data"] },
+    { "id": "notion",              "name": "Notion",              "package": "@modelcontextprotocol/server-notion",             "tags": ["wiki", "docs", "project"] },
+    { "id": "postgres",            "name": "PostgreSQL",          "package": "@modelcontextprotocol/server-postgres",           "tags": ["database", "sql"] },
+    { "id": "sqlite",              "name": "SQLite",              "package": "@modelcontextprotocol/server-sqlite",             "tags": ["database", "sql", "local"] },
+    { "id": "brave-search",        "name": "Brave Search",        "package": "@modelcontextprotocol/server-brave-search",       "tags": ["search", "web"] },
+    { "id": "puppeteer",           "name": "Puppeteer",           "package": "@modelcontextprotocol/server-puppeteer",          "tags": ["browser", "web", "scraping"] },
+    { "id": "memory",              "name": "Memory",              "package": "@modelcontextprotocol/server-memory",             "tags": ["knowledge", "memory", "graph"] },
+    { "id": "sequential-thinking", "name": "Sequential Thinking", "package": "@modelcontextprotocol/server-sequential-thinking", "tags": ["reasoning", "chain"] },
+    { "id": "fetch",               "name": "Fetch",               "package": "@modelcontextprotocol/server-fetch",              "tags": ["http", "api", "web"] },
+    { "id": "docker",              "name": "Docker",              "package": "@modelcontextprotocol/server-docker",             "tags": ["containers", "devops"] },
+    { "id": "kubernetes",          "name": "Kubernetes",          "package": "@modelcontextprotocol/server-kubernetes",         "tags": ["k8s", "containers", "orchestration"] },
+    { "id": "aws",                 "name": "AWS",                 "package": "mcp-server-aws",                                 "tags": ["cloud", "aws", "s3", "ec2"] },
+    { "id": "stripe",              "name": "Stripe",              "package": "@modelcontextprotocol/server-stripe",             "tags": ["payments", "billing"] },
+    { "id": "linear",              "name": "Linear",              "package": "mcp-server-linear",                              "tags": ["project", "issues", "agile"] },
+    { "id": "todoist",             "name": "Todoist",             "package": "mcp-server-todoist",                             "tags": ["tasks", "todo"] }
+  ],
+  "china": [
+    { "id": "feishu",       "name": "Feishu (Lark)",   "package": "mcp-server-feishu",       "tags": ["chat", "docs", "china"] },
+    { "id": "dingtalk",     "name": "DingTalk",        "package": "mcp-server-dingtalk",     "tags": ["chat", "messaging", "china"] },
+    { "id": "baidu-search", "name": "Baidu Search",    "package": "mcp-server-baidu",        "tags": ["search", "web", "china"] },
+    { "id": "wechat-work",  "name": "WeChat Work",     "package": "mcp-server-wechat-work",  "tags": ["chat", "enterprise", "china"] },
+    { "id": "aliyun",       "name": "Alibaba Cloud",   "package": "mcp-server-aliyun",       "tags": ["cloud", "china"] }
+  ]
+}

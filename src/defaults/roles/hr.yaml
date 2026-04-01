@@ -20,5 +20,8 @@ role:
     min_quality: "B+"
     suggested: "groq-llama70b-free"
   tools:
-    internal: []
+    internal:
+      - search_mcp_registry
+      - install_mcp_server
+      - configure_mcp_server
     mcp: []

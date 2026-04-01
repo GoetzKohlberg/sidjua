@@ -3,7 +3,7 @@
 // Dual licensed: AGPL-3.0 + SIDJUA Commercial License. See LICENSE.
 
 /**
- * Internal Tool Index — Part 1 (IT/System) + Part 2 (Governance + Knowledge).
+ * Internal Tool Index — Part 1 (IT/System) + Part 2 (Governance + Knowledge) + Part 3 (HR).
  *
  * These tools are registered automatically during orchestrator bootstrap
  * and are available to any agent with tool access.
@@ -28,6 +28,11 @@ import { writeBudgetTool }         from "./write-budget.js";
 import { searchKnowledgeBaseTool } from "./search-knowledge-base.js";
 import { listDocumentsTool }       from "./list-documents.js";
 import { ingestDocumentTool }      from "./ingest-document.js";
+
+// ── Part 3: HR / MCP App Store ─────────────────────────────────────────────
+import { searchMcpRegistryTool }  from "./mcp-registry-search.js";
+import { installMcpServerTool }   from "./mcp-installer.js";
+import { configureMcpServerTool } from "./mcp-configurator.js";
 
 // ── Exports ────────────────────────────────────────────────────────────────
 
@@ -55,11 +60,19 @@ export const INTERNAL_TOOLS_KNOWLEDGE: InternalToolDef[] = [
   ingestDocumentTool,
 ];
 
-/** All 12 internal tools. */
+/** HR/MCP-App-Store internal tools (P344). */
+export const INTERNAL_TOOLS_HR: InternalToolDef[] = [
+  searchMcpRegistryTool,
+  installMcpServerTool,
+  configureMcpServerTool,
+];
+
+/** All 15 internal tools. */
 export const ALL_INTERNAL_TOOLS: InternalToolDef[] = [
   ...INTERNAL_TOOLS_SYSTEM,
   ...INTERNAL_TOOLS_GOVERNANCE,
   ...INTERNAL_TOOLS_KNOWLEDGE,
+  ...INTERNAL_TOOLS_HR,
 ];
 
 export {
@@ -75,4 +88,7 @@ export {
   searchKnowledgeBaseTool,
   listDocumentsTool,
   ingestDocumentTool,
+  searchMcpRegistryTool,
+  installMcpServerTool,
+  configureMcpServerTool,
 };
