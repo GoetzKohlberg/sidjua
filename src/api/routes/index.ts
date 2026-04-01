@@ -31,6 +31,7 @@ import { registerSecretRoutes }      from "./secrets.js";
 import { registerSseTicketRoutes }   from "./sse-ticket.js";
 import { registerEventRoutes }       from "./events.js";
 import { EventStreamManager }        from "../sse/event-stream.js";
+import { initSseActivityBridge }     from "../../core/activity/bridges/sse-activity-bridge.js";
 import { registerSelftestApiRoutes }  from "./selftest.js";
 import { registerIntegrationRoutes }  from "./integration.js";
 import type { IntegrationRouteServices } from "./integration.js";
@@ -185,6 +186,7 @@ export function registerAllRoutes(app: Hono, services: AllRouteServices = {}): v
 
   // SSE events stream (consumes tickets, sends real-time events to EventSource clients)
   const sseManager = new EventStreamManager();
+  initSseActivityBridge((e) => { void sseManager.broadcast(e); });
   registerEventRoutes(app, {
     getApiKey: services.getApiKey ?? (() => ""),
     manager:   sseManager,

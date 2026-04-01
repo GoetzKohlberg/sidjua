@@ -28,8 +28,10 @@ import { loadKeyState, persistKeyState } from "./key-store.js";
 import { registerAllRoutes } from "./routes/index.js";
 import { openDatabase } from "../utils/db.js";
 import { AgentRegistry } from "../agent-lifecycle/agent-registry.js";
-import { runMigrations105 }   from "../agent-lifecycle/migration.js";
-import { runAuditMigrations } from "../core/audit/audit-migrations.js";
+import { runMigrations105 }        from "../agent-lifecycle/migration.js";
+import { runAuditMigrations }      from "../core/audit/audit-migrations.js";
+import { runActivityMigrations }   from "../core/activity/activity-migrations.js";
+import { activityEmitter }         from "../core/activity/activity-emitter.js";
 // DUAL PATH: start.ts (CLI foreground) runs the same migrations. Changes here MUST be mirrored there.
 import {
   createApiServer,
@@ -270,6 +272,8 @@ export function registerServerCommands(program: Command): void {
       const db       = openDatabase(dbPath);
       runMigrations105(db);
       runAuditMigrations(db);
+      runActivityMigrations(db);
+      activityEmitter.init(db);
       const registry = new AgentRegistry(db);
 
       // Diagnostic: warn if no agents registered (apply likely not run yet)

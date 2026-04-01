@@ -34,7 +34,9 @@ export type SSEEventType =
   | "cost:budget_exceeded"
   // System events
   | "system:health_changed"
-  | "system:error";
+  | "system:error"
+  // Activity stream events
+  | "activity:created";
 
 
 export interface SSEEvent {

@@ -21,6 +21,7 @@ import type { OrchestratorConfig, OrchestratorConfigRaw } from "./types.js";
 import type { Database }               from "../utils/db.js";
 import { readYamlFile }                from "../utils/yaml.js";
 import { createLogger }                from "../core/logger.js";
+import { initTaskEventBridge }         from "../core/activity/bridges/task-event-bridge.js";
 
 const logger = createLogger("orchestrator-bootstrap");
 
@@ -79,6 +80,7 @@ export async function bootstrapOrchestrator(
   };
 
   const eventBus    = new TaskEventBus(db);
+  initTaskEventBridge(eventBus);
   const orchestrator = new OrchestratorProcess(db, eventBus, config);
 
   logger.info("orchestrator-bootstrap", "Starting orchestrator", {

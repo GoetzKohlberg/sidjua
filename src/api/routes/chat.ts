@@ -29,6 +29,7 @@ import { getToolDefinitions,
 import type { AgentVisibilityContext } from "./agent-tools.js";
 import type { Database }           from "better-sqlite3";
 import { runAuditMigrations }      from "../../core/audit/audit-migrations.js";
+import { bridgeAuditEvent }        from "../../core/activity/bridges/audit-event-bridge.js";
 
 const logger = createLogger("chat-routes");
 
@@ -88,6 +89,14 @@ function writeAuditEvent(
          (id, agent_id, division, event_type, rule_id, action, severity, details)
        VALUES (?, ?, '', ?, '', ?, 'low', ?)`,
     ).run(randomUUID(), agentId, eventType, action, JSON.stringify(details));
+    bridgeAuditEvent({
+      agent_id:   agentId,
+      division:   "",
+      event_type: eventType,
+      action,
+      severity:   "low",
+      details:    JSON.stringify(details),
+    });
   } catch (_e) {
     logger.warn("chat-routes", "audit write failed", {
       metadata: { eventType, agentId, error: _e instanceof Error ? _e.message : String(_e) },

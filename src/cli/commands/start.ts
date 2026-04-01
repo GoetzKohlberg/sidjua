@@ -47,6 +47,8 @@ import { SIDJUA_VERSION }             from "../../version.js";
 import { CheckpointTimer }            from "../../orchestrator/checkpoint-timer.js";
 import { runMigrations105 }           from "../../agent-lifecycle/migration.js";
 import { runAuditMigrations }         from "../../core/audit/audit-migrations.js";
+import { runActivityMigrations }      from "../../core/activity/activity-migrations.js";
+import { activityEmitter }            from "../../core/activity/activity-emitter.js";
 // DUAL PATH: cli-server.ts (Docker) runs the same migrations. Changes here MUST be mirrored there.
 import { bootstrapOrchestrator }      from "../../orchestrator/bootstrap.js";
 import type { OrchestratorProcess }   from "../../orchestrator/orchestrator.js";
@@ -200,6 +202,8 @@ export async function runStartCommand(opts: StartCommandOptions): Promise<number
     // DUAL PATH: cli-server.ts (Docker) runs the same migrations. Keep in sync.
     runMigrations105(db);
     runAuditMigrations(db);
+    runActivityMigrations(db);
+    activityEmitter.init(db);
     const registry = db !== null ? new AgentRegistry(db) : undefined;
 
     // DUAL PATH: cli-server.ts (Docker) does the same. Changes here MUST be mirrored there.

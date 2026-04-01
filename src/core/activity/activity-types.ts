@@ -1,0 +1,66 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Copyright (c) 2026 Götz Kohlberg. All rights reserved.
+// Dual licensed: AGPL-3.0 + SIDJUA Commercial License. See LICENSE.
+
+/**
+ * SIDJUA — Activity Stream: Type Definitions
+ *
+ * Foundation types for the unified activity stream (P336).
+ * API endpoints and digest types are in P337.
+ */
+
+
+export type ActivityCategory =
+  | 'task' | 'agent' | 'chat' | 'governance'
+  | 'config' | 'budget' | 'document' | 'system'
+  | 'security' | 'external';
+
+export type ActivitySeverity = 'debug' | 'info' | 'warning' | 'error' | 'critical';
+export type ActivitySource    = 'internal' | 'webhook' | 'system' | 'user';
+
+
+export interface ActivityEvent {
+  event_type:  string;
+  category:    ActivityCategory;
+  agent_id?:   string | undefined;
+  division?:   string;
+  user_id?:    string | undefined;
+  severity?:   ActivitySeverity;
+  title:       string;
+  details?:    Record<string, unknown>;
+  metadata?:   Record<string, unknown>;
+  source?:     ActivitySource;
+  parent_id?:  string | undefined;
+  session_id?: string | undefined;
+}
+
+export interface ActivityRecord extends ActivityEvent {
+  id:        string;
+  timestamp: string;
+  // Guaranteed non-optional after storage
+  severity:  ActivitySeverity;
+  division:  string;
+  source:    ActivitySource;
+  details:   Record<string, unknown>;
+  metadata:  Record<string, unknown>;
+}
+
+export interface ActivityFilters {
+  since?:      string;
+  until?:      string;
+  category?:   ActivityCategory;
+  agent_id?:   string;
+  division?:   string;
+  severity?:   ActivitySeverity;
+  source?:     ActivitySource;
+  event_type?: string;
+  session_id?: string;
+  limit?:      number;
+  offset?:     number;
+}
+
+export interface TimelineEntry {
+  bucket:     string;
+  count:      number;
+  categories: Partial<Record<ActivityCategory, number>>;
+}

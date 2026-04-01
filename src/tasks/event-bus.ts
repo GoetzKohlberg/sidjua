@@ -73,6 +73,8 @@ function rowToEvent(row: EventDbRow): TaskEvent {
 export class TaskEventBus implements EventBus {
   private readonly subscribers = new Map<string, (event: TaskEvent) => void>();
   private readonly stringHandlers = new Map<string, Array<(data: unknown) => void>>();
+  /** Global listeners — notified for every emitTask() call (used by activity bridge). */
+  private readonly globalListeners: Array<(event: TaskEvent) => void> = [];
 
   constructor(
     private readonly db: Database,
@@ -190,6 +192,11 @@ export class TaskEventBus implements EventBus {
       }
     }
 
+    // Notify global (wildcard) listeners — used by activity stream bridge
+    for (const cb of this.globalListeners) {
+      Promise.resolve().then(() => cb(event)).catch(() => undefined);
+    }
+
     return id;
   }
 
@@ -236,6 +243,15 @@ export class TaskEventBus implements EventBus {
   /** Remove subscription for an agent. */
   unsubscribe(agentId: string): void {
     this.subscribers.delete(agentId);
+  }
+
+  /**
+   * Subscribe to ALL task events (wildcard).
+   * Called by the activity stream bridge — multiple callers are allowed.
+   * Callback is invoked asynchronously after emitTask() persists the event.
+   */
+  subscribeAll(callback: (event: TaskEvent) => void): void {
+    this.globalListeners.push(callback);
   }
 
   /**
