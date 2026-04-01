@@ -123,9 +123,10 @@ function getMasterKey(): Buffer {
         try {
           const mode = statSync(keyPath).mode & 0o777;
           if (mode !== 0o600) {
-            logger.warn("provider_config", `Master key file has insecure permissions (${mode.toString(8)}, expected 600)`, {
+            logger.warn("provider_config", `Master key file has insecure permissions (${mode.toString(8)}, expected 600) — repairing`, {
               metadata: { path: keyPath },
             });
+            chmodSync(keyPath, 0o600);
           }
         } catch (_statErr) { /* non-fatal */ }
       }

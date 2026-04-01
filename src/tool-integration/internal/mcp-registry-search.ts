@@ -44,7 +44,7 @@ function searchSeedCatalog(query: string): Array<Record<string, unknown>> {
   let catalog: SeedCatalog;
   try {
     catalog = loadSeedCatalog();
-  } catch {
+  } catch (_e) {
     return [];
   }
 

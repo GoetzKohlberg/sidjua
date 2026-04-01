@@ -225,6 +225,13 @@ export class VersionArchiveManager {
       return { currentVersion: "unknown", versions: [] };
     }
     try {
+      const sizeBytes = statSync(this.manifestPath).size;
+      if (sizeBytes > 128 * 1024) {
+        logger.warn("version-archive", `Version manifest exceeds 128 KB (${sizeBytes} bytes) — starting fresh`, {
+          metadata: { path: this.manifestPath, sizeBytes },
+        });
+        return { currentVersion: "unknown", versions: [] };
+      }
       const raw = readFileSync(this.manifestPath, "utf-8");
       return JSON.parse(raw) as VersionManifest;
     } catch (e: unknown) {

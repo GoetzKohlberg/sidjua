@@ -153,20 +153,19 @@ function maskSource(source: string): string {
 }
 
 /**
- * Mask an actual API key for display — show ONLY the last 4 characters.
+ * Mask an actual API key for display — show NO actual characters.
  *
- * Previous implementation exposed the first 8 characters,
- * which for short keys (16 chars) revealed 75% of the key material and for
- * all keys revealed provider-identifying prefix information.
+ * Showing even trailing characters can reveal key-family versioning info
+ * and reduces brute-force search space.
  *
  * Rules:
- *   - Show only the last 4 characters, everything else is asterisks.
- *   - Keys 4 chars or shorter → full mask `****`.
- *   - Minimum 4 asterisks prefix regardless of key length.
+ *   - All characters are replaced with asterisks.
+ *   - Minimum 8 asterisks regardless of key length (avoids leaking exact length
+ *     for short keys while still indicating the field is populated).
  *
- * @example maskKey("sk-ant-abcdefghijklmn1234") → "************************1234"
+ * @example maskKey("sk-ant-abcdefghijklmn1234") → "************************"
  */
 export function maskKey(key: string): string {
-  if (key.length <= 4) return "****";
-  return "*".repeat(Math.max(key.length - 4, 4)) + key.slice(-4);
+  if (key.length === 0) return "****";
+  return "*".repeat(Math.max(key.length, 8));
 }

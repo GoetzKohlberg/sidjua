@@ -32,7 +32,7 @@ export function detectChinaBundle(): boolean {
   try {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     if (CHINA_TIMEZONES.has(tz)) return true;
-  } catch {
+  } catch (_e) {
     // Intl unavailable — skip
   }
 

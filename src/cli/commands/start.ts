@@ -645,7 +645,7 @@ function serveIndexHtmlWithBootstrap(
     return c.text("Not found", 404);
   }
   try {
-    assertWithinDirectory(realPath, guiDist);
+    assertWithinDirectory(realPath, realpathSync(guiDist));
   } catch (_e) {
     return c.text("Forbidden", 403);
   }
@@ -658,9 +658,10 @@ function serveIndexHtmlWithBootstrap(
   let serverUrl = "";
   try { serverUrl = new URL(c.req.url).origin; } catch (_err) { /* non-fatal */ }
 
-  const payload = isLocal
+  const payload = (isLocal
     ? JSON.stringify({ api_key: getApiKey(), server_url: serverUrl })
-    : JSON.stringify({});
+    : JSON.stringify({})
+  ).replace(/</g, "\\u003c");
 
   const script = `<script>window.__SIDJUA_BOOTSTRAP__ = ${payload};</script>`;
   const html   = readFileSync(realPath, "utf-8").replace("</head>", `  ${script}\n  </head>`);
@@ -685,7 +686,7 @@ function serveGuiFile(c: Context, dir: string, filename: string) {
   }
 
   try {
-    assertWithinDirectory(realPath, dir);
+    assertWithinDirectory(realPath, realpathSync(dir));
   } catch (_e) {
     return c.text("Forbidden", 403);
   }
