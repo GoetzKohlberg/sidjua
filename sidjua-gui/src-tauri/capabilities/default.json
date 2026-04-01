@@ -1,11 +1,26 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Minimal window permissions. No shell, filesystem, HTTP, dialog, clipboard, or notification plugin permissions are granted. All plugin access is deny-by-default in Tauri v2.",
+  "description": "SIDJUA Desktop — monitoring dashboard capabilities. Only window management and internal event IPC are granted. No filesystem, shell, clipboard, HTTP plugin, dialog, notification, or process permissions are allowed. HTTP API access to the SIDJUA server is governed by the CSP connect-src directive, not the Tauri HTTP plugin.",
   "windows": [
     "main"
   ],
   "permissions": [
-    "core:default"
+    "core:event:default",
+    "core:window:allow-close",
+    "core:window:allow-set-title",
+    "core:window:allow-set-size",
+    "core:window:allow-set-min-size",
+    "core:window:allow-set-position",
+    "core:window:allow-center",
+    "core:window:allow-set-fullscreen",
+    "core:window:allow-is-fullscreen",
+    "core:window:allow-set-resizable",
+    "core:window:allow-maximize",
+    "core:window:allow-unmaximize",
+    "core:window:allow-minimize",
+    "core:window:allow-unminimize",
+    "core:window:allow-start-dragging",
+    "core:window:allow-set-focus"
   ]
 }
