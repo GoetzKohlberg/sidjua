@@ -13,6 +13,9 @@
 import type { MessageEnvelope, UserMapping } from "./types.js";
 import type { ResponseRouter } from "./response-router.js";
 import { createLogger } from "../core/logger.js";
+import { activityEmitter } from "../core/activity/activity-emitter.js";
+import { digestEngine }    from "../core/activity/digest-engine.js";
+import type { DigestResult } from "../core/activity/digest-engine.js";
 
 const logger = createLogger("command-handler");
 
@@ -348,6 +351,75 @@ export class CommandHandler {
         return `Task ${args[0]} abgebrochen.`;
       },
     });
+
+    this._reg({
+      name:        "digest",
+      description: "Aktivitäts-Digest (täglich / wöchentlich)",
+      min_role:    "viewer",
+      usage:       "/digest [weekly]",
+      handler:     async (args) => {
+        try {
+          const isWeekly = args[0] === "weekly";
+          const digest: DigestResult = isWeekly
+            ? digestEngine.generateWeekly(_lastMondayStr())
+            : digestEngine.generateDaily(_yesterdayStr());
+          return _formatDigestForTelegram(digest);
+        } catch (err: unknown) {
+          return `Fehler beim Digest: ${err instanceof Error ? err.message : String(err)}`;
+        }
+      },
+    });
+
+    this._reg({
+      name:        "drill",
+      description: "Aktivitäts-Drilldown für Agent oder Division",
+      min_role:    "viewer",
+      usage:       "/drill <agent-id|division>",
+      handler:     async (args) => {
+        if (args[0] === undefined) return "Nutzung: /drill <agent-id|division>";
+        try {
+          const target = args[0];
+          const since  = _yesterdayStr() + "T00:00:00.000Z";
+          const until  = new Date().toISOString();
+          // Try agent first; fall back to division if empty
+          const agentDigest = digestEngine.generateAgentDrilldown(target, since, until);
+          if (agentDigest.event_count > 0) return _formatDigestForTelegram(agentDigest);
+          const divDigest = digestEngine.generateDivisionDrilldown(target, since, until);
+          return _formatDigestForTelegram(divDigest);
+        } catch (err: unknown) {
+          return `Fehler beim Drilldown: ${err instanceof Error ? err.message : String(err)}`;
+        }
+      },
+    });
+
+    this._reg({
+      name:        "activity",
+      description: "Heutige Aktivitäts-Übersicht",
+      min_role:    "viewer",
+      usage:       "/activity",
+      handler:     async () => {
+        try {
+          const todayStart = new Date().toISOString().split("T")[0] + "T00:00:00.000Z";
+          const total      = activityEmitter.count({ since: todayStart });
+          const errors     = activityEmitter.count({ since: todayStart, severity: "error" });
+          const criticals  = activityEmitter.count({ since: todayStart, severity: "critical" });
+          const recent     = activityEmitter.query({ limit: 3 });
+
+          let msg = `📊 *Aktivität heute*\n${total} Events`;
+          if (errors    > 0) msg += `, ${errors} Fehler`;
+          if (criticals > 0) msg += `, ${criticals} kritisch`;
+          if (recent.length > 0) {
+            msg += "\n\nAktuell:";
+            for (const e of recent) {
+              msg += `\n• ${e.category}/${e.event_type}: ${e.title}`;
+            }
+          }
+          return msg;
+        } catch (err: unknown) {
+          return `Fehler: ${err instanceof Error ? err.message : String(err)}`;
+        }
+      },
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -369,4 +441,41 @@ export class CommandHandler {
     }
     return lines.join("\n");
   }
+}
+
+
+// ---------------------------------------------------------------------------
+// Module-level helpers for Telegram digest formatting
+// ---------------------------------------------------------------------------
+
+function _formatDigestForTelegram(digest: DigestResult): string {
+  let msg = `📋 *${digest.digest_type.toUpperCase()} DIGEST*\n`;
+  msg += `${digest.summary.headline}\n`;
+  msg += `Zeitraum: ${digest.period_start.split("T")[0]} → ${digest.period_end.split("T")[0]}\n`;
+
+  if (digest.summary.highlights.length > 0) {
+    msg += "\n*Highlights:*";
+    for (const h of digest.summary.highlights) msg += `\n• ${h}`;
+  }
+  if (digest.summary.warnings.length > 0) {
+    msg += "\n\n⚠️ *Warnungen:*";
+    for (const w of digest.summary.warnings) msg += `\n• ${w}`;
+  }
+  if (digest.stats.budget_total_usd > 0) {
+    msg += `\n\n💰 Budget: $${digest.stats.budget_total_usd.toFixed(2)}`;
+  }
+
+  return msg;
+}
+
+function _yesterdayStr(): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().split("T")[0] ?? "";
+}
+
+function _lastMondayStr(): string {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+  return d.toISOString().split("T")[0] ?? "";
 }

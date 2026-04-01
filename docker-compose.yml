@@ -89,6 +89,39 @@ services:
     #   - "6333:6333"
     #   - "6334:6334"
 
+  # ---------------------------------------------------------------------------
+  # Grafana — Activity dashboards (optional, monitoring profile)
+  #
+  # NOT started by default. To enable:
+  #   docker compose --profile monitoring up -d
+  #
+  # Opens dashboards at http://localhost:3001 (default credentials: admin/sidjua)
+  # Anonymous viewer access is enabled — no login required to view dashboards.
+  # ---------------------------------------------------------------------------
+  grafana:
+    profiles: ["monitoring"]
+    image: grafana/grafana-oss:11.5.2
+    container_name: sidjua-grafana
+    restart: unless-stopped
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - sidjua-system:/sidjua-system:ro
+    environment:
+      - GF_INSTALL_PLUGINS=frser-sqlite-datasource
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-sidjua}
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+      - GF_SERVER_ROOT_URL=http://localhost:${GRAFANA_PORT:-3001}
+    networks:
+      - sidjua-net
+    depends_on:
+      sidjua:
+        condition: service_healthy
+
 volumes:
   sidjua-data:
     name: sidjua-data
@@ -104,6 +137,8 @@ volumes:
     name: sidjua-governance
   qdrant-data:
     name: sidjua-qdrant-data
+  grafana-data:
+    name: sidjua-grafana-data
 
 networks:
   sidjua-net:

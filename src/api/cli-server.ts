@@ -32,6 +32,8 @@ import { runMigrations105 }        from "../agent-lifecycle/migration.js";
 import { runAuditMigrations }      from "../core/audit/audit-migrations.js";
 import { runActivityMigrations }   from "../core/activity/activity-migrations.js";
 import { activityEmitter }         from "../core/activity/activity-emitter.js";
+import { digestEngine }            from "../core/activity/digest-engine.js";
+import { startDigestScheduler }    from "../core/activity/digest-scheduler.js";
 // DUAL PATH: start.ts (CLI foreground) runs the same migrations. Changes here MUST be mirrored there.
 import {
   createApiServer,
@@ -274,6 +276,7 @@ export function registerServerCommands(program: Command): void {
       runAuditMigrations(db);
       runActivityMigrations(db);
       activityEmitter.init(db);
+      digestEngine.init(db);
       const registry = new AgentRegistry(db);
 
       // Diagnostic: warn if no agents registered (apply likely not run yet)
@@ -503,6 +506,13 @@ export function registerServerCommands(program: Command): void {
             }, CHAT_PERSIST_INTERVAL_MS)
           : null;
         if (chatPersistTimer !== null) chatPersistTimer.unref();
+
+        // Activity digest scheduler — generates daily/weekly digests automatically
+        startDigestScheduler({
+          digest_time:     "06:00",
+          digest_timezone: "Asia/Manila",
+          telegram_digest: false,
+        });
 
         // Keep process alive until signal; clear rotation timer on shutdown
         await new Promise<void>((resolve) => {

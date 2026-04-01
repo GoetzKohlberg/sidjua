@@ -1,0 +1,119 @@
+{
+  "uid": "sidjua-activity-overview",
+  "title": "SIDJUA — Activity Overview",
+  "tags": ["sidjua", "activity"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "1m",
+  "time": { "from": "now-24h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Events / Hour",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "sidjua-sqlite" },
+      "targets": [
+        {
+          "rawSql": "SELECT strftime('%Y-%m-%dT%H:00:00Z', timestamp) AS time, COUNT(*) AS events FROM activity_events WHERE timestamp > datetime('now', '-24 hours') GROUP BY strftime('%Y-%m-%d %H', timestamp) ORDER BY time",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "options": {
+        "tooltip": { "mode": "single" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      }
+    },
+    {
+      "id": 2,
+      "type": "piechart",
+      "title": "Events by Category (last 24h)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "sidjua-sqlite" },
+      "targets": [
+        {
+          "rawSql": "SELECT category, COUNT(*) AS count FROM activity_events WHERE timestamp > datetime('now', '-24 hours') GROUP BY category ORDER BY count DESC",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" } } },
+      "options": { "pieType": "pie", "legend": { "displayMode": "table", "placement": "right" } }
+    },
+    {
+      "id": 3,
+      "type": "bargauge",
+      "title": "Events by Severity (last 7 days)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "sidjua-sqlite" },
+      "targets": [
+        {
+          "rawSql": "SELECT severity, COUNT(*) AS count FROM activity_events WHERE timestamp > datetime('now', '-7 days') GROUP BY severity ORDER BY count DESC",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "steps": [
+              { "color": "green",  "value": null },
+              { "color": "yellow", "value": 10 },
+              { "color": "orange", "value": 50 },
+              { "color": "red",    "value": 100 }
+            ]
+          }
+        }
+      },
+      "options": { "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 4,
+      "type": "table",
+      "title": "Recent Events",
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 16 },
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "sidjua-sqlite" },
+      "targets": [
+        {
+          "rawSql": "SELECT timestamp, event_type, category, COALESCE(agent_id, '-') AS agent_id, severity, title FROM activity_events ORDER BY timestamp DESC LIMIT 50",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "custom": { "align": "auto", "displayMode": "auto" } },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "severity" },
+            "properties": [
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  { "options": { "critical": { "color": "dark-red",    "index": 0 } }, "type": "value" },
+                  { "options": { "error":    { "color": "red",         "index": 1 } }, "type": "value" },
+                  { "options": { "warning":  { "color": "orange",      "index": 2 } }, "type": "value" },
+                  { "options": { "info":     { "color": "green",       "index": 3 } }, "type": "value" },
+                  { "options": { "debug":    { "color": "light-blue",  "index": 4 } }, "type": "value" }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": { "sortBy": [{ "displayName": "timestamp", "desc": true }] }
+    }
+  ]
+}

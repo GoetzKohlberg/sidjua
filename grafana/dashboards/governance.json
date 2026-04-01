@@ -1,0 +1,123 @@
+{
+  "uid": "sidjua-governance",
+  "title": "SIDJUA — Governance & Security",
+  "tags": ["sidjua", "governance", "security"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "5m",
+  "time": { "from": "now-7d", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Governance Blocks (last 7 days)",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "sidjua-sqlite" },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) AS blocks FROM activity_events WHERE event_type='governance.blocked' AND timestamp > datetime('now', '-7 days')",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "steps": [
+              { "color": "green",  "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red",    "value": 5 }
+            ]
+          }
+        }
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Security Events (last 7 days)",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "sidjua-sqlite" },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) AS security_events FROM activity_events WHERE category='security' AND timestamp > datetime('now', '-7 days')",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "steps": [
+              { "color": "green",  "value": null },
+              { "color": "orange", "value": 1 },
+              { "color": "red",    "value": 10 }
+            ]
+          }
+        }
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Critical Events (last 24h)",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "sidjua-sqlite" },
+      "targets": [
+        {
+          "rawSql": "SELECT COUNT(*) AS critical FROM activity_events WHERE severity='critical' AND timestamp > datetime('now', '-24 hours')",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red",   "value": 1 }
+            ]
+          }
+        }
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+    {
+      "id": 4,
+      "type": "table",
+      "title": "Security & Governance Events",
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 4 },
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "sidjua-sqlite" },
+      "targets": [
+        {
+          "rawSql": "SELECT timestamp, event_type, COALESCE(agent_id, '-') AS agent_id, division, severity, title FROM activity_events WHERE category IN ('security', 'governance') ORDER BY timestamp DESC LIMIT 100",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Governance Violations Timeline",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 14 },
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "sidjua-sqlite" },
+      "targets": [
+        {
+          "rawSql": "SELECT strftime('%Y-%m-%dT%H:00:00Z', timestamp) AS time, COUNT(*) AS violations FROM activity_events WHERE (category='governance' OR category='security') AND timestamp > datetime('now', '-7 days') GROUP BY strftime('%Y-%m-%d %H', timestamp) ORDER BY time",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "color": { "fixedColor": "red", "mode": "fixed" } }
+      }
+    }
+  ]
+}

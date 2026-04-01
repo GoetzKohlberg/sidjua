@@ -1,0 +1,11 @@
+apiVersion: 1
+
+datasources:
+  - name: SIDJUA SQLite
+    type: frser-sqlite-datasource
+    access: proxy
+    isDefault: true
+    uid: sidjua-sqlite
+    jsonData:
+      path: /sidjua-system/sidjua.db
+    editable: false

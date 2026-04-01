@@ -53,6 +53,7 @@ import { registerMessagingCommands }       from "./cli/commands/messaging.js";
 import { registerScheduleCommands }        from "./cli/commands/schedule.js";
 import { registerTokenCommands }           from "./cli/commands/token.js";
 import { registerDelegationCommands }      from "./cli/commands/delegation.js";
+import { registerActivityCommands }        from "./cli/commands/activity.js";
 import { performStartupCheck }             from "./core/update/update-check.js";
 import { NpmUpdateProvider }               from "./core/update/npm-update-provider.js";
 import { resolvePaths }                    from "./core/paths.js";
@@ -223,6 +224,9 @@ registerDelegationCommands(program);
 
 
 registerTokenCommands(program);
+
+
+registerActivityCommands(program);
 
 
 {

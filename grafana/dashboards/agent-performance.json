@@ -1,0 +1,55 @@
+{
+  "uid": "sidjua-agent-performance",
+  "title": "SIDJUA — Agent Performance",
+  "tags": ["sidjua", "agents"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "5m",
+  "time": { "from": "now-7d", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "barchart",
+      "title": "Task Success Rate by Agent (last 7 days)",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "sidjua-sqlite" },
+      "targets": [
+        {
+          "rawSql": "SELECT agent_id, SUM(CASE WHEN event_type='task.task_completed' THEN 1 ELSE 0 END) AS completed, SUM(CASE WHEN event_type='task.task_failed' THEN 1 ELSE 0 END) AS failed FROM activity_events WHERE category='task' AND agent_id IS NOT NULL AND timestamp > datetime('now', '-7 days') GROUP BY agent_id ORDER BY completed DESC LIMIT 20",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": { "xField": "agent_id", "stacking": "normal" }
+    },
+    {
+      "id": 2,
+      "type": "table",
+      "title": "Events per Agent (last 24h)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "sidjua-sqlite" },
+      "targets": [
+        {
+          "rawSql": "SELECT agent_id, COUNT(*) AS total_events, SUM(CASE WHEN severity='error' OR severity='critical' THEN 1 ELSE 0 END) AS errors FROM activity_events WHERE agent_id IS NOT NULL AND timestamp > datetime('now', '-24 hours') GROUP BY agent_id ORDER BY total_events DESC",
+          "format": "table",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Activity by Agent (last 24h)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "sidjua-sqlite" },
+      "targets": [
+        {
+          "rawSql": "SELECT strftime('%Y-%m-%dT%H:00:00Z', timestamp) AS time, agent_id, COUNT(*) AS events FROM activity_events WHERE agent_id IS NOT NULL AND timestamp > datetime('now', '-24 hours') GROUP BY strftime('%Y-%m-%d %H', timestamp), agent_id ORDER BY time",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}

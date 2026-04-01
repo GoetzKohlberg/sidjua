@@ -23,13 +23,13 @@ export interface ActivityEvent {
   event_type:  string;
   category:    ActivityCategory;
   agent_id?:   string | undefined;
-  division?:   string;
+  division?:   string | undefined;
   user_id?:    string | undefined;
-  severity?:   ActivitySeverity;
+  severity?:   ActivitySeverity | undefined;
   title:       string;
-  details?:    Record<string, unknown>;
-  metadata?:   Record<string, unknown>;
-  source?:     ActivitySource;
+  details?:    Record<string, unknown> | undefined;
+  metadata?:   Record<string, unknown> | undefined;
+  source?:     ActivitySource | undefined;
   parent_id?:  string | undefined;
   session_id?: string | undefined;
 }
@@ -46,17 +46,17 @@ export interface ActivityRecord extends ActivityEvent {
 }
 
 export interface ActivityFilters {
-  since?:      string;
-  until?:      string;
-  category?:   ActivityCategory;
-  agent_id?:   string;
-  division?:   string;
-  severity?:   ActivitySeverity;
-  source?:     ActivitySource;
-  event_type?: string;
-  session_id?: string;
-  limit?:      number;
-  offset?:     number;
+  since?:      string | undefined;
+  until?:      string | undefined;
+  category?:   ActivityCategory | undefined;
+  agent_id?:   string | undefined;
+  division?:   string | undefined;
+  severity?:   ActivitySeverity | undefined;
+  source?:     ActivitySource | undefined;
+  event_type?: string | undefined;
+  session_id?: string | undefined;
+  limit?:      number | undefined;
+  offset?:     number | undefined;
 }
 
 export interface TimelineEntry {

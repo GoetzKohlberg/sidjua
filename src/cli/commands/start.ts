@@ -49,6 +49,9 @@ import { runMigrations105 }           from "../../agent-lifecycle/migration.js";
 import { runAuditMigrations }         from "../../core/audit/audit-migrations.js";
 import { runActivityMigrations }      from "../../core/activity/activity-migrations.js";
 import { activityEmitter }            from "../../core/activity/activity-emitter.js";
+import { digestEngine }               from "../../core/activity/digest-engine.js";
+import { startDigestScheduler,
+         stopDigestScheduler }        from "../../core/activity/digest-scheduler.js";
 // DUAL PATH: cli-server.ts (Docker) runs the same migrations. Changes here MUST be mirrored there.
 import { bootstrapOrchestrator }      from "../../orchestrator/bootstrap.js";
 import type { OrchestratorProcess }   from "../../orchestrator/orchestrator.js";
@@ -204,6 +207,7 @@ export async function runStartCommand(opts: StartCommandOptions): Promise<number
     runAuditMigrations(db);
     runActivityMigrations(db);
     activityEmitter.init(db);
+    digestEngine.init(db);
     const registry = db !== null ? new AgentRegistry(db) : undefined;
 
     // DUAL PATH: cli-server.ts (Docker) does the same. Changes here MUST be mirrored there.
@@ -522,10 +526,18 @@ export async function runStartCommand(opts: StartCommandOptions): Promise<number
       checkpointTimer.start();
     }
 
+    // Activity digest scheduler — generates daily/weekly digests automatically
+    startDigestScheduler({
+      digest_time:     "06:00",
+      digest_timezone: "Asia/Manila",
+      telegram_digest: false,
+    });
+
     // Graceful shutdown handler
     const shutdown = async () => {
       process.stdout.write(msg("cli.start.shutting_down"));
       checkpointTimer?.stop();
+      stopDigestScheduler();
       if (orchestrator !== null) {
         try { await orchestrator.stop(); } catch (_e) { /* cleanup-ignore */ }
       }

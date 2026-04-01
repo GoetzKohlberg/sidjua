@@ -32,6 +32,7 @@ import { registerSseTicketRoutes }   from "./sse-ticket.js";
 import { registerEventRoutes }       from "./events.js";
 import { EventStreamManager }        from "../sse/event-stream.js";
 import { initSseActivityBridge }     from "../../core/activity/bridges/sse-activity-bridge.js";
+import { registerActivityRoutes }    from "./activity.js";
 import { registerSelftestApiRoutes }  from "./selftest.js";
 import { registerIntegrationRoutes }  from "./integration.js";
 import type { IntegrationRouteServices } from "./integration.js";
@@ -192,6 +193,9 @@ export function registerAllRoutes(app: Hono, services: AllRouteServices = {}): v
     manager:   sseManager,
     db:        db ?? null,
   });
+
+  // Activity stream routes (always register — emitter degrades gracefully without DB)
+  registerActivityRoutes(app, {});
 
   // Selftest routes (no DB required)
   registerSelftestApiRoutes(app, workDir);
