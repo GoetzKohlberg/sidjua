@@ -188,7 +188,26 @@ const V2_COST_TYPE: DbMigration = {
   `,
 };
 
-export const MIGRATIONS: DbMigration[] = [V1_INITIAL, V2_COST_TYPE];
+/**
+ * V3: org-chart columns for agents and divisions tables.
+ * Adds reporting hierarchy and budget allocation metadata.
+ * Safe for databases created before v0.10.1.
+ * Databases created from V1_INITIAL already have these columns once V3 is applied.
+ */
+const V3_ORG_CHART: DbMigration = {
+  version: "3.0",
+  description: "P345: add org-chart columns (reports_to, delegate_to, role_title on agents; parent_division_code, budget_allocation on divisions)",
+  up: `
+    -- No-op placeholder; actual ALTER TABLEs applied conditionally in applyDatabase()
+    -- to avoid "duplicate column name" on databases where columns already exist.
+    SELECT 1;
+  `,
+  down: `
+    -- No rollback needed; columns were present in V1_INITIAL for new databases.
+  `,
+};
+
+export const MIGRATIONS: DbMigration[] = [V1_INITIAL, V2_COST_TYPE, V3_ORG_CHART];
 
 
 /**
@@ -226,6 +245,34 @@ export function applyDatabase(
       db.exec("ALTER TABLE cost_ledger ADD COLUMN cost_type TEXT NOT NULL DEFAULT 'llm_call'");
       db.exec("CREATE INDEX IF NOT EXISTS idx_cost_type ON cost_ledger(cost_type)");
       logger.info("DATABASE", "Added cost_type column to cost_ledger (pre-0.9.7 upgrade)");
+    }
+
+    // V3: add org-chart columns to agents table for pre-v0.10.1 databases.
+    const agentColInfo = db.pragma("table_info(agents)") as { name: string }[];
+    const agentColNames = new Set(agentColInfo.map((c) => c.name));
+    if (!agentColNames.has("reports_to")) {
+      db.exec("ALTER TABLE agents ADD COLUMN reports_to TEXT REFERENCES agents(id)");
+    }
+    if (!agentColNames.has("delegate_to")) {
+      db.exec("ALTER TABLE agents ADD COLUMN delegate_to TEXT REFERENCES agents(id)");
+    }
+    if (!agentColNames.has("role_title")) {
+      db.exec("ALTER TABLE agents ADD COLUMN role_title TEXT");
+    }
+    // Only create the index once all columns exist
+    if (!agentColNames.has("reports_to")) {
+      db.exec("CREATE INDEX IF NOT EXISTS idx_agents_reports_to ON agents(reports_to)");
+    }
+
+    // V3: add org-chart columns to divisions table for pre-v0.10.1 databases.
+    const divColInfo = db.pragma("table_info(divisions)") as { name: string }[];
+    const divColNames = new Set(divColInfo.map((c) => c.name));
+    if (!divColNames.has("parent_division_code")) {
+      db.exec("ALTER TABLE divisions ADD COLUMN parent_division_code TEXT REFERENCES divisions(code)");
+      db.exec("CREATE INDEX IF NOT EXISTS idx_divisions_parent ON divisions(parent_division_code)");
+    }
+    if (!divColNames.has("budget_allocation")) {
+      db.exec("ALTER TABLE divisions ADD COLUMN budget_allocation REAL");
     }
 
     // Sync default system divisions first (INSERT OR IGNORE — never overwrite user config)

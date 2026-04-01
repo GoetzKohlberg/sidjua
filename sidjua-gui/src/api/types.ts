@@ -345,6 +345,55 @@ export interface LocaleSetResponse {
   locale:  string;
 }
 
+// ---- Org Chart (P345) ------------------------------------------------------
+
+export interface OrgAgentNode {
+  id:            string;
+  name:          string;
+  tier:          number;
+  division_code: string | null;
+  role_title:    string | null;
+  reports_to:    string | null;
+  delegate_to:   string | null;
+  active:        boolean;
+}
+
+export interface OrgDivisionNode {
+  code:                 string;
+  name_en:              string;
+  parent_division_code: string | null;
+  budget_allocation:    number | null;
+  active:               boolean;
+  head_agent:           string | null;
+  head_role:            string | null;
+}
+
+export interface OrgNode {
+  division: OrgDivisionNode;
+  agents:   OrgAgentNode[];
+  children: OrgNode[];
+}
+
+export interface OrgTreeResponse {
+  roots: OrgNode[];
+}
+
+export interface OrgAgentDetail {
+  agent:             OrgAgentNode;
+  division:          OrgDivisionNode | null;
+  reports_to_agent:  OrgAgentNode | null;
+  delegate_to_agent: OrgAgentNode | null;
+  direct_reports:    OrgAgentNode[];
+}
+
+export interface OrgDivisionDetail {
+  division:          OrgDivisionNode;
+  parent:            OrgDivisionNode | null;
+  children:          OrgDivisionNode[];
+  agents:            OrgAgentNode[];
+  head_agent_detail: OrgAgentNode | null;
+}
+
 // ---- Tokens ----------------------------------------------------------------
 
 export interface TokenCreateResponse {
