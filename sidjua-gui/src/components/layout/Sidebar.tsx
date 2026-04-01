@@ -27,7 +27,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { to: '/',           labelKey: 'gui.nav.dashboard',  icon: <LayoutDashboard size={18} /> },
   { to: '/chat',       labelKey: 'gui.nav.chat',        icon: <MessageSquare   size={18} /> },
-  { to: '/agents',     labelKey: 'gui.nav.agents',      icon: <Bot             size={18} />, badge: '6' },
+  { to: '/agents',     labelKey: 'gui.nav.organization', icon: <Bot             size={18} />, badge: '6' },
   { to: '/divisions',  labelKey: 'gui.nav.divisions',   icon: <Network         size={18} /> },
   { to: '/governance', labelKey: 'gui.nav.governance',  icon: <ShieldCheck     size={18} /> },
   { to: '/audit',      labelKey: 'gui.nav.audit',       icon: <ScrollText      size={18} /> },

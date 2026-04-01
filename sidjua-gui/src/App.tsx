@@ -15,6 +15,7 @@ import { SidjuaApiClient }  from './api/client';
 
 import { Dashboard }    from './pages/Dashboard';
 import { Agents }       from './pages/Agents';
+import { OrgChart }     from './pages/OrgChart';
 import { Chat }         from './pages/Chat';
 import { Divisions }    from './pages/Divisions';
 import { Governance }   from './pages/Governance';
@@ -106,7 +107,7 @@ function AppRoutes({ firstRunState, onDismiss, onRetry }: AppRoutesProps) {
           <Route index              element={<Dashboard />}    />
           <Route path="chat"        element={<Navigate to="/chat/guide" replace />} />
           <Route path="chat/:agentId" element={<Chat />}       />
-          <Route path="agents"      element={<Agents />}       />
+          <Route path="agents"      element={<OrgChart />}     />
           <Route path="divisions"   element={<Divisions />}    />
           <Route path="governance"  element={<Governance />}   />
           <Route path="audit"       element={<AuditLog />}     />

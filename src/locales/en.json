@@ -353,6 +353,7 @@
   "gui.nav.dashboard": "Dashboard",
   "gui.nav.chat": "Chat",
   "gui.nav.agents": "Agents",
+  "gui.nav.organization": "Organization",
   "gui.nav.divisions": "Divisions",
   "gui.nav.governance": "Governance",
   "gui.nav.audit": "Audit Log",
