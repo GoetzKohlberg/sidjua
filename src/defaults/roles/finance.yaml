@@ -19,3 +19,9 @@ role:
   recommended_model:
     min_quality: "B+"
     suggested: "groq-llama70b-free"
+  tools:
+    internal:
+      - read_budget
+      - read_spending
+      - set_budget_limit
+    mcp: []

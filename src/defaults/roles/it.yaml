@@ -19,3 +19,11 @@ role:
   recommended_model:
     min_quality: "B+"
     suggested: "groq-llama70b-free"
+  tools:
+    internal:
+      - system_health
+      - docker_info
+      - backup_status
+      - read_logs
+      - system_overview
+    mcp: []

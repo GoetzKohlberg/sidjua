@@ -22,6 +22,11 @@ export interface RecommendedModel {
   suggested:   string;
 }
 
+export interface RoleToolConfig {
+  internal: string[];  // internal tool names (e.g. "system_health")
+  mcp:      string[];  // MCP server tool names (populated dynamically by HR Agent)
+}
+
 export interface AgentRole {
   id:                string;
   name:              string;
@@ -33,6 +38,7 @@ export interface AgentRole {
   status:            "active" | "inactive";
   capabilities:      string[];
   recommended_model: RecommendedModel;
+  tools:             RoleToolConfig;
 }
 
 export interface DivisionBudget {
@@ -107,6 +113,25 @@ function validateStatus(val: unknown, file: string): "active" | "inactive" {
 }
 
 
+function parseToolConfig(role: Record<string, unknown>, file: string): RoleToolConfig {
+  const raw = role["tools"];
+  if (raw === undefined || raw === null) return { internal: [], mcp: [] };
+  if (typeof raw !== "object" || Array.isArray(raw)) {
+    // Warn but don't crash — default to empty
+    return { internal: [], mcp: [] };
+  }
+  const t = raw as Record<string, unknown>;
+  const internal = Array.isArray(t["internal"])
+    ? (t["internal"] as unknown[]).filter((v) => typeof v === "string") as string[]
+    : [];
+  const mcp = Array.isArray(t["mcp"])
+    ? (t["mcp"] as unknown[]).filter((v) => typeof v === "string") as string[]
+    : [];
+  void file; // path kept for future validation logging
+  return { internal, mcp };
+}
+
+
 function parseRoleFile(filePath: string): AgentRole {
   const raw  = readFileSync(filePath, "utf-8");
   const doc  = parseYaml(raw) as Record<string, unknown>;
@@ -135,6 +160,7 @@ function parseRoleFile(filePath: string): AgentRole {
       min_quality: requireString(recommended, "min_quality", filePath),
       suggested:   requireString(recommended, "suggested",   filePath),
     },
+    tools: parseToolConfig(role, filePath),
   };
 }
 

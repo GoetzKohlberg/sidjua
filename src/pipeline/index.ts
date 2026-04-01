@@ -35,6 +35,7 @@ import { checkClassification }  from "./classification.js";
 import { checkPolicy }          from "./policy.js";
 import { checkSecurityFilters } from "./security-filter.js";
 import { generateResumeToken, getOrCreateSystemSecret } from "./resume.js";
+import { toolRbacChecker } from "../tool-integration/tool-rbac.js";
 
 
 interface AuditEntryInput {
@@ -133,7 +134,35 @@ function runPipeline(
     agent_id:    request.agent_id,
   });
 
-  // Stage 0: Security Filter (optional — skipped when not configured)
+  // Stage 0: Tool RBAC (skipped when request.tools or action.tool_name is absent)
+  if (request.tools !== undefined && request.action.tool_name !== undefined) {
+    const t0start = Date.now();
+    const toolName = request.action.tool_name;
+    const toolType = request.action.tool_type ?? "internal";
+    const rbacResult = toolRbacChecker.check(
+      { agent_id: request.agent_id, tier: request.agent_tier, division: request.division_code, tools: request.tools },
+      toolName,
+      toolType,
+    );
+    const t0: StageResult = {
+      stage:         "rbac",
+      verdict:       rbacResult.allowed ? "PASS" : "BLOCK",
+      duration_ms:   Date.now() - t0start,
+      rules_checked: [{
+        rule_id:     `rbac.${toolType}.${toolName}`,
+        rule_source: "role-yaml/tools",
+        matched:     !rbacResult.allowed,
+        verdict:     rbacResult.allowed ? "PASS" : "BLOCK",
+        ...(rbacResult.reason !== undefined ? { reason: rbacResult.reason } : {}),
+      }],
+    };
+    stageResults.push(t0);
+    if (t0.verdict === "BLOCK") {
+      return finalize(request, "BLOCK", stageResults, warnings, "rbac", t0, db);
+    }
+  }
+
+  // Stage 0.5: Security Filter (optional — skipped when not configured)
   if (governance.security !== undefined) {
     const s0 = checkSecurityFilters(request, governance.security.filter);
     stageResults.push(s0);

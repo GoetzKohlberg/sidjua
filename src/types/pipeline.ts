@@ -13,8 +13,12 @@
  * Source: PRE-ACTION-PIPELINE-SPEC-V1.md
  */
 
+import type { RoleToolConfig } from "../defaults/loader.js";
+export type { RoleToolConfig };
+
 /** Canonical pipeline stages in execution order. */
 export const PIPELINE_STAGES = [
+  "rbac",
   "forbidden",
   "security",
   "approval",
@@ -104,6 +108,10 @@ export interface ActionDescriptor {
   data_classification?: DataClassification;
   /** Action-specific parameters */
   parameters?: Record<string, unknown>;
+  /** For tool invocations: the specific tool name (e.g. "system_health") */
+  tool_name?: string;
+  /** For tool invocations: whether the tool is internal or MCP */
+  tool_type?: "internal" | "mcp";
 }
 
 export interface ActionContext {
@@ -133,12 +141,14 @@ export interface ActionRequest {
   division_code: string;
   action: ActionDescriptor;
   context: ActionContext;
+  /** Agent's tool RBAC config from role YAML. Optional; if absent, RBAC stage is skipped. */
+  tools?: RoleToolConfig;
 }
 
 
 export type PipelineVerdict = "ALLOW" | "BLOCK" | "PAUSE";
 export type StageVerdict = "PASS" | "BLOCK" | "PAUSE" | "WARN";
-export type StageName = "security" | "forbidden" | "approval" | "budget" | "classification" | "policy";
+export type StageName = "rbac" | "security" | "forbidden" | "approval" | "budget" | "classification" | "policy";
 
 
 export interface RuleCheckResult {

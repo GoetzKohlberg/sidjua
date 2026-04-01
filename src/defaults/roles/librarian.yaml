@@ -19,3 +19,9 @@ role:
   recommended_model:
     min_quality: "B+"
     suggested: "groq-llama70b-free"
+  tools:
+    internal:
+      - search_knowledge_base
+      - list_documents
+      - ingest_document
+    mcp: []
