@@ -22,6 +22,10 @@ import type { Database }               from "../utils/db.js";
 import { readYamlFile }                from "../utils/yaml.js";
 import { createLogger }                from "../core/logger.js";
 import { initTaskEventBridge }         from "../core/activity/bridges/task-event-bridge.js";
+import { ToolRegistry }                from "../tool-integration/tool-registry.js";
+import { ToolManager }                 from "../tool-integration/tool-manager.js";
+import { InternalToolAdapter }         from "../tool-integration/adapters/internal-adapter.js";
+import { INTERNAL_TOOLS_SYSTEM }       from "../tool-integration/internal/index.js";
 
 const logger = createLogger("orchestrator-bootstrap");
 
@@ -92,5 +96,41 @@ export async function bootstrapOrchestrator(
   await orchestrator.start();
 
   logger.info("orchestrator-bootstrap", "Orchestrator running", {});
+
+  // Register internal (native) tools — best-effort, non-fatal
+  try {
+    const registry   = new ToolRegistry(db);
+    const toolManager = new ToolManager(db, registry);
+    registerInternalTools(registry, toolManager);
+  } catch (_e) { /* non-fatal — orchestrator runs without tools if migrations haven't run */ }
+
   return orchestrator;
+}
+
+/**
+ * Register all internal tool definitions into ToolRegistry + ToolManager.
+ * Idempotent: skips tools that already exist in the registry.
+ */
+export function registerInternalTools(
+  registry: ToolRegistry,
+  toolManager: ToolManager,
+): void {
+  for (const def of INTERNAL_TOOLS_SYSTEM) {
+    // Check if already registered (getById throws if not found)
+    let exists = false;
+    try { registry.getById(def.id); exists = true; } catch (_e) { /* not found */ }
+
+    if (!exists) {
+      registry.create({
+        id:   def.id,
+        name: def.name,
+        type: "composite",
+        config: { type: "composite", sub_tools: [], strategy: "fallback" },
+        capabilities: def.capabilities,
+      });
+    }
+
+    const adapter = new InternalToolAdapter(def);
+    toolManager.registerAdapter(def.id, adapter);
+  }
 }
