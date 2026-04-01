@@ -32,6 +32,8 @@ import { setSpendingToolDb }           from "../tool-integration/internal/read-s
 import { setWriteBudgetToolDb }        from "../tool-integration/internal/write-budget.js";
 import { setKnowledgeSearchDb }        from "../tool-integration/internal/search-knowledge-base.js";
 import { setDocumentsToolDb }          from "../tool-integration/internal/list-documents.js";
+import { loadMcpConfig }               from "../tool-integration/mcp-config.js";
+import { McpLifecycleManager }         from "../tool-integration/mcp-lifecycle.js";
 
 const logger = createLogger("orchestrator-bootstrap");
 
@@ -115,9 +117,52 @@ export async function bootstrapOrchestrator(
     setDocumentsToolDb(db);    // list-documents
     setKnowledgeSearchDb(db);  // enable FTS fallback search in search-knowledge-base
     registerInternalTools(registry, toolManager);
+
+    // Register and start MCP servers from config — best-effort, non-fatal
+    const mcpConfig    = loadMcpConfig(join(workDir, "config", "mcp-servers.yaml"));
+    const mcpLifecycle = new McpLifecycleManager(toolManager, mcpConfig.settings);
+    registerMcpServers(registry, mcpConfig.servers);
+    mcpLifecycle.registerServers(mcpConfig.servers);
+    mcpLifecycle.startIdleWatcher();
+
+    for (const entry of mcpConfig.servers.filter((s) => s.auto_start === true)) {
+      mcpLifecycle.startServer(entry.id).catch((err: unknown) => {
+        logger.warn("orchestrator-bootstrap", "MCP auto-start failed", {
+          metadata: { id: entry.id, error: err instanceof Error ? err.message : String(err) },
+        });
+      });
+    }
   } catch (_e) { /* non-fatal — orchestrator runs without tools if migrations haven't run */ }
 
   return orchestrator;
+}
+
+/**
+ * Register MCP server entries into ToolRegistry so ToolManager.start() can find them.
+ * Idempotent: skips servers already registered.
+ */
+export function registerMcpServers(
+  registry: ToolRegistry,
+  servers:  import("../tool-integration/mcp-config.js").McpServerEntry[],
+): void {
+  for (const entry of servers) {
+    let exists = false;
+    try { registry.getById(entry.id); exists = true; } catch (_e) { /* not found */ }
+    if (!exists) {
+      registry.create({
+        id:   entry.id,
+        name: entry.name,
+        type: "mcp",
+        config: {
+          type:    "mcp",
+          command: entry.command,
+          ...(entry.args !== undefined ? { args: entry.args } : {}),
+          ...(entry.env  !== undefined ? { env:  entry.env  } : {}),
+        },
+        capabilities: [],
+      });
+    }
+  }
 }
 
 /**
