@@ -16,6 +16,23 @@
 set -e
 
 IMAGE="${1:-${IMAGE:-ghcr.io/goetzkohlberg/sidjua:1.0.1}}"
+
+# ---------------------------------------------------------------------------
+# --verify-manifest mode: check that both amd64 and arm64 are present
+# ---------------------------------------------------------------------------
+if [[ "${1:-}" == "--verify-manifest" ]]; then
+  echo "Verifying multi-arch manifest for ${IMAGE}..."
+  MANIFEST=$(docker buildx imagetools inspect "${IMAGE}" 2>&1)
+  echo "${MANIFEST}"
+  if echo "$MANIFEST" | grep -q "linux/amd64" && echo "$MANIFEST" | grep -q "linux/arm64"; then
+    echo "PASS: Both amd64 and arm64 present"
+  else
+    echo "FAIL: Missing architecture in manifest"
+    exit 1
+  fi
+  exit 0
+fi
+
 CONTAINER="sidjua-smoke-test"
 PORT="${SIDJUA_PORT:-4200}"
 BASE_URL="http://localhost:${PORT}"

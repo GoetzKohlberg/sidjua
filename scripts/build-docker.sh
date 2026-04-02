@@ -11,6 +11,8 @@
 #   sidjua-<version>-amd64.tar.gz.sha256
 #   sidjua-<version>-arm64.tar.gz
 #   sidjua-<version>-arm64.tar.gz.sha256
+#
+# See also: scripts/publish-docker.sh — builds and pushes multi-arch to GHCR
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
