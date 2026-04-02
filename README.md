@@ -557,6 +557,43 @@ docker compose exec sidjua sidjua init
 docker compose exec sidjua sidjua apply
 ```
 
+### Production Deployment with TLS
+
+Port 4200 serves the REST API and Management Console over HTTP.
+For production deployments, place a reverse proxy in front of SIDJUA
+to handle TLS termination:
+
+**Caddy (recommended — automatic HTTPS):**
+
+```
+sidjua.example.com {
+    reverse_proxy localhost:4200
+}
+```
+
+**nginx:**
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name sidjua.example.com;
+    ssl_certificate     /path/to/cert.pem;
+    ssl_certificate_key /path/to/key.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:4200;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+> **Never expose port 4200 directly to the internet without TLS.**
+> Set the environment variable `SIDJUA_TRUST_PROXY=true` when running
+> behind a reverse proxy so that client IP detection works correctly.
+
 ---
 
 ## Providers

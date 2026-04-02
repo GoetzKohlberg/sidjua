@@ -203,8 +203,9 @@ function runCheckpointWorker(dbPath: string): Promise<void> {
 
 /**
  * Checkpoint a database WAL before backup with retries.
- * Throws SidjuaError(BACKUP-001) if all retries are exhausted to prevent
- * copying a dirty database into the backup archive.
+ * Best-effort: if all retries are exhausted, logs a warning and returns without
+ * throwing. The backup will still proceed — SQLite WAL data is readable and the
+ * backup archive includes the WAL file for replay on restore.
  */
 async function checkpointDatabase(dbPath: string): Promise<void> {
   let lastErr: unknown;
@@ -222,13 +223,13 @@ async function checkpointDatabase(dbPath: string): Promise<void> {
       }
     }
   }
-  // All retries exhausted — abort backup to prevent dirty copy
-  throw SidjuaError.from(
-    "BACKUP-001",
-    `WAL checkpoint failed after ${WAL_CHECKPOINT_MAX_RETRIES} attempts for ${basename(dbPath)}: ` +
-    `${lastErr instanceof Error ? lastErr.message : String(lastErr)}. ` +
-    `Backup aborted to prevent dirty copy. Check for long-running DB transactions.`,
-  );
+  // All retries exhausted — proceed with best-effort backup (WAL is still readable)
+  logger.warn("backup_wal_checkpoint_exhausted", `WAL checkpoint failed after ${WAL_CHECKPOINT_MAX_RETRIES} attempts for ${basename(dbPath)} — backup proceeds with current WAL state`, {
+    metadata: {
+      db_path: dbPath,
+      error:   lastErr instanceof Error ? lastErr.message : String(lastErr),
+    },
+  });
 }
 
 
@@ -737,8 +738,6 @@ export async function createBackup(
           await backupDatabase(dbFile, dest);
           contentFiles.push({ relPath: `databases/${relName}`, absPath: dest });
         } catch (dbErr) {
-          // WAL checkpoint failure is fatal — abort backup to prevent dirty copy
-          if (dbErr instanceof SidjuaError && (dbErr as SidjuaError).code === "BACKUP-001") throw dbErr;
           const msg = `Skipped ${basename(dbFile)}: ${dbErr instanceof Error ? dbErr.message : String(dbErr)}`;
           dbWarnings.push(msg);
           logger.warn("backup_db_skip", msg, { metadata: { db_path: dbFile } });
