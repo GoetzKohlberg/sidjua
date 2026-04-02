@@ -7,7 +7,7 @@
  */
 
 import { hostname, platform, arch, uptime, cpus, totalmem, freemem, loadavg } from "node:os";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import type { InternalToolDef } from "../adapters/internal-adapter.js";
 
 function formatUptime(seconds: number): string {
@@ -40,7 +40,8 @@ export const systemHealthTool: InternalToolDef = {
 
     let diskInfo = "unavailable";
     try {
-      diskInfo = execSync("df -h / | tail -1", { timeout: 5000 }).toString().trim();
+      const dfOutput = execFileSync("df", ["-h", "/"], { timeout: 5000 }).toString().trim();
+      diskInfo = dfOutput.split("\n").pop() ?? "unavailable";
     } catch (_e) { /* non-critical */ }
 
     return {

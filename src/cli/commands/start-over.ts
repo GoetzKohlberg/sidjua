@@ -32,6 +32,7 @@ import { stdin, stdout } from "node:process";
 import type { Command } from "commander";
 import { SIDJUA_VERSION } from "../../version.js";
 import { createLogger }   from "../../core/logger.js";
+import { auditCliCommand } from "../cli-audit.js";
 
 const logger = createLogger("start-over");
 
@@ -962,6 +963,7 @@ export function registerStartOverCommands(program: Command): void {
     .option("--list", "List all previous workspace backups", false)
     .option("--backups-root <path>", "Root directory for backups", defaultBackupsRoot())
     .action(async (opts: { workDir: string; list: boolean; backupsRoot: string }) => {
+      auditCliCommand("start-over", undefined);
       const exitCode = await runStartOverCommand({
         workDir:     opts.workDir,
         list:        opts.list,

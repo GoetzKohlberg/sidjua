@@ -50,8 +50,9 @@ const JSON_MAX_BYTES = 65_536;
  */
 function safeStringify(value: unknown, maxBytes = JSON_MAX_BYTES): string {
   const json = JSON.stringify(value ?? {});
-  if (json.length <= maxBytes) return json;
-  return JSON.stringify({ _truncated: true, _original_bytes: json.length });
+  const byteLen = Buffer.byteLength(json, "utf8");
+  if (byteLen <= maxBytes) return json;
+  return JSON.stringify({ _truncated: true, _original_bytes: byteLen });
 }
 
 

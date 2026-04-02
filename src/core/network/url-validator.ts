@@ -14,6 +14,7 @@
  * operators can extend the allowed-domain set without patching this file.
  */
 
+import { lookup as dnsLookup } from "node:dns/promises";
 import { SidjuaError } from "../error-codes.js";
 
 /** IPv4/IPv6 private and reserved address patterns. */
@@ -153,6 +154,47 @@ export function validateOutboundUrl(raw: string): void {
       "SSRF-002",
       `Private/loopback/link-local URLs are not allowed for outbound requests (host: "${host}")`,
     );
+  }
+}
+
+/**
+ * Async version of validateOutboundUrl with DNS rebinding protection.
+ *
+ * Performs the same synchronous checks as validateOutboundUrl, then resolves
+ * the hostname via DNS and rejects if any returned address is private/loopback.
+ * This prevents attackers from registering a public domain that resolves to an
+ * internal address (DNS rebinding attack).
+ *
+ * @throws SidjuaError SSRF-001 on scheme violation or invalid URL
+ * @throws SidjuaError SSRF-002 on private/loopback host (static check)
+ * @throws SidjuaError SSRF-003 on private/loopback DNS resolution
+ */
+export async function validateOutboundUrlAsync(raw: string): Promise<void> {
+  // Run static checks first (fast path — no network I/O)
+  validateOutboundUrl(raw);
+
+  const { hostname } = new URL(raw);
+
+  // Skip DNS lookup for bare IP addresses — already covered by static check
+  if (/^[\d.:]+$/.test(hostname)) return;
+
+  let addresses: string[];
+  try {
+    const results = await dnsLookup(hostname, { all: true });
+    addresses = results.map((r) => r.address);
+  } catch (_e) {
+    // DNS failure is non-fatal here; let the downstream fetch fail with a
+    // meaningful error rather than blocking on a transient DNS outage.
+    return;
+  }
+
+  for (const addr of addresses) {
+    if (PRIVATE_HOST_RE.test(addr)) {
+      throw SidjuaError.from(
+        "SSRF-003",
+        `DNS rebinding detected: "${hostname}" resolved to private address "${addr}"`,
+      );
+    }
   }
 }
 

@@ -81,7 +81,8 @@ export function registerEventRoutes(app: Hono, services: EventRouteServices): vo
 
     // Auth: ticket-based only (short-lived, single-use)
     const ticket = c.req.query("ticket") ?? "";
-    const ticketContext = ticket ? consumeTicket(ticket) : false;
+    const clientIp = getClientIp(c.req.raw.headers);
+    const ticketContext = ticket ? consumeTicket(ticket, clientIp) : false;
 
     if (ticketContext === false) {
       return c.json(

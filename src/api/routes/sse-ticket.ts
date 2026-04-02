@@ -82,6 +82,8 @@ interface TicketEntry {
   expiresAt: number;
   /** Caller context bound to this ticket — used for SSE scope filtering. */
   callerContext?: CallerContext;
+  /** Client IP at ticket creation — verified at consumption (DNS rebinding / token theft guard). */
+  ipAddress?: string;
 }
 
 /** In-process store: ticket UUID → metadata. */
@@ -143,20 +145,31 @@ function pruneExpired(): void {
  *
  * Returns the CallerContext bound to the ticket when valid (empty object when no
  * restrictions were set), and removes the ticket atomically.
- * Returns `false` when the ticket is unknown or expired.
+ * Returns `false` when the ticket is unknown, expired, or the client IP does not
+ * match the IP recorded at issuance (when `clientIp` is supplied).
  *
  * Delete-first pattern — Map.delete() is the atomic check-and-remove.
  * We remove before validating expiry so a second concurrent caller that arrives
  * after the get() but before the original delete() cannot reuse the same ticket.
  * (JavaScript is single-threaded, so this is defence-in-depth, but the ordering
  * also makes the single-use guarantee explicit and immune to any future async refactoring.)
+ *
+ * @param ticket    UUID issued by POST /api/v1/sse/ticket
+ * @param clientIp  Current request IP — verified against the IP recorded at issuance
  */
-export function consumeTicket(ticket: string): CallerContext | false {
+export function consumeTicket(ticket: string, clientIp?: string): CallerContext | false {
   pruneExpired();
   const entry   = _tickets.get(ticket);
   const deleted = _tickets.delete(ticket); // Delete FIRST — then validate
   if (!deleted || entry === undefined) return false;          // unknown ticket
   if (Date.now() > entry.expiresAt)   return false;          // expired (already removed — correct)
+  // IP binding: reject if the consuming IP differs from the issuing IP
+  if (clientIp !== undefined && entry.ipAddress !== undefined && entry.ipAddress !== clientIp) {
+    logger.warn("sse_ticket_ip_mismatch", "SSE ticket consumed from different IP — rejecting", {
+      metadata: { issued_ip: entry.ipAddress, consume_ip: clientIp },
+    });
+    return false;
+  }
   return entry.callerContext ?? {};   // return context (empty object = no restrictions)
 }
 
@@ -184,12 +197,17 @@ function ensureTicketTable(db: import("../../utils/db.js").Database): void {
       scope      TEXT NOT NULL DEFAULT 'readonly',
       division   TEXT,
       agent_id   TEXT,
+      ip_address TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       expires_at TEXT NOT NULL,
       used       INTEGER NOT NULL DEFAULT 0
     )
   `);
   db.exec(`CREATE INDEX IF NOT EXISTS idx_sse_tickets_expires ON sse_tickets(expires_at)`);
+  // Additive migration: add ip_address to existing tables (no-op if already present)
+  try {
+    db.exec("ALTER TABLE sse_tickets ADD COLUMN ip_address TEXT NOT NULL DEFAULT ''");
+  } catch (_e) { /* column already exists */ }
 }
 
 /**
@@ -202,17 +220,19 @@ export function persistTicket(
   ticketId: string,
   callerContext?: import("../caller-context.js").CallerContext,
   expiresAt?: number,
+  ipAddress?: string,
 ): void {
   try {
     ensureTicketTable(db);
     const expiresIso = new Date(expiresAt ?? (Date.now() + TICKET_TTL_MS)).toISOString();
-    db.prepare<[string, string, string | null, string | null, string], void>(
-      "INSERT OR IGNORE INTO sse_tickets (ticket_id, scope, division, agent_id, expires_at) VALUES (?, ?, ?, ?, ?)",
+    db.prepare<[string, string, string | null, string | null, string, string], void>(
+      "INSERT OR IGNORE INTO sse_tickets (ticket_id, scope, division, agent_id, ip_address, expires_at) VALUES (?, ?, ?, ?, ?, ?)",
     ).run(
       ticketId,
       callerContext?.role ?? "readonly",
       callerContext?.division ?? null,
       callerContext?.agentId  ?? null,
+      ipAddress ?? "",
       expiresIso,
     );
   } catch (_e) { /* non-fatal */ }
@@ -225,6 +245,7 @@ export function persistTicket(
 export function validateTicketFromDb(
   db: import("../../utils/db.js").Database,
   ticketId: string,
+  clientIp?: string,
 ): import("../caller-context.js").CallerContext | null {
   try {
     ensureTicketTable(db);
@@ -232,11 +253,18 @@ export function validateTicketFromDb(
     // Atomic: only mark used=1 if not yet consumed AND not expired.
     // UPDATE...RETURNING is atomic — no separate SELECT race condition.
     const row = db.prepare<[string, string], {
-      scope: string; division: string | null; agent_id: string | null;
+      scope: string; division: string | null; agent_id: string | null; ip_address: string;
     }>(
-      "UPDATE sse_tickets SET used = 1 WHERE ticket_id = ? AND used = 0 AND expires_at > ? RETURNING scope, division, agent_id",
+      "UPDATE sse_tickets SET used = 1 WHERE ticket_id = ? AND used = 0 AND expires_at > ? RETURNING scope, division, agent_id, ip_address",
     ).get(ticketId, nowIso);
     if (row === undefined) return null;
+    // IP binding: reject if the consuming IP differs from the issuing IP
+    if (clientIp !== undefined && row.ip_address !== "" && row.ip_address !== clientIp) {
+      logger.warn("sse_ticket_ip_mismatch_db", "SSE DB ticket consumed from different IP — rejecting", {
+        metadata: { issued_ip: row.ip_address, consume_ip: clientIp },
+      });
+      return null;
+    }
     return {
       role: row.scope as import("../token-store.js").TokenScope,
       ...(row.division ? { division: row.division } : {}),
@@ -324,12 +352,14 @@ export function registerSseTicketRoutes(app: Hono, services: TicketRouteServices
       );
     }
 
-    // Issue ticket — store caller context for scope-based event filtering
+    // Issue ticket — store caller context and issuing IP for scope/IP binding
     const callerContext = c.get(CALLER_CONTEXT_KEY) as CallerContext | undefined;
     const ticket = randomUUID();
+    const expiresAt = Date.now() + TICKET_TTL_MS;
     _tickets.set(ticket, {
       createdAt: new Date().toISOString(),
-      expiresAt: Date.now() + TICKET_TTL_MS,
+      expiresAt,
+      ipAddress: clientIp,
       ...(callerContext !== undefined ? { callerContext } : {}),
     });
 

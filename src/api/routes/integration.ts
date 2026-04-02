@@ -19,7 +19,7 @@ import { Hono }       from "hono";
 import { requireScope } from "../middleware/require-scope.js";
 import Database       from "better-sqlite3";
 import { createLogger } from "../../core/logger.js";
-import { validateOutboundUrl } from "../../core/outbound-validator.js";
+import { validateOutboundUrlAsync } from "../../core/outbound-validator.js";
 import { parseOpenApiSpec } from "../../integration-gateway/openapi-parser.js";
 import { AdapterPromoter }  from "../../integration-gateway/adapter-promoter.js";
 import { reqId } from "../utils/request-id.js";
@@ -196,9 +196,9 @@ export function registerIntegrationRoutes(
     if (typeof body.spec_content === "string") {
       specContent = body.spec_content;
     } else if (typeof body.spec_url === "string") {
-      // SSRF guard: reject private/loopback URLs before making the outbound request
+      // SSRF guard: reject private/loopback URLs (+ DNS rebinding) before fetch
       try {
-        validateOutboundUrl(body.spec_url);
+        await validateOutboundUrlAsync(body.spec_url);
       } catch (e: unknown) {
         return c.json({ error: `Invalid spec_url: ${e instanceof Error ? e.message : String(e)}` }, 400);
       }
@@ -262,9 +262,9 @@ export function registerIntegrationRoutes(
     const method = (action.method ?? "GET").toUpperCase();
     const start  = Date.now();
 
-    // SSRF guard on test connectivity URL
+    // SSRF guard on test connectivity URL (+ DNS rebinding)
     try {
-      validateOutboundUrl(url);
+      await validateOutboundUrlAsync(url);
     } catch (e: unknown) {
       return c.json({ error: `Invalid adapter base_url: ${e instanceof Error ? e.message : String(e)}` }, 400);
     }

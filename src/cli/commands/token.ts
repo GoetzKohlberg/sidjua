@@ -18,6 +18,7 @@ import type { Command }    from "commander";
 import { openCliDatabase } from "../utils/db-init.js";
 import { TokenStore }      from "../../api/token-store.js";
 import type { TokenScope } from "../../api/token-store.js";
+import { auditCliCommand } from "../cli-audit.js";
 
 const VALID_SCOPES: TokenScope[] = ["admin", "operator", "agent", "readonly"];
 
@@ -72,6 +73,8 @@ export function registerTokenCommands(program: Command): void {
         process.exit(1);
       }
 
+      auditCliCommand("token", "create", db);
+
       try {
         const store = new TokenStore(db);
         const { id, rawToken } = store.createToken({
@@ -121,6 +124,8 @@ export function registerTokenCommands(program: Command): void {
         process.exit(1);
       }
 
+      auditCliCommand("token", "list", db);
+
       try {
         const store  = new TokenStore(db);
         const tokens = store.listTokens();
@@ -155,6 +160,8 @@ export function registerTokenCommands(program: Command): void {
       if (db === null) {
         process.exit(1);
       }
+
+      auditCliCommand("token", "revoke", db);
 
       try {
         const store   = new TokenStore(db);

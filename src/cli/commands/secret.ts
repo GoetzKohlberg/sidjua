@@ -25,6 +25,7 @@ import { runMigrations105 }   from "../../agent-lifecycle/migration.js";
 import { SqliteSecretsProvider } from "../../apply/secrets.js";
 import { hasTable }           from "../utils/db-init.js";
 import { msg }                from "../../i18n/index.js";
+import { auditCliCommand }    from "../cli-audit.js";
 
 
 async function openProvider(workDir: string): Promise<{
@@ -98,6 +99,7 @@ export function registerSecretCommands(program: Command): void {
     .option("--value <v>", "Secret value (omit to read from stdin)")
     .option("--work-dir <path>", "Workspace directory", process.cwd())
     .action(async (namespace: string, key: string, opts: { value?: string; workDir: string }) => {
+      auditCliCommand("secret", "set");
       const value = await resolveValue(opts.value);
       if (!value) {
         err("Error: value is required (use --value or pipe via stdin)");
@@ -132,6 +134,7 @@ export function registerSecretCommands(program: Command): void {
         }
 
         if (opts.reveal) {
+          auditCliCommand("secret", "reveal");
           if (!process.stdout.isTTY) {
             err("--reveal requires an interactive terminal (stdout is not a TTY)");
             process.exit(1);
@@ -210,6 +213,7 @@ export function registerSecretCommands(program: Command): void {
     .description("Delete a secret")
     .option("--work-dir <path>", "Workspace directory", process.cwd())
     .action(async (namespace: string, key: string, opts: { workDir: string }) => {
+      auditCliCommand("secret", "delete");
       const { provider, close } = await openProvider(opts.workDir);
       try {
         const existing = await provider.get(namespace, key);

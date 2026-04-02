@@ -9,7 +9,7 @@
  * and returns installation status.
  */
 
-import { execSync }                from "node:child_process";
+import { execFileSync }            from "node:child_process";
 import type { InternalToolDef }   from "../adapters/internal-adapter.js";
 import { loadMcpConfig, saveMcpConfig, type McpServerEntry } from "../mcp-config.js";
 import { createLogger }           from "../../core/logger.js";
@@ -76,12 +76,12 @@ export const installMcpServerTool: InternalToolDef = {
     // Install
     try {
       if (install_type === "npm") {
-        execSync(`npm install -g ${install_command}`, {
+        execFileSync("npm", ["install", "-g", install_command], {
           timeout: 120_000,
           stdio:   "pipe",
         });
       } else {
-        execSync(`docker pull ${install_command}`, {
+        execFileSync("docker", ["pull", install_command], {
           timeout: 300_000,
           stdio:   "pipe",
         });

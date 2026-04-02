@@ -10,4 +10,4 @@
  * url-validator module alongside validateProviderUrl().
  */
 
-export { validateOutboundUrl, validateSshHost } from "./network/url-validator.js";
+export { validateOutboundUrl, validateOutboundUrlAsync, validateSshHost } from "./network/url-validator.js";

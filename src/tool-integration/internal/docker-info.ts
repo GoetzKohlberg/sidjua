@@ -6,7 +6,7 @@
  * docker-info — list Docker containers, images, and resource usage.
  */
 
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import type { InternalToolDef } from "../adapters/internal-adapter.js";
 
 const DOCKER_TIMEOUT = 10_000;
@@ -32,14 +32,12 @@ export const dockerInfoTool: InternalToolDef = {
     },
   ],
   execute: async (params) => {
-    const allFlag = params["all"] ? "-a" : "";
+    const psArgs = ["ps", ...(params["all"] ? ["-a"] : []), "--format", "{{json .}}"];
 
     let containers: unknown[] = [];
     try {
-      const raw = execSync(
-        `docker ps ${allFlag} --format '{{json .}}'`,
-        { timeout: DOCKER_TIMEOUT },
-      ).toString().trim();
+      const raw = execFileSync("docker", psArgs, { timeout: DOCKER_TIMEOUT })
+        .toString().trim();
       if (raw) containers = raw.split("\n").map((line) => JSON.parse(line) as unknown);
     } catch (err: unknown) {
       return { error: "Docker not available or permission denied", detail: String(err) };
@@ -47,16 +45,14 @@ export const dockerInfoTool: InternalToolDef = {
 
     let images: unknown[] = [];
     try {
-      const raw = execSync(
-        `docker images --format '{{json .}}'`,
-        { timeout: DOCKER_TIMEOUT },
-      ).toString().trim();
+      const raw = execFileSync("docker", ["images", "--format", "{{json .}}"], { timeout: DOCKER_TIMEOUT })
+        .toString().trim();
       if (raw) images = raw.split("\n").map((line) => JSON.parse(line) as unknown);
     } catch (_e) { /* non-critical */ }
 
     let diskUsage = "unavailable";
     try {
-      diskUsage = execSync("docker system df", { timeout: DOCKER_TIMEOUT }).toString().trim();
+      diskUsage = execFileSync("docker", ["system", "df"], { timeout: DOCKER_TIMEOUT }).toString().trim();
     } catch (_e) { /* non-critical */ }
 
     return {

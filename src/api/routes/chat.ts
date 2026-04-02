@@ -127,6 +127,26 @@ function ensureChatTable(db: Database): void {
 }
 
 /**
+ * Write-through: persist a single conversation immediately after mutation.
+ * Keeps the DB authoritative so a crash loses at most one in-flight response.
+ * Never throws — errors are logged and swallowed.
+ */
+export function persistSingleConversation(db: Database, conv: Conversation): void {
+  try {
+    ensureChatTable(db);
+    const now = new Date().toISOString();
+    db.prepare<[string, string, string, string, string, string], void>(
+      `INSERT OR REPLACE INTO chat_conversations (id, agent_id, messages, created_at, updated_at)
+       VALUES (?, ?, ?, COALESCE((SELECT created_at FROM chat_conversations WHERE id = ?), ?), ?)`,
+    ).run(conv.conversation_id, conv.agent_id, JSON.stringify(conv.messages), conv.conversation_id, now, now);
+  } catch (e: unknown) {
+    logger.warn("chat-routes", "Chat write-through persist failed — non-fatal", {
+      metadata: { error: e instanceof Error ? e.message : String(e) },
+    });
+  }
+}
+
+/**
  * Persist all in-memory conversations to SQLite.
  * Called by the checkpoint timer and during graceful shutdown.
  * Never throws — errors are logged and swallowed.
@@ -469,6 +489,8 @@ export function registerChatRoutes(app: Hono, services: ChatRouteServices = {}):
       timestamp: new Date().toISOString(),
     };
     conversation.messages.push(userMsg);
+    // Write-through: persist immediately so a crash loses at most the in-flight response
+    if (chatDb !== null) persistSingleConversation(chatDb, conversation);
 
     // Build system prompt and messages
     const effectiveRole = role ?? (() => {

@@ -225,6 +225,7 @@ const ERROR_REGISTRY: Readonly<Record<string, ErrorCodeEntry>> = {
   // SSRF protection
   "SSRF-001": { code: "SSRF-001", category: ErrorCategory.SSRF, message: "Invalid or non-HTTP(S) outbound URL",  recoverable: false, suggestion: "Use an http:// or https:// URL for outbound requests" },
   "SSRF-002": { code: "SSRF-002", category: ErrorCategory.SSRF, message: "Private or loopback address blocked", recoverable: false, suggestion: "Use a publicly routable hostname for outbound requests" },
+  "SSRF-003": { code: "SSRF-003", category: ErrorCategory.SSRF, message: "DNS rebinding: hostname resolved to private address", recoverable: false, suggestion: "The hostname resolves to a private/loopback IP; use a publicly routable host" },
 
   // Server-side errors
   "SERVER-500": { code: "SERVER-500", category: ErrorCategory.SERVER, message: "Internal server error", recoverable: true, suggestion: "Retry the request or check server logs" },

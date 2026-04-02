@@ -57,6 +57,7 @@ import { registerDelegationCommands }      from "./cli/commands/delegation.js";
 import { registerActivityCommands }        from "./cli/commands/activity.js";
 import { performStartupCheck }             from "./core/update/update-check.js";
 import { NpmUpdateProvider }               from "./core/update/npm-update-provider.js";
+import { auditCliCommand }                 from "./cli/cli-audit.js";
 import { resolvePaths }                    from "./core/paths.js";
 import { loadVersionInfo }                 from "./core/governance/rule-loader.js";
 import { configureLogger }                 from "./core/logger.js";
@@ -109,6 +110,7 @@ program
     step?: string;
     workDir: string;
   }) => {
+    auditCliCommand("apply", undefined);
     const cmdOpts: import("./cli/apply-command.js").ApplyCommandOptions = {
       config: opts.config,
       dryRun: opts.dryRun,

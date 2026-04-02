@@ -133,6 +133,18 @@ const GLASSCHEIBE_WIDGET_JS = `// SPDX-License-Identifier: AGPL-3.0-only
 // Route registrar
 // ---------------------------------------------------------------------------
 
+/** Read a workspace_config value — returns null on any error or missing row. */
+function getWorkspaceConfig(db: InstanceType<typeof Database>, key: string): string | null {
+  try {
+    const row = db.prepare<[string], { value: string }>(
+      "SELECT value FROM workspace_config WHERE key = ?",
+    ).get(key);
+    return row?.value ?? null;
+  } catch (_e) {
+    return null;
+  }
+}
+
 export function registerOrgPublicRoutes(
   app: Hono,
   {
@@ -162,6 +174,9 @@ export function registerOrgPublicRoutes(
 
   // ── GET /api/v1/org/public ──────────────────────────────────────────────
   app.get("/api/v1/org/public", rl, (c) => {
+    if (getWorkspaceConfig(db, "public_org_chart_enabled") !== "true") {
+      return c.json({ error: "public_org_chart_disabled", message: "The public org chart is disabled on this server." }, 404);
+    }
     for (const [k, v] of Object.entries(corsHeaders())) c.header(k, v);
     const internal = store.getTree();
     const pub      = toPublicTree(internal);
@@ -170,6 +185,9 @@ export function registerOrgPublicRoutes(
 
   // ── GET /api/v1/org/public/live ─────────────────────────────────────────
   app.get("/api/v1/org/public/live", rl, (c) => {
+    if (getWorkspaceConfig(db, "public_org_chart_enabled") !== "true") {
+      return c.json({ error: "public_org_chart_disabled", message: "The public org chart is disabled on this server." }, 404);
+    }
     for (const [k, v] of Object.entries(corsHeaders())) c.header(k, v);
 
     const clientId = crypto.randomUUID();
@@ -216,6 +234,9 @@ export function registerOrgPublicRoutes(
   // Embeddable vanilla JS widget — served as a static asset, no auth required.
   // Content is inlined (zero runtime file reads); see src/api/static/glasscheibe.js.
   app.get("/widget/glasscheibe.js", (c) => {
+    if (getWorkspaceConfig(db, "public_org_chart_enabled") !== "true") {
+      return c.text("/* Public org chart is disabled on this server. */\n", 404);
+    }
     return c.body(GLASSCHEIBE_WIDGET_JS, 200, {
       "Content-Type":                 "application/javascript; charset=utf-8",
       "Cache-Control":                "public, max-age=3600",

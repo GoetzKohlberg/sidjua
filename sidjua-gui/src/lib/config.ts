@@ -11,10 +11,10 @@
  *
  * Bootstrap key flow (P325):
  *   1. Server injects window.__SIDJUA_BOOTSTRAP__ = { api_key, server_url }
- *   2. On mount, check localStorage for a stored admin session token
+ *   2. On mount, check sessionStorage for a stored admin session token
  *   3. If stored token found, use it directly (skips exchange)
  *   4. If not found, call POST /api/v1/tokens to exchange bootstrap key → admin token
- *   5. Store the admin rawToken in localStorage['sidjua-session-token']
+ *   5. Store the admin rawToken in sessionStorage['sidjua-session-token']
  *   6. On auth failure, clear the stored token and reset key (forces re-exchange on next load)
  *
  * The bootstrap key is NEVER persisted — only the exchanged admin token is stored.
@@ -142,14 +142,15 @@ function saveConfig(cfg: AppConfig): void {
 // ---------------------------------------------------------------------------
 // Session token helpers (P325)
 //
-// The admin session token is stored in localStorage so the GUI survives a
-// page reload without re-exchanging the bootstrap key.  The bootstrap key
-// itself is NEVER written to storage.
+// The admin session token is stored in sessionStorage (not localStorage) so
+// the token is scoped to the current browser tab and cleared automatically
+// when the tab is closed.  The bootstrap key itself is NEVER written to
+// storage.
 // ---------------------------------------------------------------------------
 
 function loadStoredSessionToken(): string | null {
   try {
-    return localStorage.getItem(SESSION_STORAGE_KEY) ?? null;
+    return sessionStorage.getItem(SESSION_STORAGE_KEY) ?? null;
   } catch {
     return null;
   }
@@ -157,7 +158,7 @@ function loadStoredSessionToken(): string | null {
 
 function saveSessionToken(token: string): void {
   try {
-    localStorage.setItem(SESSION_STORAGE_KEY, token);
+    sessionStorage.setItem(SESSION_STORAGE_KEY, token);
   } catch {
     // ignore storage errors
   }
@@ -165,7 +166,7 @@ function saveSessionToken(token: string): void {
 
 function clearSessionToken(): void {
   try {
-    localStorage.removeItem(SESSION_STORAGE_KEY);
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
   } catch {
     // ignore storage errors
   }
@@ -316,8 +317,8 @@ export function AppConfigProvider({ children }: { children: ReactNode }) {
   //
   // Flow:
   //  1. If we already have a key in React state, nothing to do.
-  //  2. If a session token is stored in localStorage, use it directly
-  //     (page reload case — no new exchange needed).
+  //  2. If a session token is stored in sessionStorage, use it directly
+  //     (page reload within the same tab — no new exchange needed).
   //  3. Otherwise read the bootstrap key from window.__SIDJUA_BOOTSTRAP__,
   //     exchange it for an admin token, store the admin token, and apply it.
   //     If exchange fails, fall back to using the bootstrap key directly

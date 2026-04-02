@@ -45,7 +45,19 @@ const V2_1_WORKSPACE_CONFIG: DbMigration = {
   `,
 };
 
-export const WORKSPACE_CONFIG_MIGRATIONS: DbMigration[] = [V2_1_WORKSPACE_CONFIG];
+const V2_2_ORG_CONFIG: DbMigration = {
+  version: "2.2",
+  description: "add public_org_chart_enabled config flag (default false)",
+  up: `
+    INSERT OR IGNORE INTO workspace_config (key, value)
+      VALUES ('public_org_chart_enabled', 'false');
+  `,
+  down: `
+    DELETE FROM workspace_config WHERE key = 'public_org_chart_enabled';
+  `,
+};
+
+export const WORKSPACE_CONFIG_MIGRATIONS: DbMigration[] = [V2_1_WORKSPACE_CONFIG, V2_2_ORG_CONFIG];
 
 
 /**

@@ -198,13 +198,19 @@ export async function runPendingMigrations(
       metadata: { description: entry.description },
     });
 
-    // Wrap in manual transaction (supports async up() via BEGIN/COMMIT/ROLLBACK)
+    // Wrap in a db.transaction() so SQLite handles BEGIN/COMMIT/ROLLBACK atomically.
+    // better-sqlite3 transactions are synchronous; migration.up() must not do async I/O.
+    // If up() returns a Promise (legacy async migration), await it after the transaction
+    // to propagate any deferred errors.
     try {
-      db.exec("BEGIN");
-      await migration.up(db);
-      db.exec("COMMIT");
+      let upResult: Promise<void> | undefined;
+      db.transaction(() => {
+        const r = migration.up(db);
+        if (r instanceof Promise) upResult = r;
+      })();
+      // Await any returned Promise (async migration compatibility)
+      if (upResult !== undefined) await upResult;
     } catch (e: unknown) {
-      try { db.exec("ROLLBACK"); } catch (rbErr: unknown) { void rbErr; }
       const msg = e instanceof Error ? e.message : String(e);
       logger.error("migration-framework", `Migration ${entry.id} failed — rolled back`, { error: { code: "MIGRATION_FAILED", message: msg } });
       return { applied, skipped, failed: entry.id, error: msg };
@@ -258,11 +264,13 @@ export async function rollbackMigration(
   logger.info("migration-framework", `Rolling back migration ${migrationId}`);
 
   try {
-    db.exec("BEGIN");
-    await migration.down(db);
-    db.exec("COMMIT");
+    let downResult: Promise<void> | undefined;
+    db.transaction(() => {
+      const r = migration.down(db);
+      if (r instanceof Promise) downResult = r;
+    })();
+    if (downResult !== undefined) await downResult;
   } catch (e: unknown) {
-    try { db.exec("ROLLBACK"); } catch (rbErr: unknown) { void rbErr; }
     const msg = e instanceof Error ? e.message : String(e);
     logger.error("migration-framework", `Rollback of ${migrationId} failed`, { error: { code: "ROLLBACK_FAILED", message: msg } });
     return { applied: [], skipped: [], failed: migrationId, error: msg };

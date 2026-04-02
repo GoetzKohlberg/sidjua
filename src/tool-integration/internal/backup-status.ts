@@ -6,7 +6,7 @@
  * backup-status — check BorgBackup repository status and last backup timestamps.
  */
 
-import { execSync }  from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import type { InternalToolDef } from "../adapters/internal-adapter.js";
 
@@ -47,15 +47,17 @@ export const backupStatusTool: InternalToolDef = {
     }
 
     try {
-      const raw = execSync(`borg info "${repoPath}" --json 2>/dev/null`, {
+      const raw = execFileSync("borg", ["info", repoPath, "--json"], {
         timeout: BORG_TIMEOUT,
+        stdio:   ["pipe", "pipe", "pipe"],
       }).toString();
       return { status: "ok", repo: JSON.parse(raw) as unknown };
     } catch (_e) { /* borg not installed or repo locked — try list */ }
 
     try {
-      const raw = execSync(`borg list "${repoPath}" --json 2>/dev/null`, {
+      const raw = execFileSync("borg", ["list", repoPath, "--json"], {
         timeout: BORG_TIMEOUT,
+        stdio:   ["pipe", "pipe", "pipe"],
       }).toString();
       return { status: "ok", archives: JSON.parse(raw) as unknown };
     } catch (_e) {
