@@ -9,6 +9,7 @@ import { AgentIcon }    from '../components/shared/AgentIcon';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import type { StarterDivisionsResponse } from '../api/types';
 import { GUI_ERRORS } from '../i18n/gui-errors';
+import { useTranslation } from '../hooks/useTranslation';
 
 const cardStyle: React.CSSProperties = {
   background:   'var(--color-surface)',
@@ -39,6 +40,7 @@ const AGENT_ICONS: Record<string, string> = {
 export function Divisions() {
   const { client } = useAppConfig();
   const divRes = useApi<StarterDivisionsResponse>((c) => c.listStarterDivisions());
+  const { t } = useTranslation();
   const divisions = divRes.data?.divisions ?? [];
 
   if (!client) {
@@ -59,7 +61,7 @@ export function Divisions() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--color-text)', margin: 0 }}>
-        Divisions
+        {t('gui.divisions.page_title')}
       </h1>
 
       {divRes.loading && (
@@ -97,7 +99,7 @@ export function Divisions() {
               <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-text)' }}>
                 {div.agent_count}
               </div>
-              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>agents</div>
+              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{t('gui.divisions.agents_count')}</div>
             </div>
           </div>
 
@@ -109,7 +111,7 @@ export function Divisions() {
               borderRadius: 'var(--radius-md)',
               padding:      '8px 12px',
             }}>
-              <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Daily limit</div>
+              <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>{t('gui.divisions.daily_limit')}</div>
               <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text)' }}>
                 ${div.budget.daily_limit_usd.toFixed(2)}
               </div>
@@ -120,7 +122,7 @@ export function Divisions() {
               borderRadius: 'var(--radius-md)',
               padding:      '8px 12px',
             }}>
-              <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Monthly cap</div>
+              <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>{t('gui.divisions.monthly_cap')}</div>
               <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text)' }}>
                 ${div.budget.monthly_cap_usd.toFixed(2)}
               </div>
@@ -128,7 +130,7 @@ export function Divisions() {
           </div>
 
           {/* Agent list */}
-          <p style={cardTitleStyle}>Agents</p>
+          <p style={cardTitleStyle}>{t('gui.divisions.agents_title')}</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
             {div.agents.map((agentId) => (
               <div

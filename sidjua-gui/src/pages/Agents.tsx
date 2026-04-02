@@ -164,7 +164,7 @@ function AgentDetail({ agentId, onClose }: { agentId: string; onClose: () => voi
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 24px', marginBottom: '16px' }}>
         {/* Provider dropdown */}
         <div>
-          <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '4px' }}>Provider</p>
+          <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '4px' }}>{t('gui.agents.provider')}</p>
           <select
             value={agent.provider}
             onChange={(e) => {
@@ -186,7 +186,7 @@ function AgentDetail({ agentId, onClose }: { agentId: string; onClose: () => voi
 
         {/* Model dropdown — all models from the same provider family */}
         <div>
-          <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '4px' }}>Model</p>
+          <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '4px' }}>{t('gui.agents.model')}</p>
           {(() => {
             const selectedProv   = catalogRes.data?.providers.find((p) => p.id === agent.provider);
             const providerFamily = selectedProv?.name;
@@ -361,7 +361,7 @@ function StarterAgentDetail({ agent, onClose, providerConfigured }: { agent: Sta
       {/* Capabilities */}
       <div style={{ marginBottom: '20px' }}>
         <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
-          Capabilities
+          {t('gui.agents.capabilities')}
         </p>
         <ul style={{ margin: 0, padding: '0 0 0 16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
           {agent.capabilities.map((cap) => (
@@ -375,11 +375,11 @@ function StarterAgentDetail({ agent, onClose, providerConfigured }: { agent: Sta
       {/* Meta */}
       <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '20px' }}>
         <div>
-          <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '2px' }}>Division</p>
+          <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '2px' }}>{t('gui.agents.division')}</p>
           <p style={{ fontSize: '13px', color: 'var(--color-text)', fontWeight: 500 }}>{agent.division}</p>
         </div>
         <div>
-          <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '2px' }}>Domains</p>
+          <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '2px' }}>{t('gui.agents.domains')}</p>
           <p style={{ fontSize: '13px', color: 'var(--color-text)', fontWeight: 500 }}>{agent.domains.join(', ')}</p>
         </div>
       </div>
@@ -421,6 +421,7 @@ function StarterAgentDetail({ agent, onClose, providerConfigured }: { agent: Sta
 
 function YourTeamPanel() {
   const navigate  = useNavigate();
+  const { t } = useTranslation();
   const { client } = useAppConfig();
   const starterRes    = useApi<StarterAgentsResponse>((c) => c.listStarterAgents());
   const providerRes   = useApi<ProviderConfigResponse>((c) => c.getProviderConfig());
@@ -439,7 +440,7 @@ function YourTeamPanel() {
       {/* Section header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text)', margin: 0 }}>
-          Your Team
+          {t('gui.agents.your_team')}
         </h2>
         <div style={{ position: 'relative' }}>
           <button
@@ -463,7 +464,7 @@ function YourTeamPanel() {
             }}
           >
             <Plus size={14} />
-            Create New Agent
+            {t('gui.agents.create_new')}
           </button>
           {showCreateTooltip && llmStatus !== 'configured' && (
             <div style={{
@@ -570,6 +571,7 @@ export function Agents() {
   const [selectedId,     setSelectedId]     = useState<string | null>(null);
   const [flashingIds,    setFlashingIds]    = useState<Set<string>>(new Set());
   const [refreshKey,     setRefreshKey]     = useState(0);
+  const { t } = useTranslation();
 
   // Escape closes detail panel
   useEffect(() => {
@@ -673,7 +675,7 @@ export function Agents() {
         padding:      '20px',
         color:        'var(--color-warning)',
       }}>
-        <strong>Not connected</strong> — configure your server URL and API key in{' '}
+        <strong>{t('gui.agents.not_connected')}</strong> — configure your server URL and API key in{' '}
         <button
           onClick={() => navigate('/settings')}
           style={{ background: 'none', border: 'none', color: 'var(--color-accent)', cursor: 'pointer', textDecoration: 'underline', fontSize: 'inherit' }}
@@ -708,7 +710,7 @@ export function Agents() {
           aria-label="Filter by division"
           style={selectStyle}
         >
-          <option value="">All Divisions</option>
+          <option value="">{t('gui.agents.all_divisions')}</option>
           {(divRes.data?.divisions ?? []).map((d) => (
             <option key={d.code} value={d.code}>{d.name || d.code}</option>
           ))}
@@ -720,7 +722,7 @@ export function Agents() {
           aria-label="Filter by status"
           style={selectStyle}
         >
-          <option value="">All Statuses</option>
+          <option value="">{t('gui.agents.all_statuses')}</option>
           {ALL_STATUSES.map((s) => (
             <option key={s} value={s} style={{ textTransform: 'capitalize' }}>{s}</option>
           ))}
@@ -794,7 +796,7 @@ export function Agents() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
-                  {['Name', 'Division', 'Model', 'Last updated'].map((h) => (
+                  {[t('gui.agents.col_name'), t('gui.agents.division'), t('gui.agents.model'), t('gui.agents.col_updated')].map((h) => (
                     <th key={h} style={{
                       textAlign:     'left',
                       padding:       '10px 16px 10px 8px',

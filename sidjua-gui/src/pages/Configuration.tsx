@@ -35,15 +35,11 @@ const cardTitleStyle: React.CSSProperties = {
 
 type TabId = 'divisions' | 'system' | 'logging';
 
-const TABS: { id: TabId; label: string }[] = [
-  { id: 'divisions', label: 'Divisions Config' },
-  { id: 'system',    label: 'System Info' },
-  { id: 'logging',   label: 'Log Levels' },
-];
 
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
+  const { t } = useTranslation();
 
   function handleCopy() {
     navigator.clipboard.writeText(text).then(() => {
@@ -72,13 +68,14 @@ function CopyButton({ text }: { text: string }) {
       }}
     >
       {copied ? <CheckCircle size={13} /> : <Copy size={13} />}
-      {copied ? 'Copied!' : 'Copy'}
+      {copied ? t('gui.common.copied') : t('gui.common.copy')}
     </button>
   );
 }
 
 
 function DivisionsTab() {
+  const { t } = useTranslation();
   const divRes = useDivisions();
   const divisions = divRes.data?.divisions ?? [];
 
@@ -99,7 +96,7 @@ function DivisionsTab() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div style={cardStyle}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <p style={{ ...cardTitleStyle, marginBottom: 0 }}>Divisions (from database)</p>
+          <p style={{ ...cardTitleStyle, marginBottom: 0 }}>{t('gui.config.divisions_title')}</p>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             {divRes.loading && <LoadingSpinner size="sm" />}
             {divisions.length > 0 && <CopyButton text={jsonStr} />}
@@ -139,12 +136,12 @@ function DivisionsTab() {
       {/* Division summary table */}
       {divisions.length > 0 && (
         <div style={cardStyle}>
-          <p style={cardTitleStyle}>Division Summary</p>
+          <p style={cardTitleStyle}>{t('gui.config.division_summary')}</p>
           <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: 'var(--color-surface-alt)', borderBottom: '2px solid var(--color-border)' }}>
-                {['Code', 'Name', 'Active', 'Scope', 'Required'].map((h) => (
+                {[t('gui.config.col_code'), t('gui.config.col_name'), t('gui.config.col_active'), t('gui.config.col_scope'), t('gui.config.col_required')].map((h) => (
                   <th key={h} style={{
                     textAlign:     'left',
                     padding:       '8px 12px',
@@ -184,6 +181,7 @@ function DivisionsTab() {
 
 
 function SystemInfoTab() {
+  const { t } = useTranslation();
   const { health, loading: hLoading } = useHealth();
   const infoRes = useApi<SystemInfo>((c) => c.info());
   const agentRes = useAgents();
@@ -206,7 +204,7 @@ function SystemInfoTab() {
 
   return (
     <div style={cardStyle}>
-      <p style={cardTitleStyle}>System Information</p>
+      <p style={cardTitleStyle}>{t('gui.config.system_info')}</p>
       {(hLoading || infoRes.loading) && <LoadingSpinner />}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
         {rows.map(({ label, value }) => (
@@ -249,7 +247,7 @@ function LoggingTab() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div style={cardStyle}>
-        <p style={cardTitleStyle}>Log Levels (read-only)</p>
+        <p style={cardTitleStyle}>{t('gui.config.log_levels')}</p>
         {loggingRes.loading && <LoadingSpinner />}
         {loggingRes.error && <p style={{ color: 'var(--color-danger)', fontSize: '13px' }}>{loggingRes.error}</p>}
         {status && (
@@ -261,7 +259,7 @@ function LoggingTab() {
               borderBottom:   '1px solid var(--color-border)',
               marginBottom:   '12px',
             }}>
-              <span style={{ fontSize: '13px', color: 'var(--color-text-secondary)' }}>Global level</span>
+              <span style={{ fontSize: '13px', color: 'var(--color-text-secondary)' }}>{t('gui.config.global_level')}</span>
               <span style={{ fontSize: '13px', fontWeight: 700, color: LEVEL_COLORS[status.global] ?? 'var(--color-text)' }}>
                 {status.global.toUpperCase()}
               </span>
@@ -271,21 +269,21 @@ function LoggingTab() {
               gap:            '16px',
               marginBottom:   '16px',
             }}>
-              <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>Format: <strong>{status.format}</strong></span>
-              <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>Output: <strong>{status.output}</strong></span>
+              <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>{t('gui.config.format_label')} <strong>{status.format}</strong></span>
+              <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>{t('gui.config.output_label')} <strong>{status.output}</strong></span>
             </div>
             <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px' }}>
-              Component overrides
+              {t('gui.config.component_overrides')}
             </p>
             {Object.keys(status.components).length === 0 ? (
-              <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>No component overrides.</p>
+              <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>{t('gui.config.no_overrides')}</p>
             ) : (
               <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
-                    <th style={{ textAlign: 'left', padding: '6px 0', fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600 }}>Component</th>
-                    <th style={{ textAlign: 'right', padding: '6px 0', fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600 }}>Level</th>
+                    <th style={{ textAlign: 'left', padding: '6px 0', fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600 }}>{t('gui.config.col_component')}</th>
+                    <th style={{ textAlign: 'right', padding: '6px 0', fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600 }}>{t('gui.config.col_level')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -347,30 +345,37 @@ function LoggingTab() {
 
 export function Configuration() {
   const [tab, setTab] = useState<TabId>('divisions');
+  const { t } = useTranslation();
+
+  const tabs: { id: TabId; label: string }[] = [
+    { id: 'divisions', label: t('gui.config.tab_divisions') },
+    { id: 'system',    label: t('gui.config.tab_system') },
+    { id: 'logging',   label: t('gui.config.tab_logging') },
+  ];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '4px', borderBottom: '2px solid var(--color-border)' }}>
-        {TABS.map((t) => (
+        {tabs.map((tabItem) => (
           <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
+            key={tabItem.id}
+            onClick={() => setTab(tabItem.id)}
             style={{
               padding:      '8px 16px',
               border:       'none',
               background:   'none',
               cursor:       'pointer',
               fontSize:     '13px',
-              fontWeight:   tab === t.id ? 700 : 400,
-              color:        tab === t.id ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-              borderBottom: tab === t.id ? '2px solid var(--color-accent)' : '2px solid transparent',
+              fontWeight:   tab === tabItem.id ? 700 : 400,
+              color:        tab === tabItem.id ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+              borderBottom: tab === tabItem.id ? '2px solid var(--color-accent)' : '2px solid transparent',
               marginBottom: '-2px',
               transition:   'all var(--transition-fast)',
             }}
           >
-            {t.label}
+            {tabItem.label}
           </button>
         ))}
       </div>

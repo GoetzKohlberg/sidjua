@@ -13,6 +13,7 @@ import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { formatRelative } from '../lib/format';
 import { todayIso }      from '../lib/format';
 import type { GovernanceStatus, GovernanceHistory, GovernanceSnapshot, AuditResponse } from '../api/types';
+import { useTranslation } from '../hooks/useTranslation';
 
 
 const cardStyle: React.CSSProperties = {
@@ -34,12 +35,6 @@ const cardTitleStyle: React.CSSProperties = {
 
 
 type TabId = 'overview' | 'pipeline' | 'policies' | 'history';
-const TABS: { id: TabId; label: string }[] = [
-  { id: 'overview',  label: 'Overview' },
-  { id: 'pipeline',  label: 'Pipeline' },
-  { id: 'policies',  label: 'Policies & Rules' },
-  { id: 'history',   label: 'Snapshot History' },
-];
 
 
 interface PipelineStep {
@@ -96,10 +91,11 @@ function OverviewTab({
   auditEntries: AuditResponse['entries'];
   auditLoading: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div style={cardStyle}>
-        <p style={cardTitleStyle}>Governance Status</p>
+        <p style={cardTitleStyle}>{t('gui.governance.status_title')}</p>
         {statusLoading && <LoadingSpinner />}
         {statusError && <p style={{ color: 'var(--color-danger)', fontSize: '13px' }}>{statusError}</p>}
         {status && (
@@ -118,7 +114,7 @@ function OverviewTab({
       </div>
 
       <div style={cardStyle}>
-        <p style={cardTitleStyle}>Today's Governance Activity</p>
+        <p style={cardTitleStyle}>{t('gui.governance.activity_today')}</p>
         {auditLoading && <LoadingSpinner />}
         {!auditLoading && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
@@ -238,9 +234,10 @@ function PipelineTab() {
 }
 
 function PoliciesTab() {
+  const { t } = useTranslation();
   return (
     <div style={cardStyle}>
-      <p style={cardTitleStyle}>Policies & Rules</p>
+      <p style={cardTitleStyle}>{t('gui.governance.policies')}</p>
       <div style={{
         background:   'var(--color-surface-alt)',
         borderRadius: 'var(--radius-md)',
@@ -277,9 +274,10 @@ function PoliciesTab() {
 }
 
 function HistoryTab({ history, loading, error }: { history: GovernanceHistory | null; loading: boolean; error: string | null }) {
+  const { t } = useTranslation();
   return (
     <div style={cardStyle}>
-      <p style={cardTitleStyle}>Snapshot History</p>
+      <p style={cardTitleStyle}>{t('gui.governance.snapshots')}</p>
       {loading && <LoadingSpinner />}
       {error && <p style={{ color: 'var(--color-danger)', fontSize: '13px' }}>{error}</p>}
       {!loading && !error && (history?.snapshots ?? []).length === 0 && (
@@ -353,7 +351,15 @@ function StatusRow({ label, value, mono = false }: { label: string; value: strin
 
 
 export function Governance() {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<TabId>('overview');
+
+  const tabs: { id: TabId; label: string }[] = [
+    { id: 'overview',  label: t('gui.governance.tab_overview') },
+    { id: 'pipeline',  label: t('gui.governance.tab_pipeline') },
+    { id: 'policies',  label: t('gui.governance.policies') },
+    { id: 'history',   label: t('gui.governance.snapshots') },
+  ];
 
   const statusRes  = useApi<GovernanceStatus>((c)  => c.governanceStatus());
   const historyRes = useApi<GovernanceHistory>((c)  => c.governanceHistory());
@@ -373,22 +379,22 @@ export function Governance() {
       {/* Summary metric cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
         <MetricCard
-          title="Active Divisions"
+          title={t('gui.governance.active_divisions')}
           value={divRes.loading ? <LoadingSpinner size="sm" /> : (divRes.data?.divisions.filter((d) => d.active).length ?? '—')}
           icon={<ShieldCheck size={22} />}
         />
         <MetricCard
-          title="Actions Today"
+          title={t('gui.governance.actions_today')}
           value={auditRes.loading ? <LoadingSpinner size="sm" /> : auditEntries.length}
           subtitle="governance audit entries"
         />
         <MetricCard
-          title="Blocked Today"
+          title={t('gui.governance.blocked_today')}
           value={auditRes.loading ? <LoadingSpinner size="sm" /> : blocked}
           subtitle={blocked > 0 ? 'review audit log' : 'none blocked'}
         />
         <MetricCard
-          title="Compliance Rate"
+          title={t('gui.governance.compliance_rate')}
           value={auditRes.loading ? <LoadingSpinner size="sm" /> : `${compliance}%`}
           subtitle="actions passed governance"
         />
@@ -397,24 +403,24 @@ export function Governance() {
       {/* Tabs */}
       <div>
         <div style={{ display: 'flex', gap: '4px', borderBottom: '2px solid var(--color-border)', marginBottom: '20px' }}>
-          {TABS.map((t) => (
+          {tabs.map((tabItem) => (
             <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
+              key={tabItem.id}
+              onClick={() => setTab(tabItem.id)}
               style={{
                 padding:      '8px 16px',
                 border:       'none',
                 background:   'none',
                 cursor:       'pointer',
                 fontSize:     '13px',
-                fontWeight:   tab === t.id ? 700 : 400,
-                color:        tab === t.id ? 'var(--color-accent)' : 'var(--color-text-secondary)',
-                borderBottom: tab === t.id ? '2px solid var(--color-accent)' : '2px solid transparent',
+                fontWeight:   tab === tabItem.id ? 700 : 400,
+                color:        tab === tabItem.id ? 'var(--color-accent)' : 'var(--color-text-secondary)',
+                borderBottom: tab === tabItem.id ? '2px solid var(--color-accent)' : '2px solid transparent',
                 marginBottom: '-2px',
                 transition:   'all var(--transition-fast)',
               }}
             >
-              {t.label}
+              {tabItem.label}
             </button>
           ))}
         </div>

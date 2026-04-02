@@ -17,6 +17,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAppConfig } from '../../lib/config';
 import { formatGuiError } from '../../i18n/gui-errors';
+import { useTranslation } from '../../hooks/useTranslation';
 
 
 interface WorkspaceSummaryData {
@@ -70,6 +71,7 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
   const [summary,    setSummary]    = useState<WorkspaceSummaryData | null>(null);
   const [backupPath, setBackupPath] = useState<string | null>(null);
   const [error,      setError]      = useState<string | null>(null);
+  const { t } = useTranslation();
 
   // Fetch workspace summary on mount
   useEffect(() => {
@@ -178,10 +180,10 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
                 id="start-over-title"
                 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text)', marginBottom: '6px' }}
               >
-                Start Over
+                {t('gui.start_over.title')}
               </h2>
               <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)' }}>
-                Your workspace will be backed up before anything changes.
+                {t('gui.start_over.subtitle')}
               </p>
             </div>
 
@@ -196,7 +198,7 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
                 color:        'var(--color-text-secondary)',
               }}>
                 <div style={{ fontWeight: 600, color: 'var(--color-text)', marginBottom: '8px' }}>
-                  Current Workspace
+                  {t('gui.start_over.current_workspace')}
                 </div>
                 <div>Agents: <strong style={{ color: 'var(--color-text)' }}>{summary.agentCount}</strong></div>
                 <div>Divisions: <strong style={{ color: 'var(--color-text)' }}>{summary.divisionCount}</strong></div>
@@ -214,8 +216,8 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
               color:        '#92400e',
               lineHeight:   '1.6',
             }}>
-              <strong>Your previous work — including your mistakes — is valuable.</strong><br />
-              Everything will be backed up before we wipe anything.
+              <strong>{t('gui.start_over.valuable_work')}</strong><br />
+              {t('gui.start_over.backup_everything')}
             </div>
 
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
@@ -223,14 +225,14 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
                 onClick={onCancel}
                 style={cancelButtonStyle}
               >
-                Keep Current Workspace
+                {t('gui.start_over.keep_current')}
               </button>
               <button
                 onClick={() => { void handleStartBackup(); }}
                 disabled={summary === null}
                 style={amberButtonStyle(summary === null)}
               >
-                Back Up & Start Fresh
+                {t('gui.start_over.back_up_start_fresh')}
               </button>
             </div>
           </>
@@ -239,10 +241,9 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
         {/* Phase: backup */}
         {phase === 'backup' && (
           <>
-            <h2 id="start-over-title" style={headingStyle}>Backing Up Your Workspace</h2>
+            <h2 id="start-over-title" style={headingStyle}>{t('gui.start_over.backing_up_title')}</h2>
             <p style={bodyStyle}>
-              Copying all your data — agents, configs, logs, and conversations.
-              This may take a moment<LoadingDots />
+              {t('gui.start_over.backing_up_body')}<LoadingDots />
             </p>
             <div style={progressBarContainerStyle}>
               <div style={progressBarIndeterminateStyle} />
@@ -253,7 +254,7 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
         {/* Phase: learn */}
         {phase === 'learn' && (
           <>
-            <h2 id="start-over-title" style={headingStyle}>Before You Continue</h2>
+            <h2 id="start-over-title" style={headingStyle}>{t('gui.start_over.before_continue_title')}</h2>
 
             <div style={{ fontSize: '14px', color: 'var(--color-text)', lineHeight: '1.7' }}>
               <p style={{ marginBottom: '12px' }}>
@@ -286,7 +287,7 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
               fontSize:     '12px',
               color:        'var(--color-text-secondary)',
             }}>
-              Backup saved to:<br />
+              {t('gui.start_over.backup_saved')}<br />
               <span style={{ fontFamily: 'monospace', wordBreak: 'break-all' }}>{backupPath}</span>
             </div>
 
@@ -296,7 +297,7 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
                 onClick={() => setPhase('confirm')}
                 style={amberButtonStyle(false)}
               >
-                Continue to Confirmation →
+                {t('gui.start_over.continue_btn')}
               </button>
             </div>
           </>
@@ -305,7 +306,7 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
         {/* Phase: confirm */}
         {phase === 'confirm' && (
           <>
-            <h2 id="start-over-title" style={headingStyle}>Ready to Wipe?</h2>
+            <h2 id="start-over-title" style={headingStyle}>{t('gui.start_over.ready_wipe_title')}</h2>
             <p style={bodyStyle}>
               This will remove the current workspace and start a fresh <code>sidjua init</code>.
               Your backup is safe at:
@@ -323,14 +324,14 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
             </div>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
               <button onClick={onCancel} style={cancelButtonStyle}>
-                Keep Current Workspace
+                {t('gui.start_over.keep_current')}
               </button>
               <button
                 ref={confirmRef}
                 onClick={() => { void handleConfirm(); }}
                 style={amberButtonStyle(false)}
               >
-                Wipe & Start Fresh
+                {t('gui.start_over.wipe_btn')}
               </button>
             </div>
           </>
@@ -339,9 +340,9 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
         {/* Phase: wiping */}
         {phase === 'wiping' && (
           <>
-            <h2 id="start-over-title" style={headingStyle}>Starting Fresh</h2>
+            <h2 id="start-over-title" style={headingStyle}>{t('gui.start_over.starting_fresh_title')}</h2>
             <p style={bodyStyle}>
-              Wiping workspace and running fresh init<LoadingDots />
+              {t('gui.start_over.starting_fresh_body')}<LoadingDots />
             </p>
             <div style={progressBarContainerStyle}>
               <div style={progressBarIndeterminateStyle} />
@@ -352,9 +353,9 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
         {/* Phase: done */}
         {phase === 'done' && (
           <>
-            <h2 id="start-over-title" style={headingStyle}>Fresh Workspace Ready</h2>
+            <h2 id="start-over-title" style={headingStyle}>{t('gui.start_over.done_title')}</h2>
             <p style={bodyStyle}>
-              Your old data is safe at:
+              {t('gui.start_over.done_body')}
             </p>
             <div style={{
               background:   'var(--color-bg)',
@@ -381,7 +382,7 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
                   cursor:       'pointer',
                 }}
               >
-                Go to Dashboard
+                {t('gui.start_over.go_dashboard')}
               </button>
             </div>
           </>
@@ -390,16 +391,16 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
         {/* Phase: error */}
         {phase === 'error' && (
           <>
-            <h2 id="start-over-title" style={headingStyle}>Something Went Wrong</h2>
+            <h2 id="start-over-title" style={headingStyle}>{t('gui.start_over.error_title')}</h2>
             <p style={{ fontSize: '13px', color: 'var(--color-danger)', lineHeight: '1.6' }}>
               {error}
             </p>
             <p style={bodyStyle}>
-              Your workspace has not been changed. Please check the error above and try again.
+              {t('gui.start_over.error_body')}
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <button onClick={onCancel} style={cancelButtonStyle}>
-                Close
+                {t('gui.start_over.close')}
               </button>
             </div>
           </>

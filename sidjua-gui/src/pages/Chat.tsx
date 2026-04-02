@@ -12,6 +12,7 @@ import { AgentIcon }     from '../components/shared/AgentIcon';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import type { StarterAgentsResponse, ProviderConfigResponse, ScanResult } from '../api/types';
 import { GUI_ERRORS } from '../i18n/gui-errors';
+import { useTranslation } from '../hooks/useTranslation';
 import { ChatUploadZone, PaperclipButton } from '../components/chat/ChatUploadZone';
 import { FileReferenceCard }               from '../components/chat/FileReferenceCard';
 import { useSse }                          from '../hooks/useSse';
@@ -376,6 +377,7 @@ function ChatMessages({
   onShowAll:   () => void;
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -404,7 +406,7 @@ function ChatMessages({
         }}>
           <span style={{ fontSize: '32px', opacity: 0.4 }}>💬</span>
           <p style={{ margin: 0 }}>
-            {providerConfigured ? (<>Start a conversation with <strong>{agentName}</strong>.<br /></>) : (<>No LLM provider configured.<br />Please set one up in <strong>Settings → LLM Providers</strong> first.<br /></>)}
+            {providerConfigured ? (<>Start a conversation with <strong>{agentName}</strong>.<br /></>) : (<>{t('gui.chat.no_provider')}<br />{t('gui.chat.setup_provider')}<br /></>)}
             Type a message below.
           </p>
         </div>

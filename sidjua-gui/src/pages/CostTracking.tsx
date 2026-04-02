@@ -5,8 +5,9 @@
 import React, { useState } from 'react';
 import { DollarSign, Hash, TrendingUp } from 'lucide-react';
 
-import { useApi }       from '../hooks/useApi';
-import { useDivisions } from '../hooks/useDivisions';
+import { useApi }           from '../hooks/useApi';
+import { useDivisions }     from '../hooks/useDivisions';
+import { useTranslation }   from '../hooks/useTranslation';
 import { MetricCard }    from '../components/shared/MetricCard';
 import { ProgressBar }   from '../components/shared/ProgressBar';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
@@ -16,14 +17,10 @@ import type { CostsResponse, CostBreakdownEntry } from '../api/types';
 
 type Period = '24h' | '7d' | '30d';
 
-const PERIOD_LABELS: Record<Period, string> = {
-  '24h': 'Today',
-  '7d':  'Last 7 days',
-  '30d': 'Last 30 days',
-};
 
 
 function DivisionBars({ breakdown, total }: { breakdown: CostBreakdownEntry[]; total: number }) {
+  const { t } = useTranslation();
   const byDiv = new Map<string, number>();
   for (const entry of breakdown) {
     byDiv.set(entry.division_code, (byDiv.get(entry.division_code) ?? 0) + entry.cost_usd);
@@ -34,7 +31,7 @@ function DivisionBars({ breakdown, total }: { breakdown: CostBreakdownEntry[]; t
     .sort((a, b) => b.usd - a.usd);
 
   if (rows.length === 0) {
-    return <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>No cost data for this period.</p>;
+    return <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>{t('gui.cost.no_data')}</p>;
   }
 
   const maxUsd = rows[0]?.usd ?? 1;
@@ -78,6 +75,7 @@ function DivisionBars({ breakdown, total }: { breakdown: CostBreakdownEntry[]; t
 type SortKey = 'agent_id' | 'division_code' | 'cost_usd' | 'entries';
 
 function AgentTable({ breakdown }: { breakdown: CostBreakdownEntry[] }) {
+  const { t } = useTranslation();
   const [sortKey, setSortKey]   = useState<SortKey>('cost_usd');
   const [sortAsc, setSortAsc]   = useState(false);
 
@@ -100,16 +98,16 @@ function AgentTable({ breakdown }: { breakdown: CostBreakdownEntry[] }) {
   });
 
   if (sorted.length === 0) {
-    return <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>No agent cost data for this period.</p>;
+    return <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>{t('gui.cost.no_agent_data')}</p>;
   }
 
   const maxCost = sorted.reduce((m, e) => Math.max(m, e.cost_usd), 0);
 
   const columns: { key: SortKey; label: string }[] = [
-    { key: 'agent_id',     label: 'Agent' },
-    { key: 'division_code',label: 'Division' },
-    { key: 'cost_usd',     label: 'Cost (USD)' },
-    { key: 'entries',      label: 'Calls' },
+    { key: 'agent_id',     label: t('gui.cost.col_agent') },
+    { key: 'division_code',label: t('gui.cost.col_division') },
+    { key: 'cost_usd',     label: t('gui.cost.col_cost_usd') },
+    { key: 'entries',      label: t('gui.cost.col_calls') },
   ];
 
   return (
@@ -202,7 +200,14 @@ const cardTitleStyle: React.CSSProperties = {
 };
 
 export function CostTracking() {
+  const { t } = useTranslation();
   const [period, setPeriod] = useState<Period>('7d');
+
+  const PERIOD_LABELS: Record<Period, string> = {
+    '24h': t('gui.cost.period_today'),
+    '7d':  t('gui.cost.period_7d'),
+    '30d': t('gui.cost.period_30d'),
+  };
 
   const costsRes = useApi<CostsResponse>(
     (c) => c.listCosts({ period }),
@@ -228,7 +233,7 @@ export function CostTracking() {
 
       {/* Period selector */}
       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-        <span style={{ fontSize: '13px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>Period:</span>
+        <span style={{ fontSize: '13px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>{t('gui.cost.period')}</span>
         {(['24h', '7d', '30d'] as const).map((p) => (
           <button
             key={p}
@@ -255,21 +260,21 @@ export function CostTracking() {
       {/* Summary cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
         <MetricCard
-          title="Total Cost"
+          title={t('gui.cost.total_cost')}
           value={costsRes.loading ? <LoadingSpinner size="sm" /> : formatCurrency(total?.total_usd ?? 0)}
           subtitle={PERIOD_LABELS[period]}
           icon={<DollarSign size={22} />}
         />
         <MetricCard
-          title="Input Tokens"
+          title={t('gui.cost.input_tokens')}
           value={costsRes.loading ? <LoadingSpinner size="sm" /> : (total?.total_input_tokens ?? 0).toLocaleString()}
-          subtitle="total prompt tokens"
+          subtitle={t('gui.cost.prompt_tokens_sub')}
           icon={<Hash size={22} />}
         />
         <MetricCard
-          title="Output Tokens"
+          title={t('gui.cost.output_tokens')}
           value={costsRes.loading ? <LoadingSpinner size="sm" /> : (total?.total_output_tokens ?? 0).toLocaleString()}
-          subtitle="total completion tokens"
+          subtitle={t('gui.cost.completion_tokens_sub')}
           icon={<TrendingUp size={22} />}
         />
       </div>
@@ -279,7 +284,7 @@ export function CostTracking() {
         <div style={{ color: 'var(--color-danger)', fontSize: '13px', display: 'flex', gap: '8px', alignItems: 'center' }}>
           <span>{costsRes.error}</span>
           <button onClick={costsRes.refetch} style={{ background: 'none', border: 'none', color: 'var(--color-accent)', cursor: 'pointer', textDecoration: 'underline' }}>
-            Retry
+            {t('gui.common.retry')}
           </button>
         </div>
       )}
@@ -287,39 +292,39 @@ export function CostTracking() {
       {/* Charts row */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
         <div style={cardStyle}>
-          <p style={cardTitleStyle}>Cost by Division</p>
+          <p style={cardTitleStyle}>{t('gui.cost.by_division')}</p>
           {costsRes.loading ? <LoadingSpinner /> : (
             <DivisionBars breakdown={breakdown} total={total?.total_usd ?? 1} />
           )}
         </div>
 
         <div style={cardStyle}>
-          <p style={cardTitleStyle}>Period Summary</p>
+          <p style={cardTitleStyle}>{t('gui.cost.period_summary')}</p>
           {costs && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '4px' }}>
-                  <span style={{ color: 'var(--color-text-secondary)' }}>From</span>
+                  <span style={{ color: 'var(--color-text-secondary)' }}>{t('gui.cost.from')}</span>
                   <span style={{ color: 'var(--color-text)' }}>{new Date(costs.period.from).toLocaleString()}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                  <span style={{ color: 'var(--color-text-secondary)' }}>To</span>
+                  <span style={{ color: 'var(--color-text-secondary)' }}>{t('gui.cost.to')}</span>
                   <span style={{ color: 'var(--color-text)' }}>{new Date(costs.period.to).toLocaleString()}</span>
                 </div>
               </div>
               <hr style={{ border: 'none', borderTop: '1px solid var(--color-border)' }} />
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                <span style={{ color: 'var(--color-text-secondary)' }}>Total API calls</span>
+                <span style={{ color: 'var(--color-text-secondary)' }}>{t('gui.cost.total_api_calls')}</span>
                 <span style={{ color: 'var(--color-text)', fontWeight: 600 }}>{total?.entries ?? 0}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                <span style={{ color: 'var(--color-text-secondary)' }}>Unique agents</span>
+                <span style={{ color: 'var(--color-text-secondary)' }}>{t('gui.cost.unique_agents')}</span>
                 <span style={{ color: 'var(--color-text)', fontWeight: 600 }}>
                   {new Set(breakdown.map((e) => e.agent_id)).size}
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-                <span style={{ color: 'var(--color-text-secondary)' }}>Unique divisions</span>
+                <span style={{ color: 'var(--color-text-secondary)' }}>{t('gui.cost.unique_divisions')}</span>
                 <span style={{ color: 'var(--color-text)', fontWeight: 600 }}>
                   {new Set(breakdown.map((e) => e.division_code)).size}
                 </span>
@@ -327,14 +332,14 @@ export function CostTracking() {
             </div>
           )}
           {!costs && !costsRes.loading && (
-            <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>No data available.</p>
+            <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>{t('gui.cost.no_data_available')}</p>
           )}
         </div>
       </div>
 
       {/* Agent cost table */}
       <div style={cardStyle}>
-        <p style={cardTitleStyle}>Cost by Agent</p>
+        <p style={cardTitleStyle}>{t('gui.cost.by_agent')}</p>
         {costsRes.loading ? <LoadingSpinner /> : (
           <AgentTable breakdown={breakdown} />
         )}

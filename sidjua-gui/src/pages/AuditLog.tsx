@@ -13,6 +13,7 @@ import { downloadJson, downloadCsv } from '../lib/download';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import type { AuditEntry, AuditResponse } from '../api/types';
 import { formatGuiError, GUI_ERRORS } from '../i18n/gui-errors';
+import { useTranslation } from '../hooks/useTranslation';
 
 
 const PAGE_SIZE = 50;
@@ -43,6 +44,7 @@ function OutcomeBadge({ outcome }: { outcome?: string }) {
 
 
 function ExportMenu({ entries }: { entries: AuditEntry[] }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
   function handleJson() {
@@ -82,7 +84,7 @@ function ExportMenu({ entries }: { entries: AuditEntry[] }) {
         }}
       >
         <Download size={14} />
-        Export
+        {t('gui.audit.export')}
       </button>
 
       {open && (
@@ -105,8 +107,8 @@ function ExportMenu({ entries }: { entries: AuditEntry[] }) {
             overflow:     'hidden',
           }}>
             {[
-              { label: 'Export as JSON', fn: handleJson },
-              { label: 'Export as CSV',  fn: handleCsv  },
+              { label: t('gui.audit.export_json'), fn: handleJson },
+              { label: t('gui.audit.export_csv'),  fn: handleCsv  },
             ].map(({ label, fn }) => (
               <button
                 key={label}
@@ -137,6 +139,7 @@ function ExportMenu({ entries }: { entries: AuditEntry[] }) {
 
 
 function DetailPanel({ entry, onClose }: { entry: AuditEntry; onClose: () => void }) {
+  const { t } = useTranslation();
   let parsedMeta: unknown = null;
   if (typeof entry.metadata === 'string') {
     try { parsedMeta = JSON.parse(entry.metadata); } catch { parsedMeta = entry.metadata; }
@@ -186,7 +189,7 @@ function DetailPanel({ entry, onClose }: { entry: AuditEntry; onClose: () => voi
       {parsedMeta !== null && (
         <div>
           <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase' }}>
-            Metadata
+            {t('gui.audit.metadata')}
           </p>
           <pre style={{
             background:   'var(--color-surface-alt)',
@@ -228,6 +231,7 @@ export function AuditLog() {
   const [error,      setError]      = useState<string | null>(null);
   const [selected,   setSelected]   = useState<AuditEntry | null>(null);
   const [newEntryIds, setNewEntryIds] = useState<Set<string | number>>(new Set());
+  const { t } = useTranslation();
 
   // Escape closes detail panel
   useEffect(() => {
@@ -308,7 +312,7 @@ export function AuditLog() {
         <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} aria-label="To date" style={inputStyle} />
 
         <select value={division} onChange={(e) => setDivision(e.target.value)} aria-label="Division" style={inputStyle}>
-          <option value="">All Divisions</option>
+          <option value="">{t('gui.audit.all_divisions')}</option>
           {(divRes.data?.divisions ?? []).map((d) => (
             <option key={d.code} value={d.code}>{d.name || d.code}</option>
           ))}
@@ -345,7 +349,7 @@ export function AuditLog() {
             fontWeight:   600,
           }}
         >
-          Apply
+          {t('gui.audit.apply')}
         </button>
 
         <div style={{ marginLeft: 'auto' }}>
@@ -376,7 +380,7 @@ export function AuditLog() {
         )}
         {!loading && !error && entries.length === 0 && (
           <p style={{ padding: '40px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>
-            No audit entries found for the selected filters.
+            {t('gui.audit.no_entries')}
           </p>
         )}
         {entries.length > 0 && (
@@ -384,7 +388,7 @@ export function AuditLog() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: 'var(--color-surface-alt)', borderBottom: '2px solid var(--color-border)' }}>
-                  {['Time', 'Action Type', 'Agent', 'Division', 'Outcome'].map((h) => (
+                  {[t('gui.audit.col_time'), t('gui.audit.col_action_type'), t('gui.audit.col_agent'), t('gui.audit.col_division'), t('gui.audit.col_outcome')].map((h) => (
                     <th key={h} style={{
                       textAlign:     'left',
                       padding:       '9px 12px',
