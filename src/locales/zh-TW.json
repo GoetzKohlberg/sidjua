@@ -810,5 +810,17 @@
   "gui.start_over.subtitle": "[ZH-TW] Your workspace will be backed up before anything changes.",
   "gui.start_over.title": "[ZH-TW] Start Over",
   "gui.start_over.valuable_work": "[ZH-TW] Your previous work — including your mistakes — is valuable.",
-  "gui.start_over.wipe_btn": "[ZH-TW] Wipe & Start Fresh"
+  "gui.start_over.wipe_btn": "[ZH-TW] Wipe & Start Fresh",
+  "update.agents_paused": "Agents paused during update",
+  "update.available": "Update available: {{version}}",
+  "update.drain_error": "Service draining for update — please retry shortly",
+  "update.later": "Later",
+  "update.maintenance": "System update in progress — changes are paused",
+  "update.now": "Update now",
+  "update.progress.done": "Update complete",
+  "update.progress.error": "Update failed: {{message}}",
+  "update.progress.step": "{{step}}",
+  "update.progress.title": "Updating SIDJUA",
+  "update.readonly_error": "System updating — changes paused briefly",
+  "update.rollback": "Roll back"
 }

@@ -41,6 +41,9 @@ import { ExtractionService }     from "../uploads/extraction-service.js";
 import { UploadEmbedder }        from "../uploads/upload-embedder.js";
 import { createVectorStore }     from "../knowledge-pipeline/vector-store/index.js";
 import { SIDJUA_VERSION }        from "../version.js";
+import { wireCheckpointDb }      from "../core/agents/checkpoint.js";
+import { wireFreezeAuditDb }     from "../core/agents/freeze-audit.js";
+import { reconcileOnStartup }    from "../core/agents/reconcile.js";
 
 const logger = createLogger("api-server-cli");
 
@@ -164,6 +167,12 @@ export async function runServerStart(
   } catch (_e) {
     // Table may not exist on a brand-new DB — non-fatal
   }
+
+  // Wire agent checkpoint + freeze-audit tables; reconcile any orphaned frozen agents
+  // MUST run AFTER migrations but BEFORE accepting HTTP requests.
+  wireCheckpointDb(db);
+  wireFreezeAuditDb(db);
+  await reconcileOnStartup(SIDJUA_VERSION);
 
   // Restore persisted chat history and prepare for checkpoint writes
   if (db !== null) {

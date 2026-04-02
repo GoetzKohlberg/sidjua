@@ -803,5 +803,17 @@
   "watchdog.circuit_breaker.open": "",
   "watchdog.escalation.triggered": "",
   "watchdog.restart.agent_failed": "",
-  "watchdog.restart.agent_restarted": ""
+  "watchdog.restart.agent_restarted": "",
+  "update.agents_paused": "",
+  "update.available": "",
+  "update.drain_error": "",
+  "update.later": "",
+  "update.maintenance": "",
+  "update.now": "",
+  "update.progress.done": "",
+  "update.progress.error": "",
+  "update.progress.step": "",
+  "update.progress.title": "",
+  "update.readonly_error": "",
+  "update.rollback": ""
 }

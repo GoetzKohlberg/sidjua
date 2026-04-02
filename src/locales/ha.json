@@ -802,5 +802,17 @@
   "watchdog.circuit_breaker.open": "[HA] Circuit breaker open for agent \"{name}\" — pausing restarts for {seconds}s.",
   "watchdog.escalation.triggered": "[HA] Agent \"{name}\" escalated after {count} failures.",
   "watchdog.restart.agent_failed": "[HA] Agent \"{name}\" failed to restart — max attempts reached.",
-  "watchdog.restart.agent_restarted": "[HA] Agent \"{name}\" restarted by watchdog (attempt {attempt}/{max})."
+  "watchdog.restart.agent_restarted": "[HA] Agent \"{name}\" restarted by watchdog (attempt {attempt}/{max}).",
+  "update.agents_paused": "Agents paused during update",
+  "update.available": "Update available: {{version}}",
+  "update.drain_error": "Service draining for update — please retry shortly",
+  "update.later": "Later",
+  "update.maintenance": "System update in progress — changes are paused",
+  "update.now": "Update now",
+  "update.progress.done": "Update complete",
+  "update.progress.error": "Update failed: {{message}}",
+  "update.progress.step": "{{step}}",
+  "update.progress.title": "Updating SIDJUA",
+  "update.readonly_error": "System updating — changes paused briefly",
+  "update.rollback": "Roll back"
 }

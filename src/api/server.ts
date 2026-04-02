@@ -32,6 +32,8 @@ import { csrfMiddleware }       from "./middleware/csrf.js";
 import { requestTimeout }       from "./middleware/request-timeout.js";
 import { contentTypeJson }      from "./middleware/content-type.js";
 import { securityHeaders }      from "./middleware/security-headers.js";
+import { drainMiddleware }      from "./middleware/drain.js";
+import { readonlyMiddleware }   from "./middleware/readonly.js";
 import { createSystemRoutes }  from "./routes/system.js";
 import { createLogger }        from "../core/logger.js";
 import type { RateLimitConfig } from "./middleware/rate-limiter.js";
@@ -194,6 +196,10 @@ export function createApiServer(config: ApiServerConfig): ApiServer {
     credentials:    config.cors_allow_all ? false : (config.cors_credentials ?? false),
   }));
 
+  // Drain mode: reject all new requests when the instance is shutting down (blue/green).
+  // Registered before auth so the sidecar's final "drain" signal is never needed again.
+  app.use("*", drainMiddleware());
+
   // Reject oversized bodies before auth/parsing (prevents OOM attack).
   app.use("*", bodyLimitMiddleware);
   // Block state-changing requests from disallowed origins (CSRF defense).
@@ -205,6 +211,8 @@ export function createApiServer(config: ApiServerConfig): ApiServer {
   }));
   app.use("*", rateLimiter(config.rate_limit));
   app.use("*", requestTimeout);
+  // Read-only mode: block writes during update prepare, whitelist lifecycle paths.
+  app.use("*", readonlyMiddleware());
   app.use("*", contentTypeJson);
   app.use("*", httpInputSanitizer({ mode: "block" }));
 

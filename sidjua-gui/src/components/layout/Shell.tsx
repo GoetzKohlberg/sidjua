@@ -8,6 +8,7 @@ import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { useAppConfig } from '../../lib/config';
 import { useTranslation } from '../../hooks/useTranslation';
+import { UpdateBanner, MaintenanceBanner } from './UpdateBanners';
 
 function NotConnectedBanner() {
   const navigate = useNavigate();
@@ -128,6 +129,8 @@ export function Shell() {
       >
         <div style={{ flex: 1 }}>
           {showBanner && <NotConnectedBanner />}
+          <UpdateBanner />
+          <MaintenanceBanner />
           <Outlet />
         </div>
         <footer

@@ -60,6 +60,9 @@ import type { OrgPublicRouteServices }   from "./org-public.js";
 import { registerOrgImportRoutes }       from "./org-import.js";
 import { registerTokenRoutes }           from "./tokens.js";
 import type { TokenStore }               from "../token-store.js";
+import { registerUpdaterRoutes }         from "./updater.js";
+import { registerUpdateLifecycleRoutes } from "./update-lifecycle.js";
+import { registerSystemLifecycleRoutes } from "./system-lifecycle.js";
 import { registerUploadRoutes }          from "./upload.js";
 import type { UploadRouteServices }      from "./upload.js";
 import type { UploadStore }              from "../../uploads/upload-store.js";
@@ -102,6 +105,9 @@ export {
   registerOrgChartRoutes,
   registerOrgPublicRoutes,
   registerOrgImportRoutes,
+  registerUpdaterRoutes,
+  registerUpdateLifecycleRoutes,
+  registerSystemLifecycleRoutes,
 };
 
 
@@ -288,6 +294,11 @@ export function registerAllRoutes(app: Hono, services: AllRouteServices = {}): v
   if (services.tokenStore !== null && services.tokenStore !== undefined) {
     registerTokenRoutes(app, { tokenStore: services.tokenStore });
   }
+
+  // Blue/Green update routes
+  registerUpdaterRoutes(app);
+  registerUpdateLifecycleRoutes(app);
+  registerSystemLifecycleRoutes(app);
 
   // ── Apply endpoint — POST /api/v1/apply ──────────────────────────────────
   // Runs `sidjua apply --force` in-process. Same logic as the CLI command.

@@ -802,5 +802,17 @@
   "watchdog.circuit_breaker.open": "Circuit Breaker für Agent \"{name}\" geöffnet — Neustarts pausiert für {seconds}s.",
   "watchdog.escalation.triggered": "Agent \"{name}\" eskaliert nach {count} Fehlern.",
   "watchdog.restart.agent_failed": "Agent \"{name}\" konnte nicht neu gestartet werden — Maximale Versuche erreicht.",
-  "watchdog.restart.agent_restarted": "Agent \"{name}\" vom Watchdog neu gestartet (Versuch {attempt}/{max})."
+  "watchdog.restart.agent_restarted": "Agent \"{name}\" vom Watchdog neu gestartet (Versuch {attempt}/{max}).",
+  "update.agents_paused": "Agenten während des Updates pausiert",
+  "update.available": "Update verfügbar: {{version}}",
+  "update.drain_error": "Dienst wird für Update vorbereitet — bitte kurz warten",
+  "update.later": "Später",
+  "update.maintenance": "Systemupdate läuft — Änderungen sind pausiert",
+  "update.now": "Jetzt aktualisieren",
+  "update.progress.done": "Update abgeschlossen",
+  "update.progress.error": "Update fehlgeschlagen: {{message}}",
+  "update.progress.step": "{{step}}",
+  "update.progress.title": "SIDJUA wird aktualisiert",
+  "update.readonly_error": "System wird aktualisiert — Änderungen kurz pausiert",
+  "update.rollback": "Zurückrollen"
 }
