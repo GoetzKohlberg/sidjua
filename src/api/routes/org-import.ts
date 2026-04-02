@@ -72,6 +72,20 @@ export function registerOrgImportRoutes(
       );
     }
 
+    // Guard against OOM from extremely large uploads
+    const MAX_IMPORT_SIZE = 2 * 1024 * 1024; // 2 MB
+    if (file.size > MAX_IMPORT_SIZE) {
+      return c.json(
+        {
+          error: {
+            code:    "IMPORT-106",
+            message: `File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum: ${MAX_IMPORT_SIZE / 1024 / 1024} MB`,
+          },
+        },
+        413,
+      );
+    }
+
     // Read file bytes
     let rawRows;
     try {

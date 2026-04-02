@@ -58,6 +58,7 @@ import type { OrchestratorProcess }   from "../../orchestrator/orchestrator.js";
 import { detectDeploymentMode, getCheckpointIntervalMs } from "../../core/deployment-mode.js";
 import { restoreChatState, persistChatState }            from "../../api/routes/chat.js";
 import { restoreRateLimiterState, persistRateLimiterState } from "../../api/middleware/rate-limiter.js";
+import { CostTracker }                                   from "../../provider/cost-tracker.js";
 import { TokenStore }                                    from "../../api/token-store.js";
 
 const logger = createLogger("start-cmd");
@@ -276,6 +277,16 @@ export async function runStartCommand(opts: StartCommandOptions): Promise<number
       try {
         db.prepare("DELETE FROM pending_reservations WHERE 1=1").run();
       } catch (_e) { /* table may not exist — non-fatal */ }
+
+      // Clean up cost reservations orphaned by a previous crash
+      try {
+        const cleaned = new CostTracker(db).cleanupOrphanedReservations();
+        if (cleaned > 0) {
+          logger.info("start", `Cleaned up ${cleaned} orphaned cost reservation(s) from previous run`, {
+            metadata: { cleaned },
+          });
+        }
+      } catch (_e) { /* cost_ledger may not exist yet — non-fatal */ }
 
       // Restore chat history and rate-limiter state persisted by previous run
       restoreChatState(db);

@@ -283,10 +283,20 @@ async function toolCreateAgentRole(
     mkdirSync(definitionsDir, { recursive: true });
   }
 
-  // Enforce hard file-count limit (mirrors AgentRegistry DB limit).
-  const existingFiles = readdirSync(definitionsDir).filter((f) => f.endsWith(".yaml"));
-  if (existingFiles.length >= MAX_AGENT_FILES) {
-    return { success: false, error: `LIMIT-001: Agent file limit reached (max ${MAX_AGENT_FILES})` };
+  // Enforce hard agent limit via DB count (consistent + race-condition-free).
+  if (db !== null && db !== undefined) {
+    const countRow = db
+      .prepare<[], { count: number }>("SELECT COUNT(*) AS count FROM agent_definitions WHERE status != 'deleted'")
+      .get() as { count: number } | undefined;
+    if ((countRow?.count ?? 0) >= MAX_AGENT_FILES) {
+      return { success: false, error: `AGT-006: Agent limit reached (max ${MAX_AGENT_FILES}). Remove unused agents or upgrade to Enterprise.` };
+    }
+  } else {
+    // Fallback when DB is unavailable: use file count
+    const existingFiles = readdirSync(definitionsDir).filter((f) => f.endsWith(".yaml"));
+    if (existingFiles.length >= MAX_AGENT_FILES) {
+      return { success: false, error: `LIMIT-001: Agent file limit reached (max ${MAX_AGENT_FILES})` };
+    }
   }
 
   const targetPath = join(definitionsDir, `${roleId}.yaml`);

@@ -72,6 +72,7 @@ const ERROR_REGISTRY: Readonly<Record<string, ErrorCodeEntry>> = {
   "AGT-003": { code: "AGT-003", category: ErrorCategory.AGENT, message: "Agent crashed",                 recoverable: true,  suggestion: "Auto-restart in progress" },
   "AGT-004": { code: "AGT-004", category: ErrorCategory.AGENT, message: "Agent context overflow",        recoverable: true,  suggestion: "Summarize and retry" },
   "AGT-005": { code: "AGT-005", category: ErrorCategory.AGENT, message: "Agent heartbeat timeout",       recoverable: true,  suggestion: "Restart agent" },
+  "AGT-006": { code: "AGT-006", category: ErrorCategory.AGENT, message: "Agent limit reached",           recoverable: false, suggestion: "Remove unused agents or upgrade to Enterprise" },
 
   // Provider
   "PROV-001": { code: "PROV-001", category: ErrorCategory.PROVIDER, message: "LLM provider unavailable",          recoverable: true,  suggestion: "Retry or failover" },

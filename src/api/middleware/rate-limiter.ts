@@ -201,6 +201,28 @@ function computeBucketId(ip: string, authHeader: string | undefined): string {
   return `ip:${ip}:key:${authHash}`;
 }
 
+/**
+ * Return the effective client IP address for rate-limiting purposes.
+ *
+ * When SIDJUA_TRUST_PROXY=true, the x-forwarded-for header is trusted (for
+ * deployments behind a reverse proxy that sets it correctly).
+ * Otherwise, x-sidjua-peer-address (set by server.ts from the TCP socket's
+ * remoteAddress) is used — clients cannot spoof this header.
+ */
+export function getClientIp(headers: {
+  get(name: string): string | null | undefined;
+}): string {
+  if (process.env["SIDJUA_TRUST_PROXY"] === "true") {
+    const xff = headers.get("x-forwarded-for");
+    if (xff) return xff.split(",")[0]?.trim() ?? "unknown";
+    const realIp = headers.get("x-real-ip");
+    if (realIp) return realIp;
+  }
+  const peerAddr = headers.get("x-sidjua-peer-address");
+  if (peerAddr) return peerAddr;
+  return "unknown";
+}
+
 
 /**
  * Create the rate limiting middleware.
@@ -215,7 +237,7 @@ export const rateLimiter = (config: RateLimitConfig = DEFAULT_RATE_LIMIT): Middl
     // or fall back to IP address.
     const auth = c.req.header("Authorization");
     const clientKey = computeBucketId(
-      c.req.header("x-forwarded-for") ?? c.req.raw.headers.get("x-real-ip") ?? "unknown",
+      getClientIp(c.req.raw.headers),
       auth,
     );
 

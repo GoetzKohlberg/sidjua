@@ -17,6 +17,7 @@ import { Hono }               from "hono";
 import { SidjuaError }        from "../../core/error-codes.js";
 import { createLogger }       from "../../core/logger.js";
 import { requireScope }       from "../middleware/require-scope.js";
+import { getClientIp }        from "../middleware/rate-limiter.js";
 import { validateProviderUrl } from "../../core/network/url-validator.js";
 import { loadApprovedProviders } from "../../defaults/loader.js";
 import type { ApprovedProvider } from "../../defaults/provider-types.js";
@@ -285,7 +286,7 @@ export function registerProviderRoutes(app: Hono): void {
     // Rate limit: 5 per minute per client key
     const clientKey = testClientKey(
       c.req.header("Authorization"),
-      c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip"),
+      getClientIp(c.req.raw.headers),
     );
     if (!checkTestRateLimit(clientKey)) {
       return c.json({ status: "error", error: "Too many test requests. Try again in a minute." }, 429);

@@ -25,6 +25,7 @@ import { Hono, type Context } from "hono";
 import { createLogger }      from "../../core/logger.js";
 import type { CallerContext } from "../caller-context.js";
 import { CALLER_CONTEXT_KEY, requireScope } from "../middleware/require-scope.js";
+import { getClientIp } from "../middleware/rate-limiter.js";
 
 
 /** Maximum SSE ticket requests per IP per rate-limit window. */
@@ -227,22 +228,20 @@ export function validateTicketFromDb(
 ): import("../caller-context.js").CallerContext | null {
   try {
     ensureTicketTable(db);
-    const row = db.prepare<[string], {
+    const nowIso = new Date().toISOString();
+    // Atomic: only mark used=1 if not yet consumed AND not expired.
+    // UPDATE...RETURNING is atomic — no separate SELECT race condition.
+    const row = db.prepare<[string, string], {
       scope: string; division: string | null; agent_id: string | null;
-      expires_at: string; used: number;
     }>(
-      "SELECT scope, division, agent_id, expires_at, used FROM sse_tickets WHERE ticket_id = ? AND used = 0",
-    ).get(ticketId);
+      "UPDATE sse_tickets SET used = 1 WHERE ticket_id = ? AND used = 0 AND expires_at > ? RETURNING scope, division, agent_id",
+    ).get(ticketId, nowIso);
     if (row === undefined) return null;
-    if (new Date(row.expires_at).getTime() < Date.now()) return null;
-    // Mark used
-    db.prepare<[string], void>("UPDATE sse_tickets SET used = 1 WHERE ticket_id = ?").run(ticketId);
-    const ctx: import("../caller-context.js").CallerContext = {
+    return {
       role: row.scope as import("../token-store.js").TokenScope,
       ...(row.division ? { division: row.division } : {}),
       ...(row.agent_id ? { agentId: row.agent_id } : {}),
     };
-    return ctx;
   } catch (_e) {
     return null;
   }
@@ -289,10 +288,7 @@ export function registerSseTicketRoutes(app: Hono, services: TicketRouteServices
     }
 
     // Per-IP rate limit — prevents a single client from exhausting the ticket store
-    const clientIp =
-      c.req.header("x-forwarded-for") ??
-      c.req.raw.headers.get("x-real-ip") ??
-      "unknown";
+    const clientIp = getClientIp(c.req.raw.headers);
 
     if (!checkIpRateLimit(clientIp)) {
       logger.warn("sse_ticket_ip_rate_limit", "SSE ticket per-IP rate limit exceeded", {

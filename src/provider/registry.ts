@@ -149,13 +149,32 @@ export class ProviderRegistry {
 
     // 3. Record cost: finalize reservation (happy path) or direct insert (failover path)
     if (reservationId !== null) {
-      this.costTracker.finalizeReservation(
-        reservationId,
-        response.provider,
-        response.model,
-        response.usage,
-        response.costUsd,
-      );
+      try {
+        this.costTracker.finalizeReservation(
+          reservationId,
+          response.provider,
+          response.model,
+          response.usage,
+          response.costUsd,
+        );
+      } catch (finalizeErr) {
+        // Fallback: cancel the reservation and record cost directly
+        this.costTracker.cancelReservation(reservationId);
+        this.costTracker.recordCost(
+          request.divisionCode,
+          request.agentId,
+          response.provider,
+          response.model,
+          response.usage,
+          response.costUsd,
+          request.taskId,
+        );
+        const errMsg = finalizeErr instanceof Error ? finalizeErr.message : String(finalizeErr);
+        this.logger.warn("PROVIDER", "finalizeReservation failed — cost recorded via fallback", {
+          callId,
+          error: errMsg,
+        });
+      }
     } else {
       this.costTracker.recordCost(
         request.divisionCode,

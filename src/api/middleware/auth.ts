@@ -175,6 +175,13 @@ export const authenticate = (
       correlationId: requestId,
       metadata: { path },
     });
+    // Warn prominently when admin tokens already exist — the bootstrap key should be disabled
+    if (tokenStore !== null && tokenStore !== undefined && tokenStore.hasAdminToken()) {
+      logger.warn("auth_bootstrap_stale", "SECURITY: Bootstrap key still active after admin tokens exist. Disable with: sidjua api-key disable-bootstrap", {
+        correlationId: requestId,
+        metadata: { path },
+      });
+    }
     const ctx: CallerContext = { role: "bootstrap" };
     c.set(CALLER_CONTEXT_KEY, ctx);
     return next();

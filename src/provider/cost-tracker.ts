@@ -323,6 +323,18 @@ export class CostTracker {
       .run(reservationId);
   }
 
+  /**
+   * Delete all rows with cost_type='reserved' from the cost_ledger.
+   * Called on startup to clean up reservations orphaned by a crash.
+   * Returns the number of rows deleted.
+   */
+  cleanupOrphanedReservations(): number {
+    const result = this.db
+      .prepare("DELETE FROM cost_ledger WHERE cost_type = 'reserved'")
+      .run();
+    return result.changes;
+  }
+
   // ---------------------------------------------------------------------------
   // Post-call cost recording
   // ---------------------------------------------------------------------------

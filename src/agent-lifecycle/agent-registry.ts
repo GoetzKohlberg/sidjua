@@ -43,49 +43,54 @@ export class AgentRegistry {
    * Throws if an agent with the same ID already exists.
    */
   create(def: AgentLifecycleDefinition, createdBy = "system"): AgentDefinitionRow {
-    // Enforce free-tier agent limit: count all non-deleted agents.
-    const countRow = this.db
-      .prepare<[], { count: number }>(
-        "SELECT COUNT(*) AS count FROM agent_definitions WHERE status != 'deleted'",
-      )
-      .get() as { count: number } | undefined;
-    const activeCount = countRow?.count ?? 0;
-
-    if (activeCount >= MAX_AGENTS_FREE) {
-      throw SidjuaError.from(
-        "LIMIT-001",
-        `Agent limit reached (${MAX_AGENTS_FREE} for Free tier). Remove unused agents or upgrade to Sidjua Enterprise for unlimited agents.`,
-      );
-    }
-
-    if (activeCount >= MAX_AGENTS_FREE_SOFT_LIMIT) {
-      logger.warn(
-        "agent_limit_warning",
-        `Agent count at ${activeCount}/${MAX_AGENTS_FREE}. Free tier supports max ${MAX_AGENTS_FREE} agents. Sidjua Enterprise supports unlimited agents.`,
-        { metadata: { active_count: activeCount, limit: MAX_AGENTS_FREE } },
-      );
-    }
-
     const configYaml = stringifyYaml(def);
     const configHash = hashYaml(configYaml);
-    const now = new Date().toISOString();
+    const now    = new Date().toISOString();
     const author = def.created_by ?? createdBy;
 
-    this.insertStmt().run(
-      def.id,
-      def.name,
-      def.tier,
-      def.division,
-      def.provider,
-      def.model,
-      def.skill,
-      configYaml,
-      configHash,
-      "stopped",
-      now,
-      author,
-      now,
-    );
+    // Atomic count-check + INSERT under BEGIN IMMEDIATE to prevent race conditions
+    // where two concurrent requests both observe count < MAX and both succeed.
+    const txFn = this.db.transaction((): void => {
+      const countRow = this.db
+        .prepare<[], { count: number }>(
+          "SELECT COUNT(*) AS count FROM agent_definitions WHERE status != 'deleted'",
+        )
+        .get() as { count: number } | undefined;
+      const activeCount = countRow?.count ?? 0;
+
+      if (activeCount >= MAX_AGENTS_FREE) {
+        throw SidjuaError.from(
+          "LIMIT-001",
+          `Agent limit reached (${MAX_AGENTS_FREE} for Free tier). Remove unused agents or upgrade to Sidjua Enterprise for unlimited agents.`,
+        );
+      }
+
+      if (activeCount >= MAX_AGENTS_FREE_SOFT_LIMIT) {
+        logger.warn(
+          "agent_limit_warning",
+          `Agent count at ${activeCount}/${MAX_AGENTS_FREE}. Free tier supports max ${MAX_AGENTS_FREE} agents. Sidjua Enterprise supports unlimited agents.`,
+          { metadata: { active_count: activeCount, limit: MAX_AGENTS_FREE } },
+        );
+      }
+
+      this.insertStmt().run(
+        def.id,
+        def.name,
+        def.tier,
+        def.division,
+        def.provider,
+        def.model,
+        def.skill,
+        configYaml,
+        configHash,
+        "stopped",
+        now,
+        author,
+        now,
+      );
+    });
+
+    txFn.immediate();
 
     const row = this.getById(def.id);
     if (row === undefined) {

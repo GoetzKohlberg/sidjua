@@ -24,6 +24,7 @@ import { getReplaySince }     from "../sse/event-replay.js";
 import { matchesFilters }     from "../sse/event-filter.js";
 import type { SSEClientFilters } from "../sse/event-filter.js";
 import { consumeTicket }      from "./sse-ticket.js";
+import { getClientIp }        from "../middleware/rate-limiter.js";
 
 const logger = createLogger("api-sse");
 
@@ -63,7 +64,7 @@ export function registerEventRoutes(app: Hono, services: EventRouteServices): vo
     const legacyToken = c.req.query("token");
     if (legacyToken) {
       logger.warn("api-sse", "Rejected deprecated token= query parameter", {
-        metadata: { ip: c.req.header("x-forwarded-for") ?? "unknown" },
+        metadata: { ip: getClientIp(c.req.raw.headers) },
       });
       return c.json(
         {

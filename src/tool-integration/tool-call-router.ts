@@ -200,15 +200,23 @@ export class ToolCallRouter {
           };
         }
       } catch (govErr) {
-        // Non-fatal governance error — log and continue (fail-open for governance errors,
-        // since the Pre-Action Pipeline is the primary governance gate)
-        logger.warn("tool_router_gov_error", "Governance check error (continuing)", {
+        const errMsg = govErr instanceof Error ? govErr.message : String(govErr);
+        logger.error("tool_router_gov_error", "Governance check failed — blocking execution (fail-closed)", {
           metadata: {
             agent_id: ctx.agent_id,
             tool: toolName,
-            error: govErr instanceof Error ? govErr.message : String(govErr),
+            error: errMsg,
           },
         });
+        this.writeAuditEntry(ctx, toolName, "blocked", `governance_error: ${errMsg}`);
+        return {
+          success:            false,
+          tool_name:          toolName,
+          tool_type:          type,
+          duration_ms:        Date.now() - start,
+          governance_blocked: true,
+          governance_reason:  "Governance evaluation failed — execution blocked for safety",
+        };
       }
     }
 

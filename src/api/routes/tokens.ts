@@ -136,6 +136,12 @@ export function registerTokenRoutes(app: Hono, services: TokenRouteServices): vo
         metadata: { id, scope, label: label.trim() },
       });
 
+      if (scope === "admin") {
+        logger.info("token_bootstrap_reminder", "Admin token created. Bootstrap key should be disabled.", {
+          metadata: { id },
+        });
+      }
+
       return c.json({
         id,
         rawToken,                       // shown ONCE — caller must store immediately

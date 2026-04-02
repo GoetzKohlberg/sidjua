@@ -54,15 +54,17 @@ function writeToErrorLog(entry: Record<string, unknown>): void {
 
 /**
  * Replace absolute file system paths in a string with "[path]".
+ * Only matches known OS-level path prefixes — does NOT corrupt URLs or API paths.
  * Prevents internal directory layout from leaking in production error messages.
  */
 function sanitizePath(msg: string): string {
-  // Strip absolute paths (/home/user/...) and relative paths (./foo, ../bar)
-  // Also handles Windows-style paths (C:\Users\..., .\foo, ..\bar)
   return msg
-    .replace(/\/[^\s:,'"}\]]{2,}/g, "[path]")
+    // Unix absolute paths with known OS prefixes — avoids matching /api/v1/... or https://...
+    .replace(/(?:\/(?:home|Users|var|tmp|etc|opt|usr|mnt|root|srv|proc|sys|run)\b)[^\s:,'"}\]]+/g, "[path]")
+    // Relative paths: ./foo or ../bar
     .replace(/\.\.?\/[^\s:,'"}\]]+/g, "[path]")
     .replace(/\.\.?\\[^\s:,'"}\]]+/g, "[path]")
+    // Windows absolute paths: C:\Users\...
     .replace(/[A-Za-z]:\\[^\s:,'"}\]]+/g, "[path]");
 }
 
