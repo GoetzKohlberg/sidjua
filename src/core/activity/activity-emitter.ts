@@ -86,6 +86,7 @@ export class ActivityEmitter {
     };
 
     // Best-effort SQLite write — NEVER block or throw to caller
+    let persisted = false;
     if (this.db !== null) {
       try {
         this.db.prepare<unknown[], void>(
@@ -109,6 +110,7 @@ export class ActivityEmitter {
           record.parent_id  ?? null,
           record.session_id ?? null,
         );
+        persisted = true;
       } catch (err: unknown) {
         logger.warn(
           "activity_write_failed",
@@ -118,8 +120,13 @@ export class ActivityEmitter {
       }
     }
 
-    // Notify listeners (fire-and-forget — errors are swallowed)
-    this._notifyListeners(record);
+    // Notify listeners only after successful persistence (or when no DB is configured).
+    // Mark transient so listeners know this event was not durably stored.
+    if (persisted || this.db === null) {
+      this._notifyListeners(record);
+    } else {
+      this._notifyListeners({ ...record, _transient: true } as ActivityRecord);
+    }
 
     return id;
   }
@@ -166,15 +173,25 @@ export class ActivityEmitter {
             );
           }
         })();
+        // Notify after successful batch write
+        for (const record of records) {
+          this._notifyListeners(record);
+        }
       } catch (err: unknown) {
         logger.warn(
           "activity_batch_write_failed",
           `Batch write of ${events.length} events failed (non-fatal)`,
           { metadata: { error: err instanceof Error ? err.message : String(err), count: events.length } },
         );
+        // Notify as transient (not persisted)
+        for (const record of records) {
+          this._notifyListeners({ ...record, _transient: true } as ActivityRecord);
+        }
       }
+      return ids;
     }
 
+    // No DB configured — notify without persistence
     for (const record of records) {
       this._notifyListeners(record);
     }

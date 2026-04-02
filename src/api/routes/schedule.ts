@@ -142,8 +142,26 @@ export function registerScheduleRoutes(app: Hono, services: ScheduleRouteService
     } catch (_err) {
       return c.json({ error: { code: "SCH-400", message: "Invalid JSON body" } }, 400);
     }
+
+    // Whitelist: only these top-level fields may be patched
+    const ALLOWED_PATCH_FIELDS = new Set([
+      "cron_expression",
+      "enabled",
+      "task_template",
+      "governance",
+    ]);
+    const patch: Partial<ScheduleDefinition> = {};
+    for (const key of Object.keys(body)) {
+      if (ALLOWED_PATCH_FIELDS.has(key)) {
+        (patch as Record<string, unknown>)[key] = body[key];
+      }
+    }
+    if (Object.keys(patch).length === 0) {
+      return c.json({ error: { code: "SCH-400", message: "No patchable fields provided. Allowed: cron_expression, enabled, task_template, governance" } }, 400);
+    }
+
     try {
-      scheduler.updateSchedule(id, body as Partial<ScheduleDefinition>);
+      scheduler.updateSchedule(id, patch);
       const updated = scheduler.getSchedule(id);
       return c.json({ schedule: updated });
     } catch (err: unknown) {

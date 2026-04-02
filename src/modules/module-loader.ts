@@ -353,6 +353,23 @@ export async function installModule(workDir: string, id: string, secretSource?: 
   // Validate tool capabilities against governance whitelist before touching disk
   await validateModuleCapabilities(manifest);
 
+  // Warn when a module declares network_policy — V1 has no sandbox enforcement
+  if (manifest.network_policy !== undefined) {
+    logger.warn(
+      "module_network_policy_audit_only",
+      `Module "${id}" declares a network_policy but SIDJUA V1 does not enforce it. ` +
+      "Network policies are documented for audit purposes only. " +
+      "Sandbox enforcement is planned for a future release.",
+      {
+        metadata: {
+          module_id:     id,
+          allowed_hosts: manifest.network_policy.allowed_hosts ?? [],
+          requires_internet: manifest.network_policy.requires_internet ?? false,
+        },
+      },
+    );
+  }
+
   const installPath = join(workDir, ".system", "modules", id);
   validateModulePath(installPath, join(workDir, ".system", "modules"));  // path traversal guard
 

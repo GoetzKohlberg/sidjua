@@ -93,25 +93,43 @@ export function _resetSchedulerState(): void {
 // ---------------------------------------------------------------------------
 
 function _tick(config: SchedulerConfig): void {
-  const now       = new Date();
-  const localStr  = now.toLocaleString("en-US", { timeZone: config.digest_timezone });
-  const local     = new Date(localStr);
+  const now = new Date();
 
-  const hours      = local.getHours();
-  const minutes    = local.getMinutes();
-  const dayOfWeek  = local.getDay(); // 0=Sun, 1=Mon
+  // Use Intl.DateTimeFormat.formatToParts for reliable timezone handling.
+  // toLocaleString + new Date() is locale-dependent and can break in non-en-US environments.
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone:    config.digest_timezone,
+    year:        "numeric",
+    month:       "2-digit",
+    day:         "2-digit",
+    hour:        "2-digit",
+    minute:      "2-digit",
+    weekday:     "short",
+    hour12:      false,
+  });
+  const parts = Object.fromEntries(dtf.formatToParts(now).map((p) => [p.type, p.value]));
+
+  const hours     = parseInt(parts["hour"]    ?? "0",  10) % 24; // formatToParts may return "24" for midnight
+  const minutes   = parseInt(parts["minute"]  ?? "0",  10);
+  const year      = parseInt(parts["year"]    ?? "0",  10);
+  const month     = parseInt(parts["month"]   ?? "0",  10);
+  const day       = parseInt(parts["day"]     ?? "0",  10);
+  // weekday: "Sun"=0, "Mon"=1 ... "Sat"=6
+  const WEEKDAY_MAP: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const dayOfWeek = WEEKDAY_MAP[parts["weekday"] ?? ""] ?? -1;
 
   const [targetH, targetM] = config.digest_time.split(":").map(Number);
-  const todayStr = `${local.getFullYear()}-${String(local.getMonth() + 1).padStart(2, "0")}-${String(local.getDate()).padStart(2, "0")}`;
+  const todayStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
   // Daily digest window: [targetTime, targetTime + 10 min) once per day
   const inWindow = hours === targetH && minutes >= (targetM ?? 0) && minutes < (targetM ?? 0) + 10;
 
   if (inWindow && _lastDailyDate !== todayStr) {
     _lastDailyDate = todayStr;
-    const yesterday = new Date(local);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, "0")}-${String(yesterday.getDate()).padStart(2, "0")}`;
+    // Compute yesterday in the target timezone using the local date parts
+    const localDate  = new Date(Date.UTC(year, month - 1, day));
+    const yesterday  = new Date(localDate.getTime() - 86_400_000);
+    const yesterdayStr = `${yesterday.getUTCFullYear()}-${String(yesterday.getUTCMonth() + 1).padStart(2, "0")}-${String(yesterday.getUTCDate()).padStart(2, "0")}`;
 
     try {
       const digest = digestEngine.generateDaily(yesterdayStr);
@@ -133,9 +151,9 @@ function _tick(config: SchedulerConfig): void {
   // Weekly digest window: Monday only, same time window
   if (dayOfWeek === 1 && inWindow && _lastWeeklyDate !== todayStr) {
     _lastWeeklyDate = todayStr;
-    const weekStart = new Date(local);
-    weekStart.setDate(weekStart.getDate() - 7);
-    const weekStartStr = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, "0")}-${String(weekStart.getDate()).padStart(2, "0")}`;
+    const localDate    = new Date(Date.UTC(year, month - 1, day));
+    const weekStart    = new Date(localDate.getTime() - 7 * 86_400_000);
+    const weekStartStr = `${weekStart.getUTCFullYear()}-${String(weekStart.getUTCMonth() + 1).padStart(2, "0")}-${String(weekStart.getUTCDate()).padStart(2, "0")}`;
 
     try {
       const digest = digestEngine.generateWeekly(weekStartStr);

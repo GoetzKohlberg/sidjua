@@ -66,10 +66,12 @@ export class StartupRecoveryManager {
 
     this.logger.warn("RECOVERY", "Unclean shutdown detected — running recovery");
 
-    // Query agents that were active or processing
+    // Query agents that were not in a terminal state (stopped/error/deleted).
+    // This catches 'active', 'processing', 'starting', 'idle', and 'stopping'
+    // — any non-terminal status that could leave data in an inconsistent state.
     const rows = this.db.prepare<[], { id: string }>(`
       SELECT id FROM agent_definitions
-      WHERE status IN ('active', 'processing')
+      WHERE status NOT IN ('stopped', 'error', 'deleted')
     `).all() as { id: string }[];
 
     const results: RecoveryResult[] = [];

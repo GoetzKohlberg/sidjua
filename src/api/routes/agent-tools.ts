@@ -126,6 +126,7 @@ interface ToolGovernanceContext {
   toolName:      string;
   params:        Record<string, unknown>;
   callerContext: CallerContext;
+  db?:           Database | null;
 }
 
 interface GovernanceResult {
@@ -136,12 +137,27 @@ interface GovernanceResult {
 function checkToolGovernance(ctx: ToolGovernanceContext): GovernanceResult {
   const { agentId, toolName, params, callerContext } = ctx;
 
-  // 1. Verify agent exists and is active
+  // 1. Verify agent exists and is active — prefer DB, fall back to YAML
   let agentExists = false;
-  try {
-    const roles = loadDefaultRoles();
-    agentExists = roles.some((r) => r.id === agentId && r.status === "active");
-  } catch (_loadErr: unknown) { /* treat as exists=false */ }
+  if (ctx.db !== null && ctx.db !== undefined) {
+    try {
+      const row = ctx.db.prepare<[string], { status: string }>(
+        "SELECT status FROM agent_definitions WHERE id = ?",
+      ).get(agentId);
+      agentExists = row !== undefined && row.status === "active";
+    } catch (_dbErr: unknown) {
+      // DB check failed — fall back to YAML
+      try {
+        const roles = loadDefaultRoles();
+        agentExists = roles.some((r) => r.id === agentId && r.status === "active");
+      } catch (_loadErr: unknown) { /* treat as exists=false */ }
+    }
+  } else {
+    try {
+      const roles = loadDefaultRoles();
+      agentExists = roles.some((r) => r.id === agentId && r.status === "active");
+    } catch (_loadErr: unknown) { /* treat as exists=false */ }
+  }
 
   const roleField = callerContext.role !== undefined ? { callerRole: callerContext.role } : {};
 
@@ -802,7 +818,7 @@ export async function executeToolCall(
   ctx:      ToolCallContext,
 ): Promise<ToolCallResult> {
   const callerCtx = ctx.callerContext ?? { role: "operator" as const };
-  const gov = checkToolGovernance({ agentId, toolName, params, callerContext: callerCtx });
+  const gov = checkToolGovernance({ agentId, toolName, params, callerContext: callerCtx, db: ctx.db });
   if (!gov.allowed) {
     return { success: false, error: gov.reason ?? "Tool call denied by governance" };
   }

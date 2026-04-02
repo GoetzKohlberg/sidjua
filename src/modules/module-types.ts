@@ -48,6 +48,21 @@ export interface ModuleManifest {
   commands?:            string[];
   /** Tools this module provides — validated against governance capability whitelist at install time. */
   tools?:               ModuleTool[];
+  /**
+   * Declared network access requirements.
+   * V1: AUDIT-ONLY — not enforced. Modules run with full Node.js network access.
+   * Enforcement requires sandbox integration (planned for a future release).
+   */
+  network_policy?:      ModuleNetworkPolicy;
+}
+
+export interface ModuleNetworkPolicy {
+  /** Hostnames or IP ranges this module is expected to connect to. */
+  allowed_hosts?: string[];
+  /** Whether outbound internet access is required. */
+  requires_internet?: boolean;
+  /** Free-text description of network requirements. */
+  description?: string;
 }
 
 

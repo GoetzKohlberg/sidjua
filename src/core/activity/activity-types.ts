@@ -35,14 +35,16 @@ export interface ActivityEvent {
 }
 
 export interface ActivityRecord extends ActivityEvent {
-  id:        string;
-  timestamp: string;
+  id:         string;
+  timestamp:  string;
   // Guaranteed non-optional after storage
-  severity:  ActivitySeverity;
-  division:  string;
-  source:    ActivitySource;
-  details:   Record<string, unknown>;
-  metadata:  Record<string, unknown>;
+  severity:   ActivitySeverity;
+  division:   string;
+  source:     ActivitySource;
+  details:    Record<string, unknown>;
+  metadata:   Record<string, unknown>;
+  /** True when the event was not durably persisted to SQLite (DB write failed). */
+  _transient?: boolean | undefined;
 }
 
 export interface ActivityFilters {
