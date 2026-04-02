@@ -24,7 +24,7 @@ import { join, resolve }                           from "node:path";
 import * as registry                               from "./module-registry.js";
 import { SidjuaError }                             from "../core/error-codes.js";
 import { createLogger }                            from "../core/logger.js";
-import { assertWithinDirectory }                   from "../utils/path-utils.js";
+import { assertWithinDirectoryReal }                from "../utils/path-utils.js";
 
 // Static imports (not dynamic) for correct bundling
 import {
@@ -196,7 +196,7 @@ function validateModulePath(modulePath: string, baseDir: string): string {
     );
   }
   const resolved = resolve(modulePath);
-  assertWithinDirectory(resolved, baseDir);
+  assertWithinDirectoryReal(resolved, baseDir);
   return resolved;
 }
 

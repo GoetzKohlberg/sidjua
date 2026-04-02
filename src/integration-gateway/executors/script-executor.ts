@@ -19,7 +19,7 @@
 import { spawn }                    from "node:child_process";
 import { existsSync }               from "node:fs";
 import { createLogger }             from "../../core/logger.js";
-import { assertWithinDirectory }    from "../../utils/path-utils.js";
+import { assertWithinDirectoryReal } from "../../utils/path-utils.js";
 import { IntegrationError }         from "../errors.js";
 
 const logger = createLogger("script-executor");
@@ -96,8 +96,8 @@ export class ScriptExecutor {
     }
 
     if (this.allowedScriptDir !== undefined) {
-      // assertWithinDirectory throws SidjuaError SEC-010 on path traversal
-      assertWithinDirectory(scriptPath, this.allowedScriptDir);
+      // assertWithinDirectoryReal throws SidjuaError SEC-010 on path traversal
+      assertWithinDirectoryReal(scriptPath, this.allowedScriptDir);
     }
   }
 

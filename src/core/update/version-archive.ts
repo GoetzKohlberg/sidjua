@@ -29,7 +29,7 @@ import { createLogger }  from "../logger.js";
 import { SidjuaError }   from "../error-codes.js";
 import { loadVersionInfo } from "../governance/rule-loader.js";
 import {
-  assertWithinDirectory,
+  assertWithinDirectoryReal,
   validateArchiveEntries,
   validateExtractedPaths,
 } from "../../utils/path-utils.js";
@@ -144,7 +144,7 @@ export class VersionArchiveManager {
 
     // Guard 1 — validate version string does not escape versionsDir.
     const versionDir  = join(this.versionsDir, version);
-    assertWithinDirectory(versionDir, this.versionsDir);
+    assertWithinDirectoryReal(versionDir, this.versionsDir);
 
     const archivePath = join(versionDir, "system.tar.gz");
 

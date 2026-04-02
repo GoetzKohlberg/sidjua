@@ -273,7 +273,7 @@ export function registerAllRoutes(app: Hono, services: AllRouteServices = {}): v
   registerProviderRoutes(app);
 
   // Chat endpoints (in-memory conversations; passes workDir for tool execution)
-  registerChatRoutes(app, { workDir, db });
+  registerChatRoutes(app, { workDir, db, uploadStore: services.uploadStore ?? null });
 
   // Agent tool-call endpoint
   registerAgentToolRoutes(app, { workDir, db });

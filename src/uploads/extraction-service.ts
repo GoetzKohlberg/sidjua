@@ -13,8 +13,9 @@
 import { readFileSync }  from 'node:fs';
 import { extname }       from 'node:path';
 import { createLogger }  from '../core/logger.js';
-import type { UploadStore } from './upload-store.js';
-import type { FileExtractor } from './extractors/types.js';
+import type { UploadStore }    from './upload-store.js';
+import type { UploadEmbedder } from './upload-embedder.js';
+import type { FileExtractor }  from './extractors/types.js';
 import { XlsxExtractor }  from './extractors/xlsx-extractor.js';
 import { DocxExtractor }  from './extractors/docx-extractor.js';
 import { PdfExtractor }   from './extractors/pdf-extractor.js';
@@ -33,6 +34,7 @@ export class ExtractionService {
   constructor(
     private readonly uploadStore: UploadStore,
     private readonly emitEvent?: (event: Record<string, unknown>) => void,
+    private readonly uploadEmbedder?: UploadEmbedder,
   ) {
     // More-specific extractors first; TextExtractor is the catch-all for text/*
     this.extractors = [
@@ -86,6 +88,11 @@ export class ExtractionService {
       logger.info('extraction_done', `Extracted ${text.length} chars from ${upload.filename}`, {
         metadata: { uploadId, ext, ...result.metadata },
       });
+
+      // Fire-and-forget embedding after successful extraction
+      if (this.uploadEmbedder) {
+        void this.uploadEmbedder.embedUpload(uploadId);
+      }
 
       this.emitEvent?.({
         type: 'extraction_complete',

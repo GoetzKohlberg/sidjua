@@ -15,6 +15,7 @@
  */
 
 import { resolve, relative, isAbsolute, dirname } from "node:path";
+import { realpathSync }                            from "node:fs";
 import { execFile }                                from "node:child_process";
 import { promisify }                               from "node:util";
 import { readdir, lstat, readlink, unlink }        from "node:fs/promises";
@@ -59,6 +60,39 @@ export function validateWorkDir(workDir: string): void {
 export function assertWithinDirectory(filePath: string, baseDir: string): void {
   const resolved     = resolve(filePath);
   const resolvedBase = resolve(baseDir);
+  const rel          = relative(resolvedBase, resolved);
+
+  if (rel.startsWith("..") || isAbsolute(rel)) {
+    throw SidjuaError.from(
+      "SEC-010",
+      `Path traversal detected: "${filePath}" escapes base directory "${baseDir}"`,
+    );
+  }
+}
+
+
+/**
+ * Assert that `filePath` is within `baseDir` (or equal to it), resolving
+ * symlinks on BOTH paths with `realpathSync()` before comparison.
+ *
+ * Use this variant when `baseDir` (or `filePath`) could be a symbolic link
+ * that points outside of the expected directory tree. Falls back to
+ * `path.resolve()` when a path does not exist yet (ENOENT).
+ *
+ * @throws SidjuaError SEC-010 if `filePath` escapes `baseDir`
+ */
+export function assertWithinDirectoryReal(filePath: string, baseDir: string): void {
+  function tryRealpath(p: string): string {
+    try {
+      return realpathSync(p);
+    } catch (_err) {
+      // Path does not exist yet — fall back to logical resolution
+      return resolve(p);
+    }
+  }
+
+  const resolved     = tryRealpath(filePath);
+  const resolvedBase = tryRealpath(baseDir);
   const rel          = relative(resolvedBase, resolved);
 
   if (rel.startsWith("..") || isAbsolute(rel)) {

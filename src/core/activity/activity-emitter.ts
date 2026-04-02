@@ -25,8 +25,34 @@ import type {
   TimelineEntry,
 }                                     from "./activity-types.js";
 import { createLogger }               from "../logger.js";
+import { SidjuaError }                from "../error-codes.js";
 
 const logger = createLogger("activity-emitter");
+
+/**
+ * ISO 8601 date/datetime pattern accepted for `since`/`until` filters.
+ * Accepts full ISO strings (2026-04-01T00:00:00Z, 2026-04-01T12:00:00.000Z)
+ * and plain date strings (2026-04-01).
+ */
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})?)?$/;
+
+/** Return true if `value` is a valid ISO 8601 date/datetime string. */
+function isValidIsoDate(value: unknown): boolean {
+  return typeof value === "string" && ISO_DATE_RE.test(value) && !isNaN(Date.parse(value));
+}
+
+/** Maximum byte length for serialised event fields (details + metadata). 64 KiB. */
+const JSON_MAX_BYTES = 65_536;
+
+/**
+ * Serialise a value to JSON, capping at `maxBytes`.
+ * If the result exceeds the cap, returns a truncation sentinel instead.
+ */
+function safeStringify(value: unknown, maxBytes = JSON_MAX_BYTES): string {
+  const json = JSON.stringify(value ?? {});
+  if (json.length <= maxBytes) return json;
+  return JSON.stringify({ _truncated: true, _original_bytes: json.length });
+}
 
 
 export class ActivityEmitter {
@@ -77,8 +103,8 @@ export class ActivityEmitter {
           record.user_id   ?? null,
           record.severity,
           record.title,
-          JSON.stringify(record.details),
-          JSON.stringify(record.metadata),
+          safeStringify(record.details),
+          safeStringify(record.metadata),
           record.source,
           record.parent_id  ?? null,
           record.session_id ?? null,
@@ -135,7 +161,7 @@ export class ActivityEmitter {
               r.id, r.timestamp, r.event_type, r.category,
               r.agent_id ?? null, r.division, r.user_id ?? null,
               r.severity, r.title,
-              JSON.stringify(r.details), JSON.stringify(r.metadata),
+              safeStringify(r.details), safeStringify(r.metadata),
               r.source, r.parent_id ?? null, r.session_id ?? null,
             );
           }
@@ -184,6 +210,12 @@ export class ActivityEmitter {
    * Returns [] when DB is not initialised or on error.
    */
   query(filters: ActivityFilters): ActivityRecord[] {
+    if (filters.since !== undefined && !isValidIsoDate(filters.since)) {
+      throw SidjuaError.from("INPUT-003", `Invalid 'since' date: "${filters.since}"`);
+    }
+    if (filters.until !== undefined && !isValidIsoDate(filters.until)) {
+      throw SidjuaError.from("INPUT-003", `Invalid 'until' date: "${filters.until}"`);
+    }
     if (this.db === null) return [];
     try {
       const { sql, params } = this._buildQuery(filters);
@@ -201,6 +233,12 @@ export class ActivityEmitter {
 
   /** Count events matching the given filters. Returns 0 on error. */
   count(filters: ActivityFilters): number {
+    if (filters.since !== undefined && !isValidIsoDate(filters.since)) {
+      throw SidjuaError.from("INPUT-003", `Invalid 'since' date: "${filters.since}"`);
+    }
+    if (filters.until !== undefined && !isValidIsoDate(filters.until)) {
+      throw SidjuaError.from("INPUT-003", `Invalid 'until' date: "${filters.until}"`);
+    }
     if (this.db === null) return 0;
     try {
       const { sql, params } = this._buildQuery(filters, true);
@@ -218,12 +256,23 @@ export class ActivityEmitter {
   getTimeline(
     filters: ActivityFilters & { granularity: "hour" | "day" | "week" },
   ): TimelineEntry[] {
+    if (filters.since !== undefined && !isValidIsoDate(filters.since)) {
+      throw SidjuaError.from("INPUT-003", `Invalid 'since' date: "${filters.since}"`);
+    }
+    if (filters.until !== undefined && !isValidIsoDate(filters.until)) {
+      throw SidjuaError.from("INPUT-003", `Invalid 'until' date: "${filters.until}"`);
+    }
     if (this.db === null) return [];
 
-    const fmt =
-      filters.granularity === "hour" ? "%Y-%m-%d %H:00"
-      : filters.granularity === "week" ? "%Y-W%W"
-      : "%Y-%m-%d";
+    // Use a closed Map to avoid any possibility of format-string injection.
+    // Only the three valid granularity values are present; TypeScript exhausts them.
+    const STRFTIME_FORMATS = new Map<"hour" | "day" | "week", string>([
+      ["hour", "%Y-%m-%d %H:00"],
+      ["day",  "%Y-%m-%d"],
+      ["week", "%Y-W%W"],
+    ]);
+    const fmt = STRFTIME_FORMATS.get(filters.granularity);
+    if (fmt === undefined) return [];
 
     const wheres: string[] = [];
     const params: unknown[] = [];
@@ -233,6 +282,7 @@ export class ActivityEmitter {
     if (filters.agent_id) { wheres.push("agent_id = ?");   params.push(filters.agent_id); }
 
     const where = wheres.length > 0 ? "WHERE " + wheres.join(" AND ") : "";
+    // fmt is one of the three safe literals above — no user input reaches this string.
     const sql = `
       SELECT strftime('${fmt}', timestamp) AS bucket, category, COUNT(*) AS cnt
       FROM activity_events ${where}

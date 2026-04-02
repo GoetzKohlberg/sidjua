@@ -185,6 +185,15 @@ export async function runStartCommand(opts: StartCommandOptions): Promise<number
       }
     }
 
+    // Warn operators that the raw API key now has bootstrap scope only (P311).
+    // All non-bootstrap API operations require a scoped token.
+    logger.warn(
+      "startup_bootstrap_scope",
+      "The raw API key is restricted to bootstrap scope (token creation only). " +
+      "Create a scoped token for API access: sidjua token create --scope admin",
+      {},
+    );
+
     process.stdout.write(`SIDJUA Free v${SIDJUA_VERSION} — ${msg("cli.tagline")}\n`);
     process.stdout.write(`${msg("cli.licenseBanner")}\n\n`);
     process.stdout.write(msg("cli.start.starting_foreground"));

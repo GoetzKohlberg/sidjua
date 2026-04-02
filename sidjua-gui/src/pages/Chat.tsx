@@ -2,7 +2,7 @@
 // Copyright (c) 2026 Götz Kohlberg. All rights reserved.
 // Dual licensed: AGPL-3.0 + SIDJUA Commercial License. See LICENSE.
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { ArrowLeft, Play } from 'lucide-react';
 
@@ -14,6 +14,7 @@ import type { StarterAgentsResponse, ProviderConfigResponse } from '../api/types
 import { GUI_ERRORS } from '../i18n/gui-errors';
 import { ChatUploadZone, PaperclipButton } from '../components/chat/ChatUploadZone';
 import { FileReferenceCard }               from '../components/chat/FileReferenceCard';
+import { useSse }                          from '../hooks/useSse';
 
 
 interface Message {
@@ -26,6 +27,7 @@ interface Message {
   toolSuccess?: boolean;
   toolData?:   unknown;
   toolError?:  string | null;
+  uploadId?:        string;
   uploadFilename?:  string;
   uploadSize?:      number;
   uploadMimetype?:  string;
@@ -596,6 +598,19 @@ export function Chat() {
   const [applyState,  setApplyState]  = useState<'idle' | 'running' | 'success' | 'error'>('idle');
   const abortRef                      = useRef<AbortController | null>(null);
 
+  // Listen for extraction_complete SSE events to update FileReferenceCard status live
+  const { lastEvent: sseEvent } = useSse(useMemo(() => ({}), []));
+  useEffect(() => {
+    if (!sseEvent || sseEvent.type !== 'extraction_complete') return;
+    const data = sseEvent.data as { upload_id?: string; status?: string } | undefined;
+    if (!data?.upload_id || !data.status) return;
+    setMessages((prev) => prev.map((m) =>
+      m.role === 'file_upload' && m.uploadId === data.upload_id
+        ? { ...m, uploadStatus: data.status }
+        : m,
+    ));
+  }, [sseEvent]);
+
   const agents = (agentsRes.data?.agents ?? [])
     .sort((a, b) => AGENT_ORDER.indexOf(a.id) - AGENT_ORDER.indexOf(b.id));
 
@@ -966,6 +981,7 @@ export function Chat() {
               role:            'file_upload' as const,
               content:         '',
               timestamp:       new Date().toISOString(),
+              uploadId:        upload.upload_id,
               uploadFilename:  upload.filename,
               uploadSize:      upload.size_bytes,
               uploadMimetype:  upload.mimetype,

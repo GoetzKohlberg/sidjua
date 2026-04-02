@@ -58,9 +58,12 @@ function writeToErrorLog(entry: Record<string, unknown>): void {
  */
 function sanitizePath(msg: string): string {
   // Strip absolute paths (/home/user/...) and relative paths (./foo, ../bar)
+  // Also handles Windows-style paths (C:\Users\..., .\foo, ..\bar)
   return msg
     .replace(/\/[^\s:,'"}\]]{2,}/g, "[path]")
-    .replace(/\.\.?\/[^\s:,'"}\]]+/g, "[path]");
+    .replace(/\.\.?\/[^\s:,'"}\]]+/g, "[path]")
+    .replace(/\.\.?\\[^\s:,'"}\]]+/g, "[path]")
+    .replace(/[A-Za-z]:\\[^\s:,'"}\]]+/g, "[path]");
 }
 
 

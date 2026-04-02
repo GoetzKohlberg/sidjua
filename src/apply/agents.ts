@@ -202,6 +202,29 @@ export function applyAgents(
 
     const now = new Date().toISOString();
 
+    // Pre-loop guard: count non-deleted agents before ANY bulk insert.
+    // This surfaces the limit as a clear early error rather than a mid-transaction throw,
+    // and ensures the total across both starter + user loops is bounded atomically.
+    const countBefore = db.prepare<[], { count: number }>(
+      "SELECT COUNT(*) AS count FROM agent_definitions WHERE status != 'deleted'",
+    ).get() as { count: number } | undefined;
+    const existingTotal = countBefore?.count ?? 0;
+
+    if (existingTotal >= MAX_AGENTS_FREE) {
+      logger.warn(
+        "AGENTS",
+        `Agent limit reached (${existingTotal}/${MAX_AGENTS_FREE} non-deleted). ` +
+        `No new agents will be registered. Remove unused agents or upgrade to Enterprise.`,
+      );
+      return {
+        step:        "AGENTS",
+        success:     true,
+        duration_ms: Date.now() - start,
+        summary:     `Agent limit reached (${existingTotal}/${MAX_AGENTS_FREE}) — no new agents registered`,
+        details: { starter_registered: 0, user_registered: 0, user_skipped: 0 },
+      };
+    }
+
     // 1. Starter agents from src/defaults/roles/
     let starterCount = 0;
     let starterError: string | null = null;

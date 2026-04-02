@@ -49,6 +49,7 @@ import { chmodSync }                 from "node:fs";
 import { UploadStore }               from "../uploads/upload-store.js";
 import { FileStorage }               from "../uploads/file-storage.js";
 import { ExtractionService }         from "../uploads/extraction-service.js";
+import { UploadEmbedder }            from "../uploads/upload-embedder.js";
 
 import { SIDJUA_VERSION } from "../version.js";
 
@@ -266,6 +267,15 @@ export function registerServerCommands(program: Command): void {
         process.exit(1);
       }
 
+      // Warn operators that the raw API key now has bootstrap scope only (P311).
+      // All non-bootstrap API operations require a scoped token.
+      logger.warn(
+        "startup_bootstrap_scope",
+        "The raw API key is restricted to bootstrap scope (token creation only). " +
+        "Create a scoped token for API access: sidjua token create --scope admin",
+        {},
+      );
+
       // CORS origins: ENV SIDJUA_CORS_ORIGINS overrides default (comma-separated list)
       const envCorsOrigins = process.env["SIDJUA_CORS_ORIGINS"];
       const corsOrigins    = envCorsOrigins
@@ -409,12 +419,19 @@ export function registerServerCommands(program: Command): void {
         baseDir:      join(opts.workDir, 'data', 'uploads'),
         maxSizeBytes: 10 * 1024 * 1024,
       });
+      const uploadEmbedder = uploadStore !== null
+        ? new UploadEmbedder({ uploadStore, db: db!, embedder: null })
+        : null;
       const extractionService = uploadStore !== null
-        ? new ExtractionService(uploadStore)
+        ? new ExtractionService(uploadStore, undefined, uploadEmbedder ?? undefined)
         : null;
       // Re-process any uploads that were pending/processing before last shutdown
       if (extractionService !== null) {
-        void extractionService.processPending().catch((_e: unknown) => { /* best effort */ });
+        void extractionService.processPending().catch((_e: unknown) => { /* best effort */ }); // cleanup-ignore: startup re-processing is best-effort
+      }
+      // Re-embed uploads that were extracted before an embedder was configured
+      if (uploadEmbedder !== null) {
+        void uploadEmbedder.embedPending().catch((_e: unknown) => { /* best effort */ }); // cleanup-ignore: startup re-embedding is best-effort
       }
       registerAllRoutes(server.app, {
         db,

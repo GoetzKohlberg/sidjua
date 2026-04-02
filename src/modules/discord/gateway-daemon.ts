@@ -25,7 +25,7 @@ import { existsSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { join, resolve }  from "node:path";
 import { createRequire }  from "node:module";
 import { parse as parseYaml } from "yaml";
-import { assertWithinDirectory } from "../../utils/path-utils.js";
+import { assertWithinDirectoryReal } from "../../utils/path-utils.js";
 import type { SecretEnvSource } from "../module-loader.js";
 import { getModuleSecret }      from "../module-loader.js";
 import type { SecretsProvider } from "../../types/apply.js";
@@ -94,8 +94,8 @@ export function loadDaemonConfig(moduleDir: string, secretSource?: SecretEnvSour
   // path traversal if moduleDir is ever derived from user-controllable input.
   const envFile    = join(moduleDir, ".env");
   const configFile = join(moduleDir, "config.yaml");
-  assertWithinDirectory(envFile,    moduleDir);
-  assertWithinDirectory(configFile, moduleDir);
+  assertWithinDirectoryReal(envFile,    moduleDir);
+  assertWithinDirectoryReal(configFile, moduleDir);
 
   // Secrets from .env file first; fall back to envSource (defaults to process.env)
   const env   = existsSync(envFile) ? parseDotenv(readFileSync(envFile, "utf8")) : {};

@@ -12,7 +12,7 @@
 
 import { existsSync, statSync } from "node:fs";
 import { resolve }              from "node:path";
-import { assertWithinDirectory } from "../utils/path-utils.js";
+import { assertWithinDirectoryReal } from "../utils/path-utils.js";
 import { loadAndValidate, loadAndValidateDir } from "../apply/validate.js";
 import { planFilesystem } from "../apply/filesystem.js";
 import { apply } from "../apply/index.js";
@@ -75,7 +75,7 @@ export async function runApplyCommand(opts: ApplyCommandOptions): Promise<number
   // outside the workspace root.  The fallback paths (governance/, config/)
   // are constructed by the code itself and are always within workDir.
   try {
-    assertWithinDirectory(configPath, opts.workDir);
+    assertWithinDirectoryReal(configPath, opts.workDir);
   } catch (_e) {
     process.stderr.write(`Error: --config path is outside the workspace root: ${opts.config}\n`);
     return 1;

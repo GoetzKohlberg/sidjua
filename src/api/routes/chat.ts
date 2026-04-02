@@ -30,6 +30,8 @@ import type { AgentVisibilityContext } from "./agent-tools.js";
 import type { Database }           from "better-sqlite3";
 import { runAuditMigrations }      from "../../core/audit/audit-migrations.js";
 import { bridgeAuditEvent }        from "../../core/activity/bridges/audit-event-bridge.js";
+import type { UploadStore }        from "../../uploads/upload-store.js";
+import { ConversationUploadTracker } from "../../uploads/conversation-uploads.js";
 
 const logger = createLogger("chat-routes");
 
@@ -248,11 +250,13 @@ export function clearRoleCache(): void {
 /**
  * Build an OpenAI-compatible messages array from conversation history + new user message.
  * Truncates to the last 100 messages (preserving system prompt as first entry).
+ * Upload context is appended to the system prompt so all providers receive it correctly.
  */
 function buildMessages(
-  systemPrompt: string,
-  history:      ChatMessage[],
-  userMessage:  string,
+  systemPrompt:   string,
+  history:        ChatMessage[],
+  userMessage:    string,
+  uploadContexts?: Array<{ content: string }>,
 ): Array<{ role: "system" | "user" | "assistant"; content: string }> {
   const MAX_HISTORY = 98; // system + up to 98 history + user = 100 total
   // Only "user" and "assistant" roles map to LLM API roles; tool_call/tool_result are internal
@@ -262,8 +266,15 @@ function buildMessages(
   );
   const trimmed = llmHistory.slice(-MAX_HISTORY);
 
+  // Append upload context to system prompt so all providers handle it correctly
+  let effectiveSystemPrompt = systemPrompt;
+  if (uploadContexts !== undefined && uploadContexts.length > 0) {
+    const uploadSection = uploadContexts.map((u) => u.content).join("\n\n");
+    effectiveSystemPrompt += `\n\n## Uploaded Files\n\n${uploadSection}`;
+  }
+
   return [
-    { role: "system",    content: systemPrompt },
+    { role: "system",    content: effectiveSystemPrompt },
     ...trimmed.map((m) => ({ role: m.role, content: m.content })),
     { role: "user",      content: userMessage },
   ];
@@ -271,8 +282,9 @@ function buildMessages(
 
 
 export interface ChatRouteServices {
-  workDir?: string;
-  db?:      Database | null;
+  workDir?:     string;
+  db?:          Database | null;
+  uploadStore?: UploadStore | null;
 }
 
 /** Maximum tool iterations per chat turn — prevents runaway tool loops. */
@@ -326,8 +338,11 @@ function parseLlamaToolCalls(content: string): ParsedToolCall[] {
 }
 
 export function registerChatRoutes(app: Hono, services: ChatRouteServices = {}): void {
-  const chatWorkDir = services.workDir ?? process.cwd();
-  const chatDb      = services.db ?? null;
+  const chatWorkDir   = services.workDir ?? process.cwd();
+  const chatDb        = services.db ?? null;
+  const uploadTracker = (services.uploadStore != null)
+    ? new ConversationUploadTracker(services.uploadStore)
+    : null;
 
   // ── POST /api/v1/chat/:agentId ─────────────────────────────────────────
   app.post("/api/v1/chat/:agentId", requireScope("operator"), async (c) => {
@@ -417,7 +432,12 @@ export function registerChatRoutes(app: Hono, services: ChatRouteServices = {}):
       ? buildSystemPrompt(effectiveRole)
       : `You are ${agentId}, an AI assistant. Respond helpfully.`;
 
-    const messages = buildMessages(systemPrompt, conversation.messages.slice(0, -1), userMessage);
+    // Load upload context messages for this conversation (always from DB = always current)
+    const uploadContexts = uploadTracker !== null
+      ? uploadTracker.getUploadContextMessages(convId)
+      : [];
+
+    const messages = buildMessages(systemPrompt, conversation.messages.slice(0, -1), userMessage, uploadContexts);
 
     // Clean provider url
     const apiBase    = (provider.api_base ?? "").replace(/\/$/, "");
