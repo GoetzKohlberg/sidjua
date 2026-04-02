@@ -615,9 +615,9 @@ If you find a bug, open an issue — we move fast.
 
 ## Translations
 
-SIDJUA is available in 26 languages. English and German are maintained by the core team. All other translations are AI-generated and community-maintained.
+SIDJUA is available in 44 languages. English and German are maintained by the core team. All other translations are AI-generated and community-maintained.
 
-**Documentation:** This README and the [Installation Guide](docs/INSTALLATION.md) are available in all 26 languages. See the language selector at the top of this page.
+**Documentation:** This README and the [Installation Guide](docs/INSTALLATION.md) are available in all 44 languages. See the language selector at the top of this page.
 
 | Region | Languages |
 |--------|-----------|

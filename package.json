@@ -29,6 +29,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "i18n:check": "npx tsx scripts/check-i18n-completeness.ts",
+    "i18n:sync": "npx tsx scripts/sync-locales.ts && cp src/locales/*.json locales/",
+    "i18n:sync:dry": "npx tsx scripts/sync-locales.ts --dry",
     "audit:check": "npm audit --audit-level=high"
   },
   "engines": {

@@ -56,6 +56,26 @@ const LOCALE_CATALOG: Record<string, Omit<LocaleInfo, "code">> = {
   vi:    { name: "Vietnamese",            nativeName: "Tiếng Việt",          aiGenerated: true  },
   "zh-CN": { name: "Chinese (Simplified)",   nativeName: "简体中文",          aiGenerated: true  },
   "zh-TW": { name: "Chinese (Traditional)", nativeName: "繁體中文",          aiGenerated: true  },
+  // World languages (P363)
+  ur:    { name: "Urdu",                  nativeName: "اردو",                aiGenerated: true  },
+  pcm:   { name: "Nigerian Pidgin",       nativeName: "Naijá",               aiGenerated: true  },
+  mr:    { name: "Marathi",               nativeName: "मराठी",               aiGenerated: true  },
+  te:    { name: "Telugu",                nativeName: "తెలుగు",              aiGenerated: true  },
+  ta:    { name: "Tamil",                 nativeName: "தமிழ்",               aiGenerated: true  },
+  ha:    { name: "Hausa",                 nativeName: "Hausa",               aiGenerated: true  },
+  sw:    { name: "Swahili",               nativeName: "Kiswahili",           aiGenerated: true  },
+  // European languages (ESCO, P363)
+  bg:    { name: "Bulgarian",             nativeName: "Български",           aiGenerated: true  },
+  da:    { name: "Danish",                nativeName: "Dansk",               aiGenerated: true  },
+  el:    { name: "Greek",                 nativeName: "Ελληνικά",            aiGenerated: true  },
+  et:    { name: "Estonian",              nativeName: "Eesti",               aiGenerated: true  },
+  fi:    { name: "Finnish",               nativeName: "Suomi",               aiGenerated: true  },
+  ga:    { name: "Irish",                 nativeName: "Gaeilge",             aiGenerated: true  },
+  hr:    { name: "Croatian",              nativeName: "Hrvatski",            aiGenerated: true  },
+  hu:    { name: "Hungarian",             nativeName: "Magyar",              aiGenerated: true  },
+  no:    { name: "Norwegian",             nativeName: "Norsk",               aiGenerated: true  },
+  sk:    { name: "Slovak",                nativeName: "Slovenčina",          aiGenerated: true  },
+  sl:    { name: "Slovenian",             nativeName: "Slovenščina",         aiGenerated: true  },
 };
 
 

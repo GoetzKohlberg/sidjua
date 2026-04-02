@@ -602,6 +602,7 @@
   "gui.nav.dashboard": "Dashboard",
   "gui.nav.divisions": "Divisions",
   "gui.nav.governance": "Governance",
+  "gui.nav.organization": "Organization",
   "gui.nav.settings": "Settings",
   "gui.org.status_busy": "Processing task",
   "gui.org.status_healthy": "Healthy",

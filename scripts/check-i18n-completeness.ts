@@ -12,8 +12,12 @@
  *   5. All README.{locale}.md files exist for every locale in src/locales/
  *   6. All docs/i18n/{locale}/INSTALLATION.md files exist
  *   7. No orphan keys (keys in locale but not in en.json)
+ *   8. Warn on [XX] placeholder values (untranslated stubs from sync-locales)
  *
  * Exit code: 0 = all green, 1 = warnings only, 2 = failures
+ *
+ * Release workflow: run with STRICT=1 to treat [XX] placeholders as failures.
+ *   STRICT=1 npx tsx scripts/check-i18n-completeness.ts
  */
 
 import { readFileSync, existsSync, readdirSync } from "node:fs";
@@ -37,6 +41,7 @@ interface LocaleResult {
   empty:          string[];
   placeholderErr: { key: string; expected: string[]; got: string[] }[];
   orphan:         string[];
+  stubs:          number;
   readmeExists:   boolean;
   installExists:  boolean;
 }
@@ -67,6 +72,7 @@ function pad(s: string, n: number): string {
 // ---------------------------------------------------------------------------
 
 function main(): void {
+  const isStrict = process.env["STRICT"] === "1";
   const enPath = join(LOCALES, "en.json");
   if (!existsSync(enPath)) {
     process.stderr.write("FATAL: src/locales/en.json not found\n");
@@ -135,18 +141,21 @@ function main(): void {
     }
 
     const orphan        = localeKeys.filter((k) => !enKeys.includes(k));
+    const stubs         = localeKeys.filter(
+      (k) => typeof data[k] === "string" && /^\[[A-Z0-9-]+\] /.test(data[k] as string)
+    ).length;
     const readmeExists  = existsSync(join(ROOT, `README.${locale}.md`));
     const installExists = existsSync(join(ROOT, "docs", "i18n", locale, "INSTALLATION.md"));
 
-    results.push({ locale, totalEn, missing, empty, placeholderErr, orphan, readmeExists, installExists });
+    results.push({ locale, totalEn, missing, empty, placeholderErr, orphan, stubs, readmeExists, installExists });
 
     if (missing.length > 0 || empty.length > 0 || placeholderErr.length > 0) hasFailures = true;
-    if (orphan.length > 0 || !readmeExists || !installExists) hasWarnings = true;
+    if (stubs > 0 || orphan.length > 0 || !readmeExists || !installExists) hasWarnings = true;
   }
 
   // Print table
-  const cols    = [10, 8, 8, 6, 7, 7, 7, 8, 9];
-  const headers = ["Locale", "En Keys", "Missing", "Empty", "Ph.Err", "Orphan", "README", "Install", "Complete%"];
+  const cols    = [10, 8, 8, 6, 7, 7, 8, 7, 8, 9];
+  const headers = ["Locale", "En Keys", "Missing", "Empty", "Ph.Err", "Orphan", "Stubs", "README", "Install", "Complete%"];
   const sep     = "-".repeat(cols.reduce((a, b) => a + b + 3, 0));
 
   process.stdout.write("\n" + sep + "\n");
@@ -162,6 +171,7 @@ function main(): void {
       String(r.empty.length),
       String(r.placeholderErr.length),
       String(r.orphan.length),
+      String(r.stubs),
       r.readmeExists ? "yes" : "NO",
       r.installExists ? "yes" : "NO",
       `${pct}%`,
@@ -191,6 +201,18 @@ function main(): void {
       r.placeholderErr.forEach(({ key, expected, got }) => {
         process.stderr.write(`  - ${key}: expected [${expected.join(",")}], got [${got.join(",")}]\n`);
       });
+    }
+  }
+
+  // Check 8: warn (or fail in strict mode) on [XX] placeholder stubs
+  const stubLocales = results.filter((r) => r.stubs > 0);
+  if (stubLocales.length > 0) {
+    const msg = `${stubLocales.length} locale(s) contain [XX] placeholder stubs (untranslated). Run scripts/sync-locales.ts to see details.`;
+    if (isStrict) {
+      process.stderr.write(`\nFAIL: ${msg}\n`);
+      hasFailures = true;
+    } else {
+      process.stdout.write(`\nWARN: ${msg}\n`);
     }
   }
 
