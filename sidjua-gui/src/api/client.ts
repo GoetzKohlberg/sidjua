@@ -28,6 +28,8 @@ import type {
   ChatHistoryResponse,
   WorkspaceConfigResponse,
   FirstRunCompleteResponse,
+  ScanResult,
+  BouncerConfigResponse,
 } from './types';
 
 
@@ -412,5 +414,19 @@ export class SidjuaApiClient {
 
   triggerApply(): Promise<{ success: boolean; steps: number; duration: number; summary: Array<{ step: string; success: boolean; summary: string }> }> {
     return this.post(API_PATHS.apply());
+  }
+
+  // ---- Bouncer (sensitive data filter) ------------------------------------
+
+  getBouncerConfig(): Promise<BouncerConfigResponse> {
+    return this.get(API_PATHS.bouncerConfig());
+  }
+
+  setBouncerConfig(body: Partial<BouncerConfigResponse>): Promise<BouncerConfigResponse> {
+    return this.put(API_PATHS.bouncerConfig(), body);
+  }
+
+  scanMessage(message: string): Promise<ScanResult> {
+    return this.post(API_PATHS.chatScan(), { message });
   }
 }

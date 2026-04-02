@@ -826,6 +826,13 @@ export function Settings() {
   const [errorLoggingError,  setErrorLoggingError]  = useState<string | null>(null);
   const errorLoggingInitRef = useRef(false);
 
+  // Bouncer (security) settings
+  const [bouncerEnabled,     setBouncerEnabled]     = useState<boolean | null>(null);
+  const [bouncerSensitivity, setBouncerSensitivity] = useState<'strict' | 'normal' | 'relaxed'>('normal');
+  const [bouncerBusy,        setBouncerBusy]        = useState(false);
+  const [bouncerError,       setBouncerError]       = useState<string | null>(null);
+  const bouncerInitRef = useRef(false);
+
   useEffect(() => {
     if (loggingRes.data?.errorLogging !== undefined && !errorLoggingInitRef.current) {
       setErrorLogging(loggingRes.data.errorLogging);
@@ -846,6 +853,54 @@ export function Settings() {
       setErrorLoggingError(formatGuiError(err));
     } finally {
       setErrorLoggingBusy(false);
+    }
+  }
+
+  // Load bouncer config on mount
+  useEffect(() => {
+    if (!client || bouncerInitRef.current) return;
+    bouncerInitRef.current = true;
+    void (async () => {
+      try {
+        const cfg = await client.getBouncerConfig();
+        setBouncerEnabled(cfg.enabled);
+        setBouncerSensitivity(cfg.sensitivity);
+      } catch (_err: unknown) {
+        // Non-fatal — defaults remain
+        setBouncerEnabled(true);
+      }
+    })();
+  }, [client]);
+
+  async function handleBouncerToggle(): Promise<void> {
+    if (!client || bouncerEnabled === null || bouncerBusy) return;
+    const next = !bouncerEnabled;
+    setBouncerEnabled(next);        // optimistic
+    setBouncerBusy(true);
+    setBouncerError(null);
+    try {
+      await client.setBouncerConfig({ enabled: next });
+    } catch (err: unknown) {
+      setBouncerEnabled(!next);     // revert
+      setBouncerError(formatGuiError(err));
+    } finally {
+      setBouncerBusy(false);
+    }
+  }
+
+  async function handleBouncerSensitivity(value: 'strict' | 'normal' | 'relaxed'): Promise<void> {
+    if (!client || bouncerBusy) return;
+    const prev = bouncerSensitivity;
+    setBouncerSensitivity(value);   // optimistic
+    setBouncerBusy(true);
+    setBouncerError(null);
+    try {
+      await client.setBouncerConfig({ sensitivity: value });
+    } catch (err: unknown) {
+      setBouncerSensitivity(prev);  // revert
+      setBouncerError(formatGuiError(err));
+    } finally {
+      setBouncerBusy(false);
     }
   }
 
@@ -1143,6 +1198,86 @@ export function Settings() {
               {t('gui.settings.error_logging_retrieve')}{' '}
               <code style={{ fontSize: '11px' }}>{t('gui.settings.error_logging_retrieve_cmd')}</code>.
             </p>
+          </div>
+        </section>
+
+        {/* Security (Bouncer) */}
+        <section style={sectionStyle}>
+          <h2 style={sectionHeadingStyle}>{t('gui.settings.security_header')}</h2>
+          <div style={{
+            background:    'var(--color-bg)',
+            border:        '1px solid var(--color-border)',
+            borderRadius:  'var(--radius-md)',
+            padding:       '14px 16px',
+            display:       'flex',
+            flexDirection: 'column',
+            gap:           '8px',
+          }}>
+            {/* Bouncer enabled toggle */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+              <div>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text)' }}>
+                  {t('gui.settings.bouncer_enabled')}
+                </span>
+                <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', margin: '4px 0 0' }}>
+                  {t('gui.settings.bouncer_enabled_desc')}
+                </p>
+              </div>
+              <button
+                role="switch"
+                aria-checked={bouncerEnabled ?? false}
+                disabled={bouncerEnabled === null || bouncerBusy}
+                onClick={() => { void handleBouncerToggle(); }}
+                title={bouncerEnabled ? 'Click to disable sensitive data scanning' : 'Click to enable sensitive data scanning'}
+                style={{
+                  flexShrink:  0,
+                  width:       '44px',
+                  height:      '24px',
+                  borderRadius: '12px',
+                  border:      'none',
+                  background:  bouncerEnabled ? 'var(--color-success)' : 'var(--color-border)',
+                  cursor:      bouncerEnabled === null || bouncerBusy ? 'default' : 'pointer',
+                  position:    'relative',
+                  transition:  'background 0.2s ease',
+                  opacity:     bouncerEnabled === null || bouncerBusy ? 0.6 : 1,
+                }}
+              >
+                <span style={{
+                  position:    'absolute',
+                  top:         '3px',
+                  left:        bouncerEnabled ? '23px' : '3px',
+                  width:       '18px',
+                  height:      '18px',
+                  borderRadius: '50%',
+                  background:  'white',
+                  transition:  'left 0.2s ease',
+                  boxShadow:   '0 1px 3px rgba(0,0,0,0.2)',
+                }} />
+              </button>
+            </div>
+
+            {/* Sensitivity dropdown — only shown when bouncer enabled */}
+            {bouncerEnabled === true && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
+                <span style={{ fontSize: '13px', color: 'var(--color-text-secondary)', flex: 1 }}>
+                  {t('gui.settings.bouncer_sensitivity')}
+                </span>
+                <select
+                  value={bouncerSensitivity}
+                  disabled={bouncerBusy}
+                  onChange={(e) => { void handleBouncerSensitivity(e.target.value as 'strict' | 'normal' | 'relaxed'); }}
+                  style={selectStyle}
+                >
+                  <option value="strict">{t('gui.settings.bouncer_sensitivity_strict')}</option>
+                  <option value="normal">{t('gui.settings.bouncer_sensitivity_normal')}</option>
+                  <option value="relaxed">{t('gui.settings.bouncer_sensitivity_relaxed')}</option>
+                </select>
+              </div>
+            )}
+
+            {bouncerError && (
+              <p style={{ fontSize: '12px', color: 'var(--color-danger)', margin: 0 }}>{bouncerError}</p>
+            )}
           </div>
         </section>
 

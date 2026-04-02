@@ -662,5 +662,19 @@
   "gui.error.GUI-AUDIT-001.message": "Failed to load the audit log.",
   "gui.error.GUI-AUDIT-001.suggestion": "Check your connection and try again.",
   "gui.error.GUI-GENERIC-001.message": "Something went wrong.",
-  "gui.error.GUI-GENERIC-001.suggestion": "Try reloading the page. If the problem persists, restart SIDJUA: docker restart $(docker ps -aq -f name=sidjua)"
+  "gui.error.GUI-GENERIC-001.suggestion": "Try reloading the page. If the problem persists, restart SIDJUA: docker restart $(docker ps -aq -f name=sidjua)",
+  "gui.bouncer.dialog_title": "Sensitive Data Detected",
+  "gui.bouncer.dialog_body": "Your message contains data that may be sensitive:",
+  "gui.bouncer.preview_label": "Redacted preview:",
+  "gui.bouncer.send_anyway": "Send anyway",
+  "gui.bouncer.send_redacted": "Send redacted",
+  "gui.bouncer.cancel": "Cancel",
+  "gui.bouncer.match_count": "{count} sensitive pattern(s) found",
+  "gui.settings.security_header": "Security",
+  "gui.settings.bouncer_enabled": "Scan messages for sensitive data",
+  "gui.settings.bouncer_enabled_desc": "When enabled, messages are scanned for API keys, passwords, and other secrets before sending",
+  "gui.settings.bouncer_sensitivity": "Detection sensitivity",
+  "gui.settings.bouncer_sensitivity_strict": "Strict — catches most patterns including heuristic matches",
+  "gui.settings.bouncer_sensitivity_normal": "Normal — balanced detection with low false positives",
+  "gui.settings.bouncer_sensitivity_relaxed": "Relaxed — only high-confidence structural patterns"
 }

@@ -69,6 +69,10 @@ export const API_PATHS = {
   // Workspace config
   workspaceConfig:       ()             => `${API_PREFIX}/config`,
   firstRunComplete:      ()             => `${API_PREFIX}/config/first-run-complete`,
+  bouncerConfig:         ()             => `${API_PREFIX}/config/bouncer`,
+
+  // Chat scan (bouncer)
+  chatScan:              ()             => `${API_PREFIX}/chat/scan`,
 
   // Locale (i18n)
   locale:                ()             => `${API_PREFIX}/locale`,

@@ -455,13 +455,13 @@ export async function runStartCommand(opts: StartCommandOptions): Promise<number
       : {};
     const routeServices = {
       db,
-      workDir:      opts.workDir,
+      workDir:          opts.workDir,
       orchestrator,
-      secrets:      null as null,
-      integration:  null as null,
-      // P269 / P316: scoped token store — enables token CRUD + token-based auth (mirrors cli-server.ts)
+      secrets:          null as null,
+      integration:      null as null,
       tokenStore,
-      getApiKey:    () => apiKey,
+      getApiKey:        () => apiKey,
+      activityEmitter,
       ...(sharedEventBus !== null ? { eventBus: sharedEventBus } : {}),
       ...messagingRouteServices,
       ...(registry !== undefined ? { registry } : {}),

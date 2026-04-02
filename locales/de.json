@@ -613,5 +613,19 @@
   "agent.tier.3": "Arbeiter",
   "agent.tier.desc.1": "T1 — Strategisches Denken; erfordert das leistungsfähigste LLM.",
   "agent.tier.desc.2": "T2 — Mittelstufe; Standard-LLMs empfohlen.",
-  "agent.tier.desc.3": "T3 — Einfache, wiederholende Aufgaben; kostenlose LLMs sind ausreichend."
+  "agent.tier.desc.3": "T3 — Einfache, wiederholende Aufgaben; kostenlose LLMs sind ausreichend.",
+  "gui.bouncer.dialog_title": "Sensible Daten erkannt",
+  "gui.bouncer.dialog_body": "Ihre Nachricht enthält möglicherweise sensible Daten:",
+  "gui.bouncer.preview_label": "Bereinigte Vorschau:",
+  "gui.bouncer.send_anyway": "Trotzdem senden",
+  "gui.bouncer.send_redacted": "Bereinigt senden",
+  "gui.bouncer.cancel": "Abbrechen",
+  "gui.bouncer.match_count": "{count} sensible(s) Muster gefunden",
+  "gui.settings.security_header": "Sicherheit",
+  "gui.settings.bouncer_enabled": "Nachrichten auf sensible Daten prüfen",
+  "gui.settings.bouncer_enabled_desc": "Wenn aktiviert, werden Nachrichten vor dem Senden auf API-Schlüssel, Passwörter und andere Geheimnisse geprüft",
+  "gui.settings.bouncer_sensitivity": "Erkennungsempfindlichkeit",
+  "gui.settings.bouncer_sensitivity_strict": "Streng — erkennt die meisten Muster einschließlich heuristischer Treffer",
+  "gui.settings.bouncer_sensitivity_normal": "Normal — ausgewogene Erkennung mit wenig Fehlalarmen",
+  "gui.settings.bouncer_sensitivity_relaxed": "Entspannt — nur hochsichere strukturelle Muster"
 }

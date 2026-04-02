@@ -412,3 +412,23 @@ export interface ApiErrorBody {
     request_id: string;
   };
 }
+
+// ---- Bouncer (sensitive data filter) ---------------------------------------
+
+export interface ScanMatch {
+  label:      string;
+  start:      number;
+  end:        number;
+  confidence: 'high' | 'medium';
+}
+
+export interface ScanResult {
+  detected:  boolean;
+  matches:   ScanMatch[];
+  redacted:  string;
+}
+
+export interface BouncerConfigResponse {
+  enabled:     boolean;
+  sensitivity: 'strict' | 'normal' | 'relaxed';
+}

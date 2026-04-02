@@ -10,11 +10,12 @@ import { useAppConfig }  from '../lib/config';
 import { useApi }        from '../hooks/useApi';
 import { AgentIcon }     from '../components/shared/AgentIcon';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
-import type { StarterAgentsResponse, ProviderConfigResponse } from '../api/types';
+import type { StarterAgentsResponse, ProviderConfigResponse, ScanResult } from '../api/types';
 import { GUI_ERRORS } from '../i18n/gui-errors';
 import { ChatUploadZone, PaperclipButton } from '../components/chat/ChatUploadZone';
 import { FileReferenceCard }               from '../components/chat/FileReferenceCard';
 import { useSse }                          from '../hooks/useSse';
+import { RedactionDialog }                 from '../components/chat/RedactionDialog';
 
 
 interface Message {
@@ -591,12 +592,13 @@ export function Chat() {
   const agentsRes   = useApi<StarterAgentsResponse>((c) => c.listStarterAgents());
   const providerRes = useApi<ProviderConfigResponse>((c) => c.getProviderConfig());
 
-  const [messages,    setMessages]    = useState<Message[]>([]);
-  const [isStreaming, setIsStreaming]  = useState(false);
-  const [convId,      setConvId]      = useState<string | null>(null);
-  const [showAll,     setShowAll]     = useState(false);
-  const [applyState,  setApplyState]  = useState<'idle' | 'running' | 'success' | 'error'>('idle');
-  const abortRef                      = useRef<AbortController | null>(null);
+  const [messages,     setMessages]    = useState<Message[]>([]);
+  const [isStreaming,  setIsStreaming] = useState(false);
+  const [convId,       setConvId]     = useState<string | null>(null);
+  const [showAll,      setShowAll]    = useState(false);
+  const [applyState,   setApplyState] = useState<'idle' | 'running' | 'success' | 'error'>('idle');
+  const [pendingScan,  setPendingScan] = useState<{ scanResult: ScanResult; originalMessage: string } | null>(null);
+  const abortRef                       = useRef<AbortController | null>(null);
 
   // Listen for extraction_complete SSE events to update FileReferenceCard status live
   const { lastEvent: sseEvent } = useSse(useMemo(() => ({}), []));
@@ -660,7 +662,8 @@ export function Chat() {
   // Cancel stream on unmount
   useEffect(() => () => { abortRef.current?.abort(); }, []);
 
-  const handleSend = useCallback(async (text: string) => {
+  // Inner function that performs the actual send (after scan decision).
+  const doSend = useCallback(async (text: string) => {
     if (!client || isStreaming) return;
 
     const userMsg: Message = {
@@ -833,6 +836,31 @@ export function Chat() {
     }
   }, [client, baseUrl, agentId, convId, isStreaming]);
 
+  // Outer handleSend: runs bouncer scan first, then either proceeds or shows dialog.
+  const handleSend = useCallback(async (text: string) => {
+    if (!client || isStreaming) return;
+
+    // Attempt bouncer scan; fail-open on any error (scan is advisory, not blocking)
+    let scanResult: ScanResult | null = null;
+    try {
+      const result = await client.scanMessage(text);
+      if (result.detected) {
+        scanResult = result;
+      }
+    } catch (_scanErr: unknown) {
+      // Network error or auth issue — proceed without scan
+    }
+
+    if (scanResult !== null) {
+      // Show redaction dialog — pause the send
+      setPendingScan({ scanResult, originalMessage: text });
+      return;
+    }
+
+    // No sensitive data detected — send directly
+    await doSend(text);
+  }, [client, isStreaming, doSend]);
+
   async function handleApply() {
     if (!client || applyState === 'running') return;
     setApplyState('running');
@@ -903,6 +931,20 @@ export function Chat() {
     : undefined;
 
   return (
+    <>
+      {/* Bouncer redaction dialog — rendered above chat when scan finds sensitive data */}
+      {pendingScan !== null && (
+        <RedactionDialog
+          scanResult={pendingScan.scanResult}
+          originalMessage={pendingScan.originalMessage}
+          onSend={(msg) => {
+            setPendingScan(null);
+            void doSend(msg);
+          }}
+          onCancel={() => setPendingScan(null)}
+        />
+      )}
+
     <div style={{
       display:       'flex',
       flexDirection: 'column',
@@ -998,6 +1040,7 @@ export function Chat() {
         />
       </ChatUploadZone>
     </div>
+    </>
   );
 }
 

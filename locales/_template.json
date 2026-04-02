@@ -614,5 +614,19 @@
   "agent.tier.3": "",
   "agent.tier.desc.1": "",
   "agent.tier.desc.2": "",
-  "agent.tier.desc.3": ""
+  "agent.tier.desc.3": "",
+  "gui.bouncer.dialog_title": "",
+  "gui.bouncer.dialog_body": "",
+  "gui.bouncer.preview_label": "",
+  "gui.bouncer.send_anyway": "",
+  "gui.bouncer.send_redacted": "",
+  "gui.bouncer.cancel": "",
+  "gui.bouncer.match_count": "",
+  "gui.settings.security_header": "",
+  "gui.settings.bouncer_enabled": "",
+  "gui.settings.bouncer_enabled_desc": "",
+  "gui.settings.bouncer_sensitivity": "",
+  "gui.settings.bouncer_sensitivity_strict": "",
+  "gui.settings.bouncer_sensitivity_normal": "",
+  "gui.settings.bouncer_sensitivity_relaxed": ""
 }

@@ -436,16 +436,17 @@ export function registerServerCommands(program: Command): void {
       }
       registerAllRoutes(server.app, {
         db,
-        workDir:      opts.workDir,
+        workDir:        opts.workDir,
         registry,
         orchestrator,
-        secrets:      null,
-        integration:  null,
+        secrets:        null,
+        integration:    null,
         tokenStore,
-        getApiKey:    getActiveApiKey,
+        getApiKey:      getActiveApiKey,
         uploadStore,
         fileStorage,
         extractionService,
+        activityEmitter,
       });
 
       // ── GUI static file serving ───────────────────────────────────────────────
