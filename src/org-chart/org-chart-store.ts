@@ -232,6 +232,15 @@ export class OrgChartStore {
   }
 
   /**
+   * Returns all agent IDs from the agents table.
+   * Used by the status endpoint to enumerate all known agents.
+   */
+  getAllAgentIds(): string[] {
+    const rows = this.db.prepare<[], { id: string }>('SELECT id FROM agents').all() as { id: string }[];
+    return rows.map((r) => r.id);
+  }
+
+  /**
    * Returns detailed org-chart data for a single division.
    * Returns null if the division does not exist.
    */

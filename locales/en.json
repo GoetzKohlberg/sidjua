@@ -676,5 +676,11 @@
   "gui.settings.bouncer_sensitivity": "Detection sensitivity",
   "gui.settings.bouncer_sensitivity_strict": "Strict — catches most patterns including heuristic matches",
   "gui.settings.bouncer_sensitivity_normal": "Normal — balanced detection with low false positives",
-  "gui.settings.bouncer_sensitivity_relaxed": "Relaxed — only high-confidence structural patterns"
+  "gui.settings.bouncer_sensitivity_relaxed": "Relaxed — only high-confidence structural patterns",
+  "gui.org.status_healthy": "Healthy",
+  "gui.org.status_unhealthy": "Unhealthy — last seen {time}",
+  "gui.org.status_unknown": "Status unknown",
+  "gui.org.status_busy": "Processing task",
+  "gui.org.tasks_recent": "{count} task(s) in last hour",
+  "gui.org.status_legend": "Agent Status"
 }

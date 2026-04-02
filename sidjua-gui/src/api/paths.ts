@@ -84,4 +84,8 @@ export const API_PATHS = {
 
   // Tokens (bootstrap → admin exchange)
   tokens:                ()             => `${API_PREFIX}/tokens`,
+
+  // Org chart status (P359)
+  orgStatus:             ()             => `${API_PREFIX}/org/status`,
+  orgAgentTasks:         (id: string)   => `${API_PREFIX}/org/agent/${id}/tasks`,
 } as const;

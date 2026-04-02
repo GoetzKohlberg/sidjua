@@ -432,3 +432,31 @@ export interface BouncerConfigResponse {
   enabled:     boolean;
   sensitivity: 'strict' | 'normal' | 'relaxed';
 }
+
+// ---- Org Chart Status (P359) ------------------------------------------------
+
+export interface AgentStatus {
+  agent_id:          string;
+  health:            'healthy' | 'unhealthy' | 'unknown';
+  last_heartbeat:    string | null;
+  recent_task_count: number;
+  is_busy:           boolean;
+}
+
+export interface AgentStatusResponse {
+  agents:      Record<string, AgentStatus>;
+  server_time: string;
+}
+
+export interface TaskHistoryEntry {
+  id:         string;
+  event_type: string;
+  title:      string;
+  timestamp:  string;
+  details:    Record<string, unknown>;
+}
+
+export interface AgentTaskHistoryResponse {
+  agent_id: string;
+  tasks:    TaskHistoryEntry[];
+}

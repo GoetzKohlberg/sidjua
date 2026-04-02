@@ -627,5 +627,11 @@
   "gui.settings.bouncer_sensitivity": "Erkennungsempfindlichkeit",
   "gui.settings.bouncer_sensitivity_strict": "Streng — erkennt die meisten Muster einschließlich heuristischer Treffer",
   "gui.settings.bouncer_sensitivity_normal": "Normal — ausgewogene Erkennung mit wenig Fehlalarmen",
-  "gui.settings.bouncer_sensitivity_relaxed": "Entspannt — nur hochsichere strukturelle Muster"
+  "gui.settings.bouncer_sensitivity_relaxed": "Entspannt — nur hochsichere strukturelle Muster",
+  "gui.org.status_healthy": "Gesund",
+  "gui.org.status_unhealthy": "Nicht erreichbar — zuletzt gesehen {time}",
+  "gui.org.status_unknown": "Status unbekannt",
+  "gui.org.status_busy": "Verarbeitet Aufgabe",
+  "gui.org.tasks_recent": "{count} Aufgabe(n) in der letzten Stunde",
+  "gui.org.status_legend": "Agent-Status"
 }

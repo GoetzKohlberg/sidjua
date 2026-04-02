@@ -67,6 +67,7 @@ import type { FileStorage }              from "../../uploads/file-storage.js";
 import type { ExtractionService }        from "../../uploads/extraction-service.js";
 import { apply }                         from "../../apply/index.js";
 import type { ActivityEmitter }          from "../../core/activity/activity-emitter.js";
+import type { HeartbeatMonitor }         from "../../agents/heartbeat.js";
 
 import type { AgentRegistryLike }   from "./agents.js";
 import type { SecretRouteServices }    from "./secrets.js";
@@ -141,6 +142,8 @@ export interface AllRouteServices {
   extractionService?: ExtractionService | null;
   /** P357: Activity emitter for bouncer scan events — optional. */
   activityEmitter?: ActivityEmitter | null;
+  /** P359: HeartbeatMonitor instance — optional; status endpoint shows unknown if absent. */
+  heartbeat?: HeartbeatMonitor | null;
 }
 
 
@@ -159,7 +162,7 @@ export function registerAllRoutes(app: Hono, services: AllRouteServices = {}): v
   if (db !== null) {
     registerTaskRoutes(app,              { db });
     registerDivisionRoutes(app,          { db });
-    registerOrgChartRoutes(app,          { db });
+    registerOrgChartRoutes(app,          { db, heartbeat: services.heartbeat ?? null });
     registerOrgImportRoutes(app,         { db });
     registerCostRoutes(app,              { db });
     registerAuditRoutes(app,             { db });

@@ -3,20 +3,22 @@
 // Dual licensed: AGPL-3.0 + SIDJUA Commercial License. See LICENSE.
 
 import React from 'react';
-import type { OrgNode } from '../../api/types';
+import type { OrgNode, AgentStatus } from '../../api/types';
 import { OrgChartCard } from './OrgChartCard';
 
 interface OrgChartTreeProps {
-  nodes:      OrgNode[];
-  selectedId: string | null;
-  onSelect:   (node: OrgNode) => void;
+  nodes:          OrgNode[];
+  selectedId:     string | null;
+  onSelect:       (node: OrgNode) => void;
+  /** Optional agent status map to pass through to each card. */
+  agentStatuses?: Record<string, AgentStatus>;
 }
 
 /**
  * Horizontal flexbox tree layout: division cards side-by-side.
  * No external library dependency.
  */
-export function OrgChartTree({ nodes, selectedId, onSelect }: OrgChartTreeProps) {
+export function OrgChartTree({ nodes, selectedId, onSelect, agentStatuses }: OrgChartTreeProps) {
   if (nodes.length === 0) {
     return (
       <div style={{ textAlign: 'center', padding: '40px', color: 'var(--color-text-muted)' }}>
@@ -42,6 +44,7 @@ export function OrgChartTree({ nodes, selectedId, onSelect }: OrgChartTreeProps)
           isSelected={selectedId === node.division.code}
           onClick={onSelect}
           hasChildren={node.children.length > 0}
+          agentStatuses={agentStatuses}
         />
       ))}
     </div>

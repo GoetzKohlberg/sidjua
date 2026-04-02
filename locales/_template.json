@@ -628,5 +628,11 @@
   "gui.settings.bouncer_sensitivity": "",
   "gui.settings.bouncer_sensitivity_strict": "",
   "gui.settings.bouncer_sensitivity_normal": "",
-  "gui.settings.bouncer_sensitivity_relaxed": ""
+  "gui.settings.bouncer_sensitivity_relaxed": "",
+  "gui.org.status_healthy": "",
+  "gui.org.status_unhealthy": "",
+  "gui.org.status_unknown": "",
+  "gui.org.status_busy": "",
+  "gui.org.tasks_recent": "",
+  "gui.org.status_legend": ""
 }
