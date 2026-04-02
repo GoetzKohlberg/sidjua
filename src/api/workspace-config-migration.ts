@@ -36,6 +36,9 @@ const V2_1_WORKSPACE_CONFIG: DbMigration = {
 
     INSERT OR IGNORE INTO workspace_config (key, value)
       VALUES ('bouncer_sensitivity', 'normal');
+
+    INSERT OR IGNORE INTO workspace_config (key, value)
+      VALUES ('installed_languages', '["en"]');
   `,
   down: `
     DROP TABLE IF EXISTS workspace_config;

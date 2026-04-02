@@ -904,6 +904,62 @@ export function Settings() {
     }
   }
 
+  // ── Language management (installed languages) ────────────────────────────
+  const [installedLangs,    setInstalledLangs]    = useState<string[] | null>(null);
+  const [availableLangs,    setAvailableLangs]    = useState<string[]>([]);
+  const [activeLang,        setActiveLang]        = useState<string>('en');
+  const [langBusy,          setLangBusy]          = useState(false);
+  const [langError,         setLangError]         = useState<string | null>(null);
+  const [addLangCode,       setAddLangCode]       = useState<string>('');
+  const langInitRef = useRef(false);
+
+  useEffect(() => {
+    if (!client || langInitRef.current) return;
+    langInitRef.current = true;
+    void (async () => {
+      try {
+        const [installed, meta] = await Promise.all([
+          client.get<{ languages: string[]; active: string }>('/api/v1/locale/installed'),
+          client.get<{ available: string[] }>('/api/v1/locale'),
+        ]);
+        setInstalledLangs(installed.languages);
+        setActiveLang(installed.active);
+        setAvailableLangs(meta.available ?? []);
+      } catch (_err) {
+        // Non-fatal — section stays hidden
+      }
+    })();
+  }, [client]);
+
+  async function handleInstallLang(code: string): Promise<void> {
+    if (!client || langBusy || !code) return;
+    setLangBusy(true);
+    setLangError(null);
+    try {
+      const res = await client.post<{ languages: string[] }>('/api/v1/locale/install', { code });
+      setInstalledLangs(res.languages);
+      setAddLangCode('');
+    } catch (err: unknown) {
+      setLangError(formatGuiError(err));
+    } finally {
+      setLangBusy(false);
+    }
+  }
+
+  async function handleUninstallLang(code: string): Promise<void> {
+    if (!client || langBusy) return;
+    setLangBusy(true);
+    setLangError(null);
+    try {
+      const res = await client.post<{ languages: string[] }>('/api/v1/locale/uninstall', { code });
+      setInstalledLangs(res.languages);
+    } catch (err: unknown) {
+      setLangError(formatGuiError(err));
+    } finally {
+      setLangBusy(false);
+    }
+  }
+
   function handleChange(field: keyof AppConfig) {
     return (e: React.ChangeEvent<HTMLInputElement>) => {
       setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -1108,6 +1164,98 @@ export function Settings() {
           </p>
           <LanguageSelector />
         </section>
+
+        {/* Languages management (installed list) */}
+        {installedLangs !== null && (
+          <section style={sectionStyle}>
+            <h2 style={sectionHeadingStyle}>{t('gui.settings.languages_header')}</h2>
+            <div style={{
+              background:    'var(--color-bg)',
+              border:        '1px solid var(--color-border)',
+              borderRadius:  'var(--radius-md)',
+              padding:       '14px 16px',
+              display:       'flex',
+              flexDirection: 'column',
+              gap:           '8px',
+            }}>
+              <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: '4px' }}>
+                {t('gui.settings.languages_installed')}
+              </div>
+              {installedLangs.map((code) => (
+                <div key={code} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--color-text)' }}>
+                    {code}
+                    {code === activeLang && (
+                      <span style={{ marginLeft: '8px', fontSize: '11px', color: 'var(--color-success)', fontWeight: 600 }}>
+                        {t('gui.settings.languages_active')}
+                      </span>
+                    )}
+                  </span>
+                  {code !== 'en' && code !== activeLang && (
+                    <button
+                      onClick={() => { void handleUninstallLang(code); }}
+                      disabled={langBusy}
+                      title={t('gui.settings.languages_remove')}
+                      style={{
+                        background:   'none',
+                        border:       '1px solid var(--color-border)',
+                        borderRadius: 'var(--radius-sm)',
+                        cursor:       langBusy ? 'default' : 'pointer',
+                        padding:      '2px 8px',
+                        fontSize:     '11px',
+                        color:        'var(--color-text-muted)',
+                        opacity:      langBusy ? 0.5 : 1,
+                      }}
+                    >
+                      {t('gui.settings.languages_remove')}
+                    </button>
+                  )}
+                </div>
+              ))}
+
+              {/* Add language dropdown */}
+              {(() => {
+                const notInstalled = availableLangs.filter((c) => !installedLangs.includes(c));
+                if (notInstalled.length === 0) return null;
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', paddingTop: '8px', borderTop: '1px solid var(--color-border)' }}>
+                    <select
+                      value={addLangCode}
+                      onChange={(e) => setAddLangCode(e.target.value)}
+                      disabled={langBusy}
+                      style={{ ...selectStyle, flex: 1 }}
+                    >
+                      <option value="">{t('gui.settings.languages_add')}…</option>
+                      {notInstalled.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={() => { void handleInstallLang(addLangCode); }}
+                      disabled={langBusy || addLangCode === ''}
+                      style={{
+                        padding:      '6px 14px',
+                        borderRadius: 'var(--radius-sm)',
+                        border:       '1px solid var(--color-accent)',
+                        background:   'var(--color-accent-muted)',
+                        color:        'var(--color-accent)',
+                        cursor:       langBusy || addLangCode === '' ? 'default' : 'pointer',
+                        fontSize:     '13px',
+                        opacity:      langBusy || addLangCode === '' ? 0.5 : 1,
+                      }}
+                    >
+                      {t('gui.settings.languages_add')}
+                    </button>
+                  </div>
+                );
+              })()}
+
+              {langError && (
+                <p style={{ fontSize: '12px', color: 'var(--color-danger)', margin: 0 }}>{langError}</p>
+              )}
+            </div>
+          </section>
+        )}
 
         {/* Appearance */}
         <section style={sectionStyle}>

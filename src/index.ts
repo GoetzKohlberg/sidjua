@@ -47,6 +47,7 @@ import { registerIntegrationCommands }    from "./cli/commands/integration.js";
 import { registerTlsCommands }            from "./cli/commands/tls.js";
 import { msg }                             from "./i18n/index.js";
 import { registerLocaleCommands }          from "./cli/commands/locale.js";
+import { registerLangCommands }            from "./cli/commands/lang.js";
 import { registerStartOverCommands }       from "./cli/commands/start-over.js";
 import { registerDaemonCommands }          from "./cli/commands/daemon.js";
 import { registerMessagingCommands }       from "./cli/commands/messaging.js";
@@ -207,6 +208,7 @@ registerIntegrationCommands(program);
 
 registerLocaleCommands(program);
 
+registerLangCommands(program);
 
 registerStartOverCommands(program);
 

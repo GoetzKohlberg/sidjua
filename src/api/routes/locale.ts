@@ -19,6 +19,11 @@ import {
   getAvailableLocales,
   loadLocaleData,
 } from "../../i18n/index.js";
+import {
+  getInstalledLanguages,
+  installLanguage,
+  removeLanguage,
+} from "../../i18n/lang-store.js";
 import { runWorkspaceConfigMigration } from "../workspace-config-migration.js";
 
 // ---------------------------------------------------------------------------
@@ -79,7 +84,67 @@ export function registerLocaleRoutes(
     return c.json({ current, available, completeness });
   });
 
+  // GET /api/v1/locale/installed — list installed languages + active
+  // NOTE: must be registered BEFORE /api/v1/locale/:locale to avoid param capture
+  app.get("/api/v1/locale/installed", requireScope("operator"), (c) => {
+    if (db == null) {
+      return c.json({ languages: ["en"], active: getLocale() });
+    }
+    const active    = getCurrentLocaleFromDb(db) ?? getLocale();
+    const languages = getInstalledLanguages(db);
+    return c.json({ languages, active });
+  });
+
+  // POST /api/v1/locale/install — add a language
+  app.post("/api/v1/locale/install", requireScope("operator"), async (c) => {
+    if (db == null) {
+      return c.json({ error: { code: "LOCALE-010", message: "No database available" } }, 503);
+    }
+    let body: { code?: unknown };
+    try {
+      body = await c.req.json() as { code?: unknown };
+    } catch (_e) {
+      return c.json({ error: { code: "LOCALE-002", message: "Invalid JSON body" } }, 400);
+    }
+    const code = body.code;
+    if (typeof code !== "string" || code.trim() === "") {
+      return c.json({ error: { code: "LOCALE-003", message: "code must be a non-empty string" } }, 400);
+    }
+    try {
+      const added = installLanguage(db, code);
+      const languages = getInstalledLanguages(db);
+      return c.json({ added, languages });
+    } catch (err: unknown) {
+      return c.json({ error: { code: "LOCALE-003", message: err instanceof Error ? err.message : String(err) } }, 400);
+    }
+  });
+
+  // POST /api/v1/locale/uninstall — remove a language
+  app.post("/api/v1/locale/uninstall", requireScope("operator"), async (c) => {
+    if (db == null) {
+      return c.json({ error: { code: "LOCALE-010", message: "No database available" } }, 503);
+    }
+    let body: { code?: unknown };
+    try {
+      body = await c.req.json() as { code?: unknown };
+    } catch (_e) {
+      return c.json({ error: { code: "LOCALE-002", message: "Invalid JSON body" } }, 400);
+    }
+    const code = body.code;
+    if (typeof code !== "string" || code.trim() === "") {
+      return c.json({ error: { code: "LOCALE-003", message: "code must be a non-empty string" } }, 400);
+    }
+    try {
+      const removed   = removeLanguage(db, code);
+      const languages = getInstalledLanguages(db);
+      return c.json({ removed, languages });
+    } catch (err: unknown) {
+      return c.json({ error: { code: "LOCALE-003", message: err instanceof Error ? err.message : String(err) } }, 400);
+    }
+  });
+
   // GET /api/v1/locale/:locale — full locale strings for GUI
+  // NOTE: registered AFTER static paths to avoid capturing "installed", "install", "uninstall"
   app.get("/api/v1/locale/:locale", (c) => {
     const locale     = c.req.param("locale");
     const available  = getAvailableLocales();

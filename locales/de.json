@@ -633,5 +633,19 @@
   "gui.org.status_unknown": "Status unbekannt",
   "gui.org.status_busy": "Verarbeitet Aufgabe",
   "gui.org.tasks_recent": "{count} Aufgabe(n) in der letzten Stunde",
-  "gui.org.status_legend": "Agent-Status"
+  "gui.org.status_legend": "Agent-Status",
+  "gui.settings.languages_header": "Sprachen",
+  "gui.settings.languages_installed": "Installierte Sprachen",
+  "gui.settings.languages_add": "Sprache hinzufügen",
+  "gui.settings.languages_remove": "Entfernen",
+  "gui.settings.languages_active": "Aktiv",
+  "gui.settings.languages_cannot_remove_en": "Englisch kann nicht entfernt werden",
+  "gui.settings.languages_cannot_remove_active": "Die aktive Sprache kann nicht entfernt werden — zuerst wechseln",
+  "cli.lang.added": "Sprache {code} erfolgreich installiert",
+  "cli.lang.removed": "Sprache {code} entfernt",
+  "cli.lang.already_installed": "Sprache {code} ist bereits installiert",
+  "cli.lang.not_installed": "Sprache {code} ist nicht installiert",
+  "cli.lang.cannot_remove_en": "Englisch kann nicht entfernt werden — es ist immer erforderlich",
+  "cli.lang.cannot_remove_active": "{code} kann nicht entfernt werden — es ist die aktive Sprache. Zuerst 'sidjua lang set en' ausführen",
+  "cli.lang.unknown_code": "Unbekannter Sprachcode: {code}. 'sidjua lang list' für verfügbare Sprachen"
 }

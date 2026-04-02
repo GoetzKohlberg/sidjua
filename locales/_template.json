@@ -634,5 +634,19 @@
   "gui.org.status_unknown": "",
   "gui.org.status_busy": "",
   "gui.org.tasks_recent": "",
-  "gui.org.status_legend": ""
+  "gui.org.status_legend": "",
+  "gui.settings.languages_header": "",
+  "gui.settings.languages_installed": "",
+  "gui.settings.languages_add": "",
+  "gui.settings.languages_remove": "",
+  "gui.settings.languages_active": "",
+  "gui.settings.languages_cannot_remove_en": "",
+  "gui.settings.languages_cannot_remove_active": "",
+  "cli.lang.added": "",
+  "cli.lang.removed": "",
+  "cli.lang.already_installed": "",
+  "cli.lang.not_installed": "",
+  "cli.lang.cannot_remove_en": "",
+  "cli.lang.cannot_remove_active": "",
+  "cli.lang.unknown_code": ""
 }
