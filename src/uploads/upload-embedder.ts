@@ -19,6 +19,7 @@
 import type { Database }     from '../utils/db.js';
 import type { Embedder }     from '../knowledge-pipeline/types.js';
 import type { UploadStore }  from './upload-store.js';
+import type { VectorStore }  from '../knowledge-pipeline/vector-store/vector-store.js';
 import { EmbeddingPipeline } from '../knowledge-pipeline/embedding/embedding-pipeline.js';
 import { MarkdownParser }    from '../knowledge-pipeline/parsers/markdown-parser.js';
 import { SemanticChunker }   from '../knowledge-pipeline/chunkers/semantic-chunker.js';
@@ -32,11 +33,13 @@ const logger = createLogger('upload-embedder');
 const DEFAULT_COLLECTION_ID = 'uploads';
 
 export interface UploadEmbedderServices {
-  uploadStore: UploadStore;
-  db:          Database;
-  embedder:    Embedder | null;
+  uploadStore:   UploadStore;
+  db:            Database;
+  embedder:      Embedder | null;
   collectionId?: string;
-  emitEvent?:  (event: Record<string, unknown>) => void;
+  emitEvent?:    (event: Record<string, unknown>) => void;
+  /** Optional vector store override. Defaults to SqliteVectorStore. */
+  vectorStore?:  VectorStore;
 }
 
 export class UploadEmbedder {
@@ -45,6 +48,7 @@ export class UploadEmbedder {
   private readonly embedder:     Embedder | null;
   private readonly collectionId: string;
   private readonly emitEvent:    ((event: Record<string, unknown>) => void) | undefined;
+  private readonly vectorStore:  VectorStore | undefined;
 
   constructor(services: UploadEmbedderServices) {
     this.uploadStore  = services.uploadStore;
@@ -52,6 +56,7 @@ export class UploadEmbedder {
     this.embedder     = services.embedder;
     this.collectionId = services.collectionId ?? DEFAULT_COLLECTION_ID;
     this.emitEvent    = services.emitEvent;
+    this.vectorStore  = services.vectorStore;
   }
 
   /**
@@ -111,6 +116,8 @@ export class UploadEmbedder {
         new MarkdownParser(),
         new SemanticChunker(),
         this.embedder,
+        undefined,
+        this.vectorStore,
       );
 
       const result = await pipeline.ingest(upload.extracted_text, {

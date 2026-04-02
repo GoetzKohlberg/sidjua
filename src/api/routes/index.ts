@@ -66,6 +66,7 @@ import type { UploadStore }              from "../../uploads/upload-store.js";
 import type { FileStorage }              from "../../uploads/file-storage.js";
 import type { ExtractionService }        from "../../uploads/extraction-service.js";
 import { apply }                         from "../../apply/index.js";
+import type { ActivityEmitter }          from "../../core/activity/activity-emitter.js";
 
 import type { AgentRegistryLike }   from "./agents.js";
 import type { SecretRouteServices }    from "./secrets.js";
@@ -138,6 +139,8 @@ export interface AllRouteServices {
   fileStorage?: FileStorage | null;
   /** P352: Async text extraction after upload — optional. */
   extractionService?: ExtractionService | null;
+  /** P357: Activity emitter for bouncer scan events — optional. */
+  activityEmitter?: ActivityEmitter | null;
 }
 
 
@@ -273,7 +276,7 @@ export function registerAllRoutes(app: Hono, services: AllRouteServices = {}): v
   registerProviderRoutes(app);
 
   // Chat endpoints (in-memory conversations; passes workDir for tool execution)
-  registerChatRoutes(app, { workDir, db, uploadStore: services.uploadStore ?? null });
+  registerChatRoutes(app, { workDir, db, uploadStore: services.uploadStore ?? null, activityEmitter: services.activityEmitter ?? null });
 
   // Agent tool-call endpoint
   registerAgentToolRoutes(app, { workDir, db });

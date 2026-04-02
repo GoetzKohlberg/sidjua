@@ -11,29 +11,14 @@ import type { Database } from "../../utils/db.js";
 import type { Embedder, RetrievalResult, RetrievalOptions, Chunk } from "../types.js";
 import { logger as defaultLogger, type Logger } from "../../utils/logger.js";
 import { createLogger } from "../../core/logger.js";
+import type { VectorStore } from "../vector-store/vector-store.js";
+import { SqliteVectorStore } from "../vector-store/sqlite-vector-store.js";
 
 const _logger = createLogger("hybrid-retriever");
 
 const RRF_K = 60;
 const VECTOR_TOP_K = 20;
 const BM25_TOP_K = 20;
-
-function cosineSimilarity(a: Float32Array, b: Float32Array): number {
-  let dot = 0;
-  let normA = 0;
-  let normB = 0;
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i]! * b[i]!;
-    normA += a[i]! * a[i]!;
-    normB += b[i]! * b[i]!;
-  }
-  const denom = Math.sqrt(normA) * Math.sqrt(normB);
-  return denom === 0 ? 0 : dot / denom;
-}
-
-function bufferToFloat32Array(buf: Buffer): Float32Array {
-  return new Float32Array(buf.buffer, buf.byteOffset, buf.byteLength / 4);
-}
 
 interface ChunkRow {
   id: string;
@@ -49,21 +34,21 @@ interface ChunkRow {
   created_at: string;
 }
 
-interface VectorRow extends ChunkRow {
-  chunk_id: string;
-  embedding: Buffer;
-}
-
 interface Bm25Row extends ChunkRow {
   score: number;
 }
 
 export class HybridRetriever {
+  private readonly vectorStore: VectorStore;
+
   constructor(
     private readonly db: Database,
     private readonly embedder: Embedder,
     private readonly logger: Logger = defaultLogger,
-  ) {}
+    vectorStore?: VectorStore,
+  ) {
+    this.vectorStore = vectorStore ?? new SqliteVectorStore(db);
+  }
 
   async retrieve(query: string, options: RetrievalOptions = {}): Promise<RetrievalResult[]> {
     const topK = options.top_k ?? 5;
@@ -76,7 +61,7 @@ export class HybridRetriever {
       const [queryEmbedding] = await this.embedder.embed([query]);
       if (queryEmbedding !== undefined) {
         // 2. Vector search — apply similarity threshold here (cosine scores are 0..1)
-        vectorResults = this._vectorSearch(queryEmbedding, collectionIds, VECTOR_TOP_K)
+        vectorResults = (await this._vectorSearch(queryEmbedding, collectionIds, VECTOR_TOP_K))
           .filter((r) => r.score >= threshold);
       }
     } catch (err) {
@@ -96,39 +81,67 @@ export class HybridRetriever {
     return merged.slice(0, topK);
   }
 
-  private _vectorSearch(
+  private async _vectorSearch(
     queryVec: Float32Array,
     collectionIds: string[] | undefined,
     topK: number,
-  ): RetrievalResult[] {
-    let sql = `
-      SELECT kv.chunk_id, kv.embedding, kc.id, kc.collection_id, kc.source_file,
-             kc.content, kc.token_count, kc.position, kc.section_path,
-             kc.page_number, kc.preceding_context, kc.metadata, kc.created_at
-      FROM knowledge_vectors kv
-      JOIN knowledge_chunks kc ON kv.chunk_id = kc.id
-    `;
-    const params: string[] = [];
+  ): Promise<RetrievalResult[]> {
+    // Determine which collections to search
+    let targetCollections: string[];
     if (collectionIds !== undefined && collectionIds.length > 0) {
-      sql += ` WHERE kv.collection_id IN (${collectionIds.map(() => "?").join(",")})`;
-      params.push(...collectionIds);
+      targetCollections = collectionIds;
+    } else {
+      try {
+        const rows = this.db
+          .prepare<[], { id: string }>("SELECT id FROM knowledge_collections")
+          .all();
+        targetCollections = rows.map((r) => r.id);
+      } catch (_err) {
+        targetCollections = [];
+      }
+      if (targetCollections.length === 0) return [];
     }
 
-    const rows = this.db.prepare<string[], VectorRow>(sql).all(...params);
+    // Search each collection and collect raw hits
+    const allHits: Array<{ id: string; score: number }> = [];
+    for (const collId of targetCollections) {
+      try {
+        const hits = await this.vectorStore.search(collId, queryVec, topK);
+        allHits.push(...hits);
+      } catch (err) {
+        _logger.debug(
+          "hybrid-retriever",
+          `Vector search failed for collection "${collId}"`,
+          { metadata: { error: err instanceof Error ? err.message : String(err) } },
+        );
+      }
+    }
 
-    // Compute cosine similarity and sort
-    const scored = rows.map((row) => {
-      const vec = bufferToFloat32Array(row.embedding);
-      const score = cosineSimilarity(queryVec, vec);
-      return { row, score };
-    });
+    if (allHits.length === 0) return [];
 
-    scored.sort((a, b) => b.score - a.score);
+    // Sort by score descending, take topK
+    allHits.sort((a, b) => b.score - a.score);
+    const topHits = allHits.slice(0, topK);
 
-    return scored.slice(0, topK).map(({ row, score }) => ({
-      chunk: this._rowToChunk(row),
-      score,
-    }));
+    // Fetch chunk metadata from SQLite by IDs
+    const placeholders = topHits.map(() => "?").join(",");
+    const chunkRows = this.db
+      .prepare<string[], ChunkRow>(
+        `SELECT id, collection_id, source_file, content, token_count, position,
+                section_path, page_number, preceding_context, metadata, created_at
+         FROM knowledge_chunks WHERE id IN (${placeholders})`,
+      )
+      .all(...topHits.map((h) => h.id));
+
+    const scoreMap = new Map(topHits.map((h) => [h.id, h.score]));
+    const chunkMap = new Map(chunkRows.map((r) => [r.id, r]));
+
+    return topHits
+      .filter((h) => chunkMap.has(h.id))
+      .map((h) => ({
+        chunk: this._rowToChunk(chunkMap.get(h.id)!),
+        score: scoreMap.get(h.id) ?? 0,
+      }));
   }
 
   private _bm25Search(

@@ -32,6 +32,9 @@ import { runAuditMigrations }      from "../../core/audit/audit-migrations.js";
 import { bridgeAuditEvent }        from "../../core/activity/bridges/audit-event-bridge.js";
 import type { UploadStore }        from "../../uploads/upload-store.js";
 import { ConversationUploadTracker } from "../../uploads/conversation-uploads.js";
+import type { ActivityEmitter }   from "../../core/activity/activity-emitter.js";
+import { scanForSensitiveData }   from "../../core/bouncer/sensitive-filter.js";
+import { getBouncerConfig }       from "../../core/bouncer/bouncer-config.js";
 
 const logger = createLogger("chat-routes");
 
@@ -282,9 +285,10 @@ function buildMessages(
 
 
 export interface ChatRouteServices {
-  workDir?:     string;
-  db?:          Database | null;
-  uploadStore?: UploadStore | null;
+  workDir?:         string;
+  db?:              Database | null;
+  uploadStore?:     UploadStore | null;
+  activityEmitter?: ActivityEmitter | null;
 }
 
 /** Maximum tool iterations per chat turn — prevents runaway tool loops. */
@@ -338,11 +342,55 @@ function parseLlamaToolCalls(content: string): ParsedToolCall[] {
 }
 
 export function registerChatRoutes(app: Hono, services: ChatRouteServices = {}): void {
-  const chatWorkDir   = services.workDir ?? process.cwd();
-  const chatDb        = services.db ?? null;
-  const uploadTracker = (services.uploadStore != null)
+  const chatWorkDir      = services.workDir ?? process.cwd();
+  const chatDb           = services.db ?? null;
+  const chatEmitter      = services.activityEmitter ?? null;
+  const uploadTracker    = (services.uploadStore != null)
     ? new ConversationUploadTracker(services.uploadStore)
     : null;
+
+  // ── POST /api/v1/chat/scan ─────────────────────────────────────────────
+  // CRITICAL: Must be registered BEFORE POST /api/v1/chat/:agentId to
+  // prevent `:agentId` param from capturing the literal path "scan".
+  app.post("/api/v1/chat/scan", requireScope("operator"), async (c) => {
+    const rawBody = await c.req.text();
+    if (rawBody.trim() === "") {
+      throw SidjuaError.from("CHAT-001", "Request body is required");
+    }
+
+    let body: Record<string, unknown>;
+    try {
+      body = JSON.parse(rawBody) as Record<string, unknown>;
+    } catch (_parseErr: unknown) {
+      throw SidjuaError.from("CHAT-001", "Request body must be valid JSON");
+    }
+
+    const messageRaw = body["message"];
+    if (typeof messageRaw !== "string" || messageRaw.trim() === "") {
+      throw SidjuaError.from("CHAT-001", "message is required and must not be empty");
+    }
+
+    const cfg    = getBouncerConfig(chatDb);
+    const result = cfg.enabled
+      ? scanForSensitiveData(messageRaw, cfg.sensitivity)
+      : { detected: false, matches: [], redacted: messageRaw };
+
+    if (result.detected && chatEmitter !== null) {
+      chatEmitter.emit({
+        event_type: "bouncer.scan_detected",
+        category:   "security",
+        severity:   "warning",
+        title:      "Sensitive data detected in chat scan",
+        details:    { match_count: result.matches.length, labels: result.matches.map((m) => m.label) },
+      });
+    }
+
+    return c.json({
+      detected:  result.detected,
+      matches:   result.matches.map((m) => ({ label: m.label, start: m.start, end: m.end, confidence: m.confidence })),
+      redacted:  result.redacted,
+    });
+  });
 
   // ── POST /api/v1/chat/:agentId ─────────────────────────────────────────
   app.post("/api/v1/chat/:agentId", requireScope("operator"), async (c) => {

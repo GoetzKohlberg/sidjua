@@ -17,6 +17,8 @@ import { chunkLimit, splitText } from "./chunk-splitter.js";
 import type { MemoryWal } from "../wal/memory-wal.js";
 import { checkDimensionCompatibility } from "../dimension-check.js";
 import { createLogger } from "../../core/logger.js";
+import type { VectorStore, VectorPoint } from "../vector-store/vector-store.js";
+import { SqliteVectorStore } from "../vector-store/sqlite-vector-store.js";
 
 const _logger = createLogger("embedding-pipeline");
 
@@ -32,13 +34,18 @@ export interface EmbeddingPipelineOptions {
 }
 
 export class EmbeddingPipeline {
+  private readonly vectorStore: VectorStore;
+
   constructor(
     private readonly db: Database,
     private readonly parser: Parser,
     private readonly chunker: Chunker,
     private readonly embedder: Embedder,
     private readonly logger: Logger = defaultLogger,
-  ) {}
+    vectorStore?: VectorStore,
+  ) {
+    this.vectorStore = vectorStore ?? new SqliteVectorStore(db);
+  }
 
   async ingest(
     content: Buffer | string,
@@ -94,10 +101,6 @@ export class EmbeddingPipeline {
          section_path, page_number, preceding_context, metadata, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    const insertVector = this.db.prepare<[string, string, Buffer], void>(`
-      INSERT OR REPLACE INTO knowledge_vectors (chunk_id, collection_id, embedding)
-      VALUES (?, ?, ?)
-    `);
 
     let tokensTotal = 0;
     let batchStart = 0;
@@ -126,7 +129,7 @@ export class EmbeddingPipeline {
         continue;
       }
 
-      // Write to DB in a transaction, with WAL pending/committed markers per chunk
+      // Write chunks to DB in a transaction, collect vector points for upsert
       const walIds: string[] = [];
       if (options.wal) {
         for (const chunk of batch) {
@@ -134,6 +137,7 @@ export class EmbeddingPipeline {
         }
       }
 
+      const points: VectorPoint[] = [];
       this.db.transaction(() => {
         for (let j = 0; j < batch.length; j++) {
           const chunk = batch[j]!;
@@ -153,11 +157,13 @@ export class EmbeddingPipeline {
             chunk.created_at,
           );
 
-          const embBuf = Buffer.from(embedding.buffer);
-          insertVector.run(chunk.id, chunk.collection_id, embBuf);
+          points.push({ id: chunk.id, vector: embedding });
           tokensTotal += chunk.token_count;
         }
       })();
+
+      // Upsert vectors via the configured vector store (SQLite or Qdrant)
+      await this.vectorStore.upsert(options.collection_id, points);
 
       if (options.wal) {
         for (let j = 0; j < batch.length; j++) {
@@ -275,9 +281,7 @@ export class EmbeddingPipeline {
       chunk.created_at,
     );
     const walId = wal !== undefined ? await wal.appendPending("chunk_write", chunk.collection_id, chunk.id) : undefined;
-    this.db.prepare<[string, string, Buffer], void>(
-      `INSERT OR REPLACE INTO knowledge_vectors (chunk_id, collection_id, embedding) VALUES (?, ?, ?)`,
-    ).run(chunk.id, chunk.collection_id, Buffer.from(embedding.buffer));
+    await this.vectorStore.upsert(chunk.collection_id, [{ id: chunk.id, vector: embedding }]);
     if (walId !== undefined) await wal!.markCommitted(walId, "chunk_write", chunk.collection_id, chunk.id);
   }
 

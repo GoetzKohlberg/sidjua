@@ -50,6 +50,7 @@ import { UploadStore }               from "../uploads/upload-store.js";
 import { FileStorage }               from "../uploads/file-storage.js";
 import { ExtractionService }         from "../uploads/extraction-service.js";
 import { UploadEmbedder }            from "../uploads/upload-embedder.js";
+import { createVectorStore }         from "../knowledge-pipeline/vector-store/index.js";
 
 import { SIDJUA_VERSION } from "../version.js";
 
@@ -420,7 +421,7 @@ export function registerServerCommands(program: Command): void {
         maxSizeBytes: 10 * 1024 * 1024,
       });
       const uploadEmbedder = uploadStore !== null
-        ? new UploadEmbedder({ uploadStore, db: db!, embedder: null })
+        ? new UploadEmbedder({ uploadStore, db: db!, embedder: null, vectorStore: createVectorStore(db!) })
         : null;
       const extractionService = uploadStore !== null
         ? new ExtractionService(uploadStore, undefined, uploadEmbedder ?? undefined)

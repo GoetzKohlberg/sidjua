@@ -33,6 +33,7 @@ import { formatTable } from "../cli/formatters/table.js";
 import { formatJson } from "../cli/formatters/json.js";
 import { formatBytes } from "../cli/utils/format.js";
 import type { CollectionScope, Parser, Chunker } from "./types.js";
+import { createVectorStore } from "./vector-store/index.js";
 
 
 function getEmbedder(): OpenAIEmbedder | LocalEmbedder {
@@ -280,7 +281,7 @@ export function registerKnowledgeCommands(program: Command): void {
           const chunker = getChunker(collection.config.ingestion.chunking_strategy);
           const embedder = getEmbedder();
 
-          const pipeline = new EmbeddingPipeline(db, parser, chunker, embedder);
+          const pipeline = new EmbeddingPipeline(db, parser, chunker, embedder, undefined, createVectorStore(db));
 
           const chunkSizeOverride = parseInt(opts.chunkSize, 10);
           const pipelineOpts: {
@@ -492,7 +493,7 @@ export function registerKnowledgeCommands(program: Command): void {
         try {
           const topK = parseInt(opts.topK, 10) || 5;
           const embedder = getEmbedder();
-          const retriever = new HybridRetriever(db, embedder);
+          const retriever = new HybridRetriever(db, embedder, undefined, createVectorStore(db));
 
           let results;
           try {

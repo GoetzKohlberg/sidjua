@@ -33,6 +33,7 @@ import type { Embedder } from "../../knowledge-pipeline/types.js";
 import { countTokens } from "../../knowledge-pipeline/types.js";
 import { chunkLimit, splitText } from "../../knowledge-pipeline/embedding/chunk-splitter.js";
 import { formatBytes } from "../utils/format.js";
+import { createVectorStore } from "../../knowledge-pipeline/vector-store/index.js";
 
 
 const MEMORY_COLLECTION_ID = "default-memory";
@@ -199,7 +200,7 @@ export function registerMemoryCommands(program: Command): void {
       }
 
       const chunker = new SemanticChunker();
-      const pipeline = new EmbeddingPipeline(db, parser, chunker, embedder);
+      const pipeline = new EmbeddingPipeline(db, parser, chunker, embedder, undefined, createVectorStore(db));
 
       const result = await pipeline.ingest(content, {
         collection_id: MEMORY_COLLECTION_ID,
@@ -349,7 +350,7 @@ export function registerMemoryCommands(program: Command): void {
       }
 
       const { embedder } = getEmbedder();
-      const retriever = new HybridRetriever(db, embedder);
+      const retriever = new HybridRetriever(db, embedder, undefined, createVectorStore(db));
 
       const results = await retriever.retrieve(query, {
         collection_ids: [MEMORY_COLLECTION_ID],

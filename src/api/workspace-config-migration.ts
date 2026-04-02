@@ -30,6 +30,12 @@ const V2_1_WORKSPACE_CONFIG: DbMigration = {
 
     INSERT OR IGNORE INTO workspace_config (key, value)
       VALUES ('locale', 'en');
+
+    INSERT OR IGNORE INTO workspace_config (key, value)
+      VALUES ('bouncer_enabled', 'true');
+
+    INSERT OR IGNORE INTO workspace_config (key, value)
+      VALUES ('bouncer_sensitivity', 'normal');
   `,
   down: `
     DROP TABLE IF EXISTS workspace_config;
