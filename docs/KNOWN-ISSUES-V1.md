@@ -1,6 +1,6 @@
-# Known Issues in V1.0.0
+# Known Issues — V1 Release History
 
-These issues are confirmed and tracked for V1.0.1 (target: March 31, 2026). None of them prevent basic usage of SIDJUA.
+All issues listed below were identified in V1.0.0 and resolved in V1.0.1 (March 31, 2026) unless noted otherwise.
 
 ## GUI & UX
 
@@ -8,43 +8,37 @@ These issues are confirmed and tracked for V1.0.1 (target: March 31, 2026). None
 
 After chat interactions with tool calls, the audit_events table may remain empty. This means the audit log page shows no data even though tools were executed successfully.
 
-**Workaround:** Tool calls are visible in real-time during chat via the SSE stream.
-**Fix:** V1.0.1 — Debug and fix audit event persistence.
+**Status: Resolved in V1.0.1**
 
 ### Agent Table Shows "auto" Instead of Active Provider
 
 The agent list table displays `auto` in the MODEL column instead of the resolved provider/model name. The agent cards above the table correctly show the active provider.
 
-**Workaround:** Check the agent cards for the correct provider information.
-**Fix:** V1.0.1 — Resolve and display actual provider in table view.
+**Status: Resolved in V1.0.1**
 
 ### Agent Status Inconsistency
 
 Agent cards may show "active" while the table shows "Stopped" for the same agent. Both components read from different data sources.
 
-**Workaround:** Agent cards reflect the actual runtime state.
-**Fix:** V1.0.1 — Unified status source for all agent display components.
+**Status: Resolved in V1.0.1**
 
 ### Starter Team Banner Stays Visible
 
 The blue "configure an LLM provider" banner remains visible even when all agents have a provider configured and are operational.
 
-**Workaround:** Ignore the banner — your agents are working correctly if the cards show a green status.
-**Fix:** V1.0.1 — Banner checks actual provider state.
+**Status: Resolved in V1.0.1**
 
 ### Advanced Provider Mode Not Persistent
 
 Per-agent provider changes in Advanced mode are not saved. No API key field appears for new providers.
 
-**Workaround:** Use Simple mode for provider configuration — it works correctly.
-**Fix:** V1.0.1 — Full Advanced mode persistence.
+**Status: Resolved in V1.0.1**
 
 ### Agent Detail View Missing LLM Model Selection
 
 Clicking on an agent card in "Your Team" shows details but no way to change the LLM provider or model directly.
 
-**Workaround:** Change providers via Settings page.
-**Fix:** V1.0.1 — Provider/model dropdown in agent detail view.
+**Status: Resolved in V1.0.1**
 
 ## Tools & Features
 
@@ -52,15 +46,13 @@ Clicking on an agent card in "Your Team" shows details but no way to change the 
 
 When creating an agent and leaving the description empty, the tool returns an error. The agent may then fabricate a description instead of communicating the error.
 
-**Workaround:** Always provide a description when creating agents.
-**Fix:** V1.0.1 — Description becomes optional; agent reports errors instead of inventing values.
+**Status: Resolved in V1.0.1**
 
 ### HR Agent Uses Numeric Tier Labels
 
-HR Agent shows tiers as "1/2/3" instead of the intended labels (Worker/Team Lead/Department Head).
+HR Agent shows tiers as "1/2/3". Tiers use numeric values (1/2/3) in the API. The HR knowledge document provides human-readable labels: Tier 1 (lightweight/fast), Tier 2 (capable), Tier 3 (specialized/powerful). Named tier labels for enterprise deployments are planned for a future release.
 
-**Workaround:** Tier 1 = Worker, Tier 2 = Team Lead, Tier 3 = Department Head.
-**Fix:** V1.0.1 — Human-readable tier labels in all agent interactions.
+**Status: Partially Resolved**
 
 ## Infrastructure
 
@@ -68,9 +60,8 @@ HR Agent shows tiers as "1/2/3" instead of the intended labels (Worker/Team Lead
 
 `sidjua apply` syncs only the root divisions.yaml, not the individual files in defaults/divisions/. The GUI shows all divisions correctly from YAML, but the database may only have "default" active.
 
-**Workaround:** Divisions display correctly in the GUI from YAML files.
-**Fix:** V1.0.1 — Apply syncs all division sources to database.
+**Status: Resolved in V1.0.1**
 
-## Planned for V1.0.1 (March 31, 2026)
+---
 
-All issues listed above will be addressed in V1.0.1. For the latest status, see [GitHub Issues](https://github.com/goetzkohlberg/sidjua/issues).
+For current known limitations, see [KNOWN-LIMITATIONS.md](KNOWN-LIMITATIONS.md).

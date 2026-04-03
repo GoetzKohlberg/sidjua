@@ -624,17 +624,66 @@ sidjua provider list
 
 Full roadmap at [sidjua.com/files/roadmap.html](https://sidjua.com/files/roadmap.html).
 
-**V1.0 (March 2026)** — Shipped. Governance engine, autonomous runtime, multi-channel
-messaging, desktop GUI, dual licensing.
+### Shipped
 
-**V1.1 (May 2026)** — Performance hardening, extended provider catalog, documentation
-site, webhook inbound triggers.
+**V1.0 (March 2026)** — 5-stage governance engine, autonomous agent runtime with
+daemon infrastructure, multi-channel messaging (Discord, Email, Telegram, Slack,
+WhatsApp, CLI, REST, WebSocket), Management Console, semantic memory pipeline,
+bubblewrap sandboxing, dual licensing (AGPL-3.0 + Commercial). Available in 44 languages.
 
-**V1.2 (June 2026)** — Stable versioned REST API, advanced agent-to-agent
-communication, security penetration test.
+**V1.0.1 (March 31, 2026)** — Scoped API tokens with RBAC
+(admin/operator/agent/readonly), SQLite-backed rate limiter persistence, audit event
+pipeline, resolved model display, unified agent status, advanced provider mode, per-agent
+LLM selection, division sync.
 
-**V2.0 Enterprise (H2 2026)** — SSO/LDAP/SAML, high availability, MOODEX (patented),
-compliance packs, tamper-evident audit export.
+### In Development
+
+**V1.1** — Zero-downtime in-app self-update via Blue/Green deployment with Go sidecar
+proxy. Database migration system with automatic pre-migration backup. SQLite safety
+hardening (WAL enforcement, PRAGMA checks, busy_timeout). GUI cleanup, code quality
+audit, YAML validation pipeline. Users update from the browser — no terminal required.
+CLI SSE migration for real-time log tailing. MCP Client (STDIO + SSE transport) with
+6-stage governance hooks. Tool calling in the orchestrator with budget tracking. Module
+SDK (init/list/add/remove/test). LLM streaming with SSE events. Webhook inbound
+triggers. Prometheus metrics with Grafana dashboard. OpenClaw import for migration from
+competing frameworks. Agent definition templates (CEO-Assistant, HR-Manager, IT-Manager)
+with skill system. PDF report generator. Auto-generated architecture documentation
+(Mermaid, C4, dependency graphs). Developer documentation and LLM context document for
+agent self-knowledge. Agent runtime hardening (dead worker recovery, backpressure, queue
+metrics). Runtime benchmark suite. Governed memory consolidation with feature flags.
+REST tool factory with dual strategy (MCP + REST fallback for unattended agents).
+Contributor documentation (CONTRIBUTING.md, Contributor Ladder, Discord roles).
+
+### Planned
+
+**V1.2** — Stable versioned REST API, advanced agent-to-agent communication protocol,
+security penetration test.
+
+### Architecture Vision
+
+**V2.0** — SIDJUA splits into two independent packages:
+
+- **sidjua-core** — The governance engine, agent orchestrator, and REST API as a
+  standalone headless runtime. Rewritten in Rust for native performance, zero-GC
+  latency, and cross-compilation to macOS, Windows, and Linux from a single codebase.
+  Node.js bindings (napi-rs) maintain backward compatibility during transition.
+  Communication via local REST API, Unix socket (Linux/Mac), and Named Pipe (Windows).
+
+- **sidjua-gui** — A native desktop application built with Tauri (Rust + WebView).
+  Communicates with sidjua-core exclusively via the versioned REST/IPC interface — never
+  imports core internals. Ships as `.app` (macOS), `.exe` (Windows), `.deb`/`.AppImage`
+  (Linux). The interface contract is defined by an OpenAPI spec, enabling third-party
+  GUIs, web interfaces, and mobile apps.
+
+This split means the GUI team and core team never block each other. CLI-only and
+headless server deployments remain first-class citizens.
+
+**V2.0 Enterprise** — SSO/LDAP/SAML, high availability, MOODEX (patented affective
+state system), compliance packs (EU AI Act, SOC 2), tamper-evident audit export,
+PostgreSQL adapter. Agent Desktop Control Layer enabling governed agents to operate
+native desktop applications via platform accessibility APIs (macOS Accessibility,
+Windows UI Automation, Linux AT-SPI2) — with full governance pre-approval, audit
+trailing, and application-level sandboxing.
 
 ---
 
