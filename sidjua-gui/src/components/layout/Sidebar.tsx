@@ -16,6 +16,7 @@ import {
   Network,
 } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useAgentStatus } from '../../hooks/useAgentStatus';
 
 interface NavItem {
   to:       string;
@@ -24,16 +25,16 @@ interface NavItem {
   badge?:   string | undefined;
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { to: '/',           labelKey: 'gui.nav.dashboard',  icon: <LayoutDashboard size={18} /> },
-  { to: '/chat',       labelKey: 'gui.nav.chat',        icon: <MessageSquare   size={18} /> },
-  { to: '/agents',     labelKey: 'gui.nav.organization', icon: <Bot             size={18} />, badge: '6' },
-  { to: '/divisions',  labelKey: 'gui.nav.divisions',   icon: <Network         size={18} /> },
-  { to: '/governance', labelKey: 'gui.nav.governance',  icon: <ShieldCheck     size={18} /> },
-  { to: '/audit',      labelKey: 'gui.nav.audit',       icon: <ScrollText      size={18} /> },
-  { to: '/costs',      labelKey: 'gui.nav.costs',       icon: <DollarSign      size={18} /> },
-  { to: '/config',     labelKey: 'gui.nav.config',      icon: <Cpu             size={18} /> },
-  { to: '/settings',   labelKey: 'gui.nav.settings',    icon: <Settings        size={18} /> },
+const BASE_NAV_ITEMS: NavItem[] = [
+  { to: '/',           labelKey: 'gui.nav.dashboard',   icon: <LayoutDashboard size={18} /> },
+  { to: '/chat',       labelKey: 'gui.nav.chat',         icon: <MessageSquare   size={18} /> },
+  { to: '/agents',     labelKey: 'gui.nav.organization', icon: <Bot             size={18} /> },
+  { to: '/divisions',  labelKey: 'gui.nav.divisions',    icon: <Network         size={18} /> },
+  { to: '/governance', labelKey: 'gui.nav.governance',   icon: <ShieldCheck     size={18} /> },
+  { to: '/audit',      labelKey: 'gui.nav.audit',        icon: <ScrollText      size={18} /> },
+  { to: '/costs',      labelKey: 'gui.nav.costs',        icon: <DollarSign      size={18} /> },
+  { to: '/config',     labelKey: 'gui.nav.config',       icon: <Cpu             size={18} /> },
+  { to: '/settings',   labelKey: 'gui.nav.settings',     icon: <Settings        size={18} /> },
 ];
 
 interface SidebarProps {
@@ -49,6 +50,16 @@ export function Sidebar({ drawerOpen = false, isMobile = false, onClose }: Sideb
   const { t } = useTranslation();
   // Collapsed = icon-only mode when viewport ≤ 1024px (and not in drawer mode)
   const [collapsed, setCollapsed] = useState(() => window.innerWidth <= 1024);
+
+  // Dynamic agent count for badge — slow 30s polling reuses the same hook pattern
+  const { statuses } = useAgentStatus(30_000);
+  const agentCount   = statuses !== null ? Object.keys(statuses).length : undefined;
+
+  const NAV_ITEMS: NavItem[] = BASE_NAV_ITEMS.map((item) =>
+    item.to === '/agents' && agentCount !== undefined && agentCount > 0
+      ? { ...item, badge: String(agentCount) }
+      : item,
+  );
 
   useEffect(() => {
     function onResize() {

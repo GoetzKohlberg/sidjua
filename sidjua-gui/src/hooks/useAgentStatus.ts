@@ -7,6 +7,7 @@ import { useAppConfig } from '../lib/config';
 import type { AgentStatus, AgentStatusResponse } from '../api/types';
 
 const DEFAULT_INTERVAL_MS = 10_000;
+const MAX_INTERVAL_MS     = 60_000;
 
 export interface UseAgentStatusResult {
   statuses: Record<string, AgentStatus> | null;
@@ -17,13 +18,24 @@ export interface UseAgentStatusResult {
 
 export function useAgentStatus(refreshIntervalMs?: number): UseAgentStatusResult {
   const { client } = useAppConfig();
-  const interval   = refreshIntervalMs ?? DEFAULT_INTERVAL_MS;
+  const baseInterval = refreshIntervalMs ?? DEFAULT_INTERVAL_MS;
 
   const [statuses, setStatuses] = useState<Record<string, AgentStatus> | null>(null);
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState<string | null>(null);
 
-  const controllerRef = useRef<AbortController | null>(null);
+  const controllerRef     = useRef<AbortController | null>(null);
+  const lastHashRef       = useRef<string>('');
+  const unchangedCountRef = useRef(0);
+  const currentIntervalRef = useRef(baseInterval);
+  const timerRef          = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleNext = useCallback(() => {
+    if (timerRef.current !== null) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      refresh(); // eslint-disable-line @typescript-eslint/no-use-before-define
+    }, currentIntervalRef.current);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const refresh = useCallback(() => {
     if (!client) return;
@@ -38,6 +50,21 @@ export function useAgentStatus(refreshIntervalMs?: number): UseAgentStatusResult
     client.get<AgentStatusResponse>('/api/v1/org/status', 10_000, controller.signal)
       .then((resp) => {
         if (!controller.signal.aborted) {
+          const hash = JSON.stringify(resp.agents);
+          if (hash === lastHashRef.current) {
+            unchangedCountRef.current++;
+            // Double interval after 3 consecutive identical responses, up to MAX
+            if (unchangedCountRef.current >= 3) {
+              currentIntervalRef.current = Math.min(
+                currentIntervalRef.current * 2,
+                MAX_INTERVAL_MS,
+              );
+            }
+          } else {
+            unchangedCountRef.current    = 0;
+            currentIntervalRef.current   = baseInterval;
+            lastHashRef.current          = hash;
+          }
           setStatuses(resp.agents);
         }
       })
@@ -49,19 +76,20 @@ export function useAgentStatus(refreshIntervalMs?: number): UseAgentStatusResult
       .finally(() => {
         if (!controller.signal.aborted) {
           setLoading(false);
+          scheduleNext();
         }
       });
-  }, [client]);
+  }, [client, baseInterval, scheduleNext]);
 
-  // Initial fetch + interval polling
+  // Initial fetch — subsequent fetches are self-scheduled via scheduleNext()
   useEffect(() => {
+    currentIntervalRef.current = baseInterval;
     refresh();
-    const timer = setInterval(refresh, interval);
     return () => {
-      clearInterval(timer);
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
       controllerRef.current?.abort();
     };
-  }, [refresh, interval]);
+  }, [refresh, baseInterval]);
 
   return { statuses, loading, error, refresh };
 }

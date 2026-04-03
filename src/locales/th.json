@@ -822,5 +822,15 @@
   "update.progress.step": "{{step}}",
   "update.progress.title": "Updating SIDJUA",
   "update.readonly_error": "System updating — changes paused briefly",
-  "update.rollback": "Roll back"
+  "update.rollback": "Roll back",
+  "gui.first_run.connection_error": "[TH] Cannot connect to the SIDJUA server. Make sure the container is running:",
+  "gui.first_run.retry": "[TH] Retry",
+  "gui.start_over.backup_safe_at": "[TH] Your backup is safe at:",
+  "gui.start_over.label_agents": "[TH] Agents",
+  "gui.start_over.label_chat_histories": "[TH] Chat histories",
+  "gui.start_over.label_divisions": "[TH] Divisions",
+  "gui.start_over.label_size": "[TH] Size",
+  "gui.start_over.learn_body_1": "[TH] Your old workspace contains everything — what worked and what didn’t. When your new setup is running, point an agent to this backup:",
+  "gui.start_over.learn_body_2": "[TH] Let it figure out what went wrong. Learn from your experiments before you repeat them.",
+  "gui.start_over.wipe_warning": "[TH] This will remove the current workspace and start a fresh initialization."
 }

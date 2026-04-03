@@ -21,6 +21,9 @@
 import type { Hono }        from "hono";
 import type Database        from "better-sqlite3";
 import { streamSSE }        from "hono/streaming";
+import { readFileSync }     from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath }    from "node:url";
 import { createLogger }     from "../../core/logger.js";
 import { rateLimiter }      from "../middleware/rate-limiter.js";
 import type { RateLimitConfig } from "../middleware/rate-limiter.js";
@@ -97,37 +100,16 @@ class FilteringSSEWritable implements SSEWritable {
 }
 
 // ---------------------------------------------------------------------------
-// Glasscheibe widget JS (inlined — same pattern as pwa.ts for zero-dep serving)
-// Source file: src/api/static/glasscheibe.js (kept for readability)
+// Glasscheibe widget JS — loaded once at startup from the static asset file.
+// Source: src/api/static/glasscheibe-widget.js (the canonical production JS)
+// Readable/commented version: src/api/static/glasscheibe.js (for development)
 // ---------------------------------------------------------------------------
 
-/* eslint-disable */
-const GLASSCHEIBE_WIDGET_JS = `// SPDX-License-Identifier: AGPL-3.0-only
-// Copyright (c) 2026 Götz Kohlberg. All rights reserved.
-// SIDJUA Glasscheibe Widget — Embeddable public org chart viewer
-(function() {
-  'use strict';
-  var scriptTag = document.currentScript;
-  var apiBase = (scriptTag ? scriptTag.getAttribute('data-api') || '' : '').replace(/\\/$/, '');
-  var targetSelector = scriptTag ? (scriptTag.getAttribute('data-target') || '#sidjua-org') : '#sidjua-org';
-  var refreshInterval = parseInt(scriptTag ? (scriptTag.getAttribute('data-refresh') || '5000') : '5000', 10);
-  if (!apiBase) { console.error('[Glasscheibe] Missing data-api attribute on script tag'); return; }
-  var WIDGET_CSS = '.sjg-container{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0a0a0f;color:#e0e0e8;border-radius:12px;padding:24px;overflow-x:auto}.sjg-header{text-align:center;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.08)}.sjg-header h2{margin:0 0 4px 0;font-size:18px;font-weight:600;color:#f0f0f8}.sjg-subtitle{font-size:12px;color:#888}.sjg-tree{display:flex;flex-direction:column;align-items:center;gap:16px}.sjg-level{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;width:100%}.sjg-division{background:#10101a;border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:12px 14px 10px;min-width:200px}.sjg-div-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:#5a5a7a;margin-bottom:10px}.sjg-agents{display:flex;flex-direction:column;gap:8px}.sjg-card{background:#14141f;border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:12px 14px;transition:border-color .2s}.sjg-card:hover{border-color:rgba(100,120,255,.3)}.sjg-card-header{display:flex;align-items:center;gap:8px;margin-bottom:4px}.sjg-led{width:8px;height:8px;border-radius:50%;flex-shrink:0}.sjg-led-active{background:#22c55e;box-shadow:0 0 6px rgba(34,197,94,.5);animation:sjg-pulse 2s infinite}.sjg-led-stopped{background:#555}.sjg-led-error{background:#ef4444}.sjg-led-offline{background:#3b3b50}@keyframes sjg-pulse{0%,100%{opacity:1}50%{opacity:.45}}.sjg-name{font-size:13px;font-weight:600;color:#f0f0f8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sjg-role{font-size:11px;color:#6b6b8a;margin-top:1px}.sjg-connector{width:1px;height:14px;background:rgba(255,255,255,.08);margin:0 auto}.sjg-error{text-align:center;padding:32px;color:#888;font-size:13px}.sjg-loading{text-align:center;padding:32px;color:#555;font-size:13px}@media(max-width:640px){.sjg-level{flex-direction:column;align-items:stretch}.sjg-division{min-width:0}}';
-  function injectCSS(){if(document.getElementById('sjg-styles'))return;var s=document.createElement('style');s.id='sjg-styles';s.textContent=WIDGET_CSS;document.head.appendChild(s);}
-  function escapeHtml(str){if(typeof str!=='string')str=String(str==null?'':str);return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
-  function agentLedClass(active){return active?'sjg-led-active':'sjg-led-offline';}
-  function renderCard(agent){var h='';h+='<div class="sjg-card" data-agent-id="'+escapeHtml(agent.id)+'"><div class="sjg-card-header"><div class="sjg-led '+agentLedClass(agent.active)+'"></div><span class="sjg-name">'+escapeHtml(agent.name)+'</span></div>';if(agent.role_title)h+='<div class="sjg-role">'+escapeHtml(agent.role_title)+'</div>';h+='</div>';return h;}
-  function renderDivision(node){var h='<div class="sjg-division"><div class="sjg-div-label">'+escapeHtml(node.name)+'</div>';if(node.agents&&node.agents.length>0){h+='<div class="sjg-agents">';for(var i=0;i<node.agents.length;i++)h+=renderCard(node.agents[i]);h+='</div>';}h+='</div>';return h;}
-  function collectLevels(nodes,depth,levels){if(!nodes||!nodes.length)return;if(!levels[depth])levels[depth]=[];for(var i=0;i<nodes.length;i++){levels[depth].push(nodes[i]);if(nodes[i].children&&nodes[i].children.length)collectLevels(nodes[i].children,depth+1,levels);}}
-  function renderTree(container,tree){if(!tree||!tree.roots||!tree.roots.length){container.innerHTML='<div class="sjg-container"><div class="sjg-error">No org chart data available</div></div>';return;}var levels=[];collectLevels(tree.roots,0,levels);var h='<div class="sjg-container"><div class="sjg-header"><h2>Company Overview</h2><span class="sjg-subtitle">Live agent status</span></div><div class="sjg-tree">';for(var i=0;i<levels.length;i++){if(i>0)h+='<div class="sjg-connector"></div>';h+='<div class="sjg-level">';for(var j=0;j<levels[i].length;j++)h+=renderDivision(levels[i][j]);h+='</div>';}h+='</div></div>';container.innerHTML=h;}
-  function sseToLedClass(t){if(t==='agent:started'||t==='agent:restarted')return 'sjg-led-active';if(t==='agent:crashed')return 'sjg-led-error';if(t==='agent:stopped')return 'sjg-led-stopped';return 'sjg-led-offline';}
-  function updateAgentCard(container,agentId,ledClass){if(!CSS||!CSS.escape)return;var card=container.querySelector('[data-agent-id="'+CSS.escape(agentId)+'"]');if(!card)return;var led=card.querySelector('.sjg-led');if(led)led.className='sjg-led '+ledClass;}
-  function fetchOrgChart(cb){fetch(apiBase+'/api/v1/org/public',{mode:'cors'}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();}).then(cb).catch(function(e){console.warn('[Glasscheibe] Fetch failed:',e.message);cb(null);});}
-  function connectSSE(container){var sseUrl=apiBase+'/api/v1/org/public/live';var es=null;var fallbackTimer=null;function handleEvent(e){var data;try{data=JSON.parse(e.data);}catch(_pe){return;}if(data&&typeof data.agentId==='string')updateAgentCard(container,data.agentId,sseToLedClass(e.type));}function startSSE(){try{es=new EventSource(sseUrl);}catch(_ie){startPolling();return;}es.addEventListener('agent:started',handleEvent);es.addEventListener('agent:stopped',handleEvent);es.addEventListener('agent:crashed',handleEvent);es.addEventListener('agent:restarted',handleEvent);es.onerror=function(){if(es){es.close();es=null;}console.warn('[Glasscheibe] SSE disconnected, falling back to polling');startPolling();};}function startPolling(){if(fallbackTimer!==null)return;fallbackTimer=setInterval(function(){fetchOrgChart(function(t){if(t)renderTree(container,t);});},refreshInterval);setTimeout(function retrySSE(){if(es!==null)return;try{startSSE();}catch(_re){}if(fallbackTimer!==null)setTimeout(retrySSE,30000);},30000);}startSSE();}
-  function init(){injectCSS();var container=document.querySelector(targetSelector);if(!container){console.error('[Glasscheibe] Target element not found: '+targetSelector);return;}container.innerHTML='<div class="sjg-container"><div class="sjg-loading">Loading\u2026</div></div>';fetchOrgChart(function(tree){if(tree){renderTree(container,tree);connectSSE(container);}else{container.innerHTML='<div class="sjg-container"><div class="sjg-error">Could not load org chart</div></div>';setTimeout(function(){init();},10000);}});}
-  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}else{init();}
-})();`;
-/* eslint-enable */
+const _widgetDir = dirname(fileURLToPath(import.meta.url));
+const GLASSCHEIBE_WIDGET_JS = readFileSync(
+  resolve(_widgetDir, "../static/glasscheibe-widget.js"),
+  "utf-8",
+);
 
 // ---------------------------------------------------------------------------
 // Route registrar

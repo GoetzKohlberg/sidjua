@@ -21,8 +21,14 @@ import { createLogger }     from "../../logger.js";
 
 const logger = createLogger("activity-bridge");
 
-/** Monotonic counter for synthetic SSE event IDs (activity events use UUIDs, not rowids). */
-let _sseSeq = Date.now(); // start high to avoid collision with task_events rowids
+/**
+ * Monotonic counter for synthetic SSE event IDs.
+ * Activity events use UUIDs (not SQLite rowids), so IDs live in a separate
+ * namespace — a simple incrementing counter starting at 0 is sufficient.
+ * Using Date.now() is NOT monotonic: two events within 1ms get duplicate IDs,
+ * causing SSE reconnects (Last-Event-ID) to miss or replay events.
+ */
+let _sseSeq = 0;
 
 /** true once the bridge has been wired — prevents double registration. */
 let _wired = false;

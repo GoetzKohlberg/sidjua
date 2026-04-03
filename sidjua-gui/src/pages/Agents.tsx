@@ -57,16 +57,16 @@ function AgentRow({ agent, isSelected, isFlashing, onClick }: AgentRowProps) {
         if (!isSelected) (e.currentTarget as HTMLTableRowElement).style.background = isFlashing ? 'var(--color-warning-bg)' : '';
       }}
     >
-      <td style={{ padding: '12px 8px', fontWeight: 600, fontSize: '13px', color: 'var(--color-text)' }}>
+      <td className="page-agents--td-name">
         {agent.name}
       </td>
-      <td style={{ padding: '12px 8px', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
+      <td className="page-agents--td-division">
         {agent.division}
       </td>
-      <td style={{ padding: '12px 8px', fontSize: '12px', color: 'var(--color-text-muted)' }}>
+      <td className="page-agents--td-model">
         {agent.resolved_model ?? agent.model}
       </td>
-      <td style={{ padding: '12px 8px', fontSize: '12px', color: 'var(--color-text-secondary)', textAlign: 'right' }}>
+      <td className="page-agents--td-updated">
         {formatRelative(agent.updated_at)}
       </td>
     </tr>
@@ -137,7 +137,7 @@ function AgentDetail({ agentId, onClose }: { agentId: string; onClose: () => voi
   if (agentRes.error || !agent) {
     return (
       <PanelShell onClose={onClose}>
-        <p style={{ color: 'var(--color-danger)', fontSize: '13px' }}>
+        <p className="sidjua-text-error-sm">
           {agentRes.error ?? 'Agent not found.'}
         </p>
       </PanelShell>
@@ -146,12 +146,12 @@ function AgentDetail({ agentId, onClose }: { agentId: string; onClose: () => voi
 
   return (
     <PanelShell onClose={onClose}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+      <div className="page-agents--detail-header">
         <div>
-          <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text)', marginBottom: '4px' }}>
+          <h2 className="page-agents--detail-h2">
             {agent.name}
           </h2>
-          <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
+          <p className="page-agents--detail-sub">
             {agent.division} · {t(`agent.tier.${agent.tier}`)}
           </p>
         </div>
@@ -161,10 +161,10 @@ function AgentDetail({ agentId, onClose }: { agentId: string; onClose: () => voi
         <p style={{ color: 'var(--color-danger)', fontSize: '12px', marginBottom: '10px' }}>{patchError}</p>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 24px', marginBottom: '16px' }}>
+      <div className="page-agents--detail-grid">
         {/* Provider dropdown */}
         <div>
-          <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '4px' }}>{t('gui.agents.provider')}</p>
+          <p className="page-agents--field-label">{t('gui.agents.provider')}</p>
           <select
             value={agent.provider}
             onChange={(e) => {
@@ -186,7 +186,7 @@ function AgentDetail({ agentId, onClose }: { agentId: string; onClose: () => voi
 
         {/* Model dropdown — all models from the same provider family */}
         <div>
-          <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '4px' }}>{t('gui.agents.model')}</p>
+          <p className="page-agents--field-label">{t('gui.agents.model')}</p>
           {(() => {
             const selectedProv   = catalogRes.data?.providers.find((p) => p.id === agent.provider);
             const providerFamily = selectedProv?.name;
@@ -225,20 +225,14 @@ function AgentDetail({ agentId, onClose }: { agentId: string; onClose: () => voi
       </div>
 
       {currentTask && (
-        <div style={{
-          background:   'var(--color-surface-alt)',
-          borderRadius: 'var(--radius-md)',
-          padding:      '12px',
-          marginBottom: '16px',
-          borderLeft:   '3px solid var(--color-accent)',
-        }}>
-          <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '4px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        <div className="page-agents--current-task">
+          <p className="page-agents--current-task-label">
             Current Task
           </p>
-          <p style={{ fontSize: '13px', color: 'var(--color-text)', fontWeight: 500 }}>
+          <p className="page-agents--current-task-title">
             {currentTask.title}
           </p>
-          <p style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+          <p className="page-agents--current-task-ts">
             {currentTask.id.slice(0, 8)} · started {formatRelative(currentTask.created_at)}
           </p>
         </div>
@@ -255,14 +249,7 @@ function AgentDetail({ agentId, onClose }: { agentId: string; onClose: () => voi
       )}
 
       <div>
-        <p style={{
-          fontSize:      '11px',
-          fontWeight:    600,
-          color:         'var(--color-text-muted)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.04em',
-          marginBottom:  '8px',
-        }}>
+        <p className="page-agents--recent-label">
           Recent Actions
         </p>
         <ActivityFeed events={auditEvents} maxItems={10} autoScroll={false} />
@@ -273,21 +260,12 @@ function AgentDetail({ agentId, onClose }: { agentId: string; onClose: () => voi
 
 function PanelShell({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
   return (
-    <div style={{
-      background:   'var(--color-surface)',
-      border:       '1px solid var(--color-border)',
-      borderRadius: 'var(--radius-lg)',
-      padding:      '20px',
-      boxShadow:    'var(--shadow-md)',
-    }}>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '4px' }}>
+    <div className="sidjua-card sidjua-card--elevated">
+      <div className="page-agents--panel-close-wrap">
         <button
           onClick={onClose}
           aria-label="Close detail panel"
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--color-text-muted)', padding: '4px',
-          }}
+          className="page-agents--icon-btn"
         >
           <X size={16} />
         </button>
@@ -300,7 +278,7 @@ function PanelShell({ onClose, children }: { onClose: () => void; children: Reac
 function DetailRow({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
     <div>
-      <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '2px' }}>{label}</p>
+      <p className="page-agents--field-label" style={{ marginBottom: '2px' }}>{label}</p>
       <p style={{ fontSize: '13px', color: color ?? 'var(--color-text)', fontWeight: 500 }}>{value}</p>
     </div>
   );
@@ -311,31 +289,18 @@ function StarterAgentDetail({ agent, onClose, providerConfigured }: { agent: Sta
   const navigate = useNavigate();
   const { t } = useTranslation();
   return (
-    <div
-      style={{
-        background:   'var(--color-surface)',
-        border:       '1px solid var(--color-border)',
-        borderRadius: 'var(--radius-lg)',
-        padding:      '24px',
-        boxShadow:    'var(--shadow-sm)',
-      }}
-    >
+    <div className="page-agents--starter-card">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '48px', height: '48px', borderRadius: '50%',
-            background: 'var(--color-accent-muted, #eff6ff)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'var(--color-accent)', flexShrink: 0,
-          }}>
+      <div className="page-agents--starter-header">
+        <div className="page-agents--starter-icon-row">
+          <div className="page-agents--starter-icon">
             <AgentIcon name={agent.icon} size={22} />
           </div>
           <div>
-            <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text)', margin: 0 }}>
+            <h2 className="page-agents--starter-name">
               {agent.name}
             </h2>
-            <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', margin: '2px 0 0' }}>
+            <p className="page-agents--starter-tier">
               {t(`agent.tier.desc.${agent.tier}`)}
             </p>
           </div>
@@ -343,29 +308,25 @@ function StarterAgentDetail({ agent, onClose, providerConfigured }: { agent: Sta
         <button
           onClick={onClose}
           aria-label="Close detail"
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--color-text-muted)', padding: '4px',
-            display: 'flex', alignItems: 'center',
-          }}
+          className="page-agents--close-btn"
         >
           <X size={18} />
         </button>
       </div>
 
       {/* Description */}
-      <p style={{ fontSize: '14px', color: 'var(--color-text)', lineHeight: 1.6, marginBottom: '20px' }}>
+      <p className="page-agents--starter-desc">
         {agent.description}
       </p>
 
       {/* Capabilities */}
-      <div style={{ marginBottom: '20px' }}>
-        <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+      <div className="page-agents--capabilities-section">
+        <p className="page-agents--capabilities-label">
           {t('gui.agents.capabilities')}
         </p>
-        <ul style={{ margin: 0, padding: '0 0 0 16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <ul className="page-agents--capabilities-list">
           {agent.capabilities.map((cap) => (
-            <li key={cap} style={{ fontSize: '13px', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
+            <li key={cap} className="page-agents--capability-item">
               {cap}
             </li>
           ))}
@@ -373,27 +334,23 @@ function StarterAgentDetail({ agent, onClose, providerConfigured }: { agent: Sta
       </div>
 
       {/* Meta */}
-      <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '20px' }}>
+      <div className="page-agents--meta-row">
         <div>
-          <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '2px' }}>{t('gui.agents.division')}</p>
-          <p style={{ fontSize: '13px', color: 'var(--color-text)', fontWeight: 500 }}>{agent.division}</p>
+          <p className="page-agents--meta-label">{t('gui.agents.division')}</p>
+          <p className="page-agents--meta-value">{agent.division}</p>
         </div>
         <div>
-          <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '2px' }}>{t('gui.agents.domains')}</p>
-          <p style={{ fontSize: '13px', color: 'var(--color-text)', fontWeight: 500 }}>{agent.domains.join(', ')}</p>
+          <p className="page-agents--meta-label">{t('gui.agents.domains')}</p>
+          <p className="page-agents--meta-value">{agent.domains.join(', ')}</p>
         </div>
       </div>
 
       {/* Actions */}
-      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+      <div className="page-agents--actions-row">
         {!providerConfigured && (
           <button
             onClick={() => navigate('/settings')}
-            style={{
-              padding: '8px 16px', borderRadius: 'var(--radius-md)',
-              background: 'var(--color-accent)', border: 'none',
-              color: 'var(--color-on-accent)', cursor: 'pointer', fontSize: '13px', fontWeight: 600,
-            }}
+            className="page-agents--primary-btn"
           >
             Configure LLM Provider
           </button>
@@ -436,10 +393,10 @@ function YourTeamPanel() {
   if (!client) return null;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div className="sidjua-col-gap-16">
       {/* Section header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text)', margin: 0 }}>
+      <div className="page-agents--team-header">
+        <h2 className="page-agents--team-h2">
           {t('gui.agents.your_team')}
         </h2>
         <div style={{ position: 'relative' }}>
@@ -467,21 +424,7 @@ function YourTeamPanel() {
             {t('gui.agents.create_new')}
           </button>
           {showCreateTooltip && llmStatus !== 'configured' && (
-            <div style={{
-              position:     'absolute',
-              top:          'calc(100% + 6px)',
-              right:        0,
-              background:   'var(--color-surface)',
-              border:       '1px solid var(--color-border)',
-              borderRadius: 'var(--radius-md)',
-              padding:      '12px 16px',
-              width:        '280px',
-              fontSize:     '13px',
-              color:        'var(--color-text-secondary)',
-              boxShadow:    'var(--shadow-md, 0 4px 12px rgba(0,0,0,0.1))',
-              zIndex:       10,
-              lineHeight:   1.5,
-            }}>
+            <div className="page-agents--tooltip">
               Agent creation will be available after LLM provider configuration.
               Your <strong>HR Manager</strong> agent will help you define new roles.
             </div>
@@ -491,17 +434,13 @@ function YourTeamPanel() {
 
       {/* Agent cards grid */}
       {starterRes.loading && (
-        <div style={{ padding: '20px', display: 'flex', justifyContent: 'center' }}>
+        <div className="page-agents--loading-center">
           <LoadingSpinner label="Loading agents…" />
         </div>
       )}
 
       {!starterRes.loading && agents.length > 0 && (
-        <div style={{
-          display:             'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-          gap:                 '12px',
-        }}>
+        <div className="page-agents--cards-grid">
           {agents.map((agent) => (
             <AgentCard
               key={agent.id}
@@ -530,19 +469,11 @@ function YourTeamPanel() {
 
       {/* Info banner — only shown when no provider is configured yet */}
       {llmStatus !== 'configured' && (
-        <div style={{
-          background:   'var(--color-info-bg)',
-          border:       '1px solid var(--color-info-border)',
-          borderRadius: 'var(--radius-md)',
-          padding:      '12px 16px',
-          fontSize:     '13px',
-          color:        'var(--color-info)',
-          lineHeight:   1.5,
-        }}>
+        <div className="page-agents--info-banner">
           These 6 agents are your starter team. They become fully operational once you{' '}
           <button
             onClick={() => navigate('/settings')}
-            style={{ background: 'none', border: 'none', color: 'var(--color-info)', cursor: 'pointer', textDecoration: 'underline', fontSize: 'inherit', padding: 0 }}
+            className="page-agents--info-link"
           >
             configure an LLM provider
           </button>
@@ -659,26 +590,20 @@ export function Agents() {
   if (!client) {
     if (bootstrapping) {
       return (
-        <div style={{ padding: '40px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+        <div className="page-agents--bootstrapping">
           <LoadingSpinner label="Connecting to server…" />
-          <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', margin: 0 }}>
+          <p className="page-agents--bootstrapping-text">
             Connecting to server…
           </p>
         </div>
       );
     }
     return (
-      <div style={{
-        background:   'var(--color-warning-bg)',
-        border:       '1px solid var(--color-warning)',
-        borderRadius: 'var(--radius-lg)',
-        padding:      '20px',
-        color:        'var(--color-warning)',
-      }}>
+      <div className="page-agents--not-connected">
         <strong>{t('gui.agents.not_connected')}</strong> — configure your server URL and API key in{' '}
         <button
           onClick={() => navigate('/settings')}
-          style={{ background: 'none', border: 'none', color: 'var(--color-accent)', cursor: 'pointer', textDecoration: 'underline', fontSize: 'inherit' }}
+          className="page-agents--settings-link"
         >
           Settings
         </button>.
@@ -687,23 +612,13 @@ export function Agents() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div className="sidjua-col-gap-24">
 
       {/* Starter agents "Your Team" section */}
       <YourTeamPanel />
 
       {/* Filter bar */}
-      <div style={{
-        display:     'flex',
-        gap:         '12px',
-        flexWrap:    'wrap',
-        alignItems:  'center',
-        background:  'var(--color-surface)',
-        border:      '1px solid var(--color-border)',
-        borderRadius:'var(--radius-lg)',
-        padding:     '12px 16px',
-        boxShadow:   'var(--shadow-sm)',
-      }}>
+      <div className="page-agents--filter-bar">
         <select
           value={divisionFilter}
           onChange={(e) => { setDivisionFilter(e.target.value); updateFilter('division', e.target.value); }}
@@ -740,19 +655,7 @@ export function Agents() {
         <button
           onClick={() => setRefreshKey((k) => k + 1)}
           aria-label="Refresh agents"
-          style={{
-            display:      'inline-flex',
-            alignItems:   'center',
-            gap:          '5px',
-            padding:      '6px 12px',
-            borderRadius: 'var(--radius-md)',
-            border:       '1px solid var(--color-border)',
-            background:   'var(--color-surface)',
-            color:        'var(--color-text-secondary)',
-            cursor:       'pointer',
-            fontSize:     '13px',
-            whiteSpace:   'nowrap',
-          }}
+          className="page-agents--refresh-btn"
         >
           <RefreshCw size={13} />
           Refresh
@@ -760,25 +663,19 @@ export function Agents() {
       </div>
 
       {/* Agent table */}
-      <div style={{
-        background:   'var(--color-surface)',
-        border:       '1px solid var(--color-border)',
-        borderRadius: 'var(--radius-lg)',
-        boxShadow:    'var(--shadow-sm)',
-        overflow:     'hidden',
-      }}>
+      <div className="page-agents--table-outer">
         {agentRes.loading && (
-          <div style={{ padding: '40px', display: 'flex', justifyContent: 'center' }}>
+          <div className="page-agents--table-loading">
             <LoadingSpinner label="Loading agents…" />
           </div>
         )}
 
         {agentRes.error && (
-          <div style={{ padding: '20px', color: 'var(--color-danger)', fontSize: '13px', display: 'flex', gap: '8px' }}>
+          <div className="page-agents--table-error">
             <span>{agentRes.error}</span>
             <button
               onClick={agentRes.refetch}
-              style={{ background: 'none', border: 'none', color: 'var(--color-accent)', cursor: 'pointer', textDecoration: 'underline' }}
+              className="page-agents--retry-link"
             >
               Retry
             </button>
@@ -786,7 +683,7 @@ export function Agents() {
         )}
 
         {!agentRes.loading && !agentRes.error && agents.length === 0 && (
-          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>
+          <div className="page-agents--table-empty">
             No agents found{divisionFilter || statusFilter || search ? ' matching current filters' : ''}.
           </div>
         )}
@@ -797,17 +694,7 @@ export function Agents() {
               <thead>
                 <tr style={{ borderBottom: '2px solid var(--color-border)' }}>
                   {[t('gui.agents.col_name'), t('gui.agents.division'), t('gui.agents.model'), t('gui.agents.col_updated')].map((h) => (
-                    <th key={h} style={{
-                      textAlign:     'left',
-                      padding:       '10px 16px 10px 8px',
-                      fontSize:      '11px',
-                      color:         'var(--color-text-muted)',
-                      fontWeight:    600,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em',
-                      background:    'var(--color-surface-alt)',
-                      whiteSpace:    'nowrap',
-                    }}>
+                    <th key={h} className="page-agents--th">
                       {h}
                     </th>
                   ))}
@@ -828,13 +715,10 @@ export function Agents() {
           </div>
         )}
 
-        <div style={{
-          padding:      '8px 16px',
-          fontSize:     '12px',
-          color:        'var(--color-text-muted)',
-          borderTop:    agents.length > 0 ? '1px solid var(--color-border)' : 'none',
-          background:   'var(--color-surface-alt)',
-        }}>
+        <div
+          className="page-agents--table-footer"
+          style={{ borderTop: agents.length > 0 ? '1px solid var(--color-border)' : 'none' }}
+        >
           {agents.length > 0
             ? `${agents.length} agent${agents.length !== 1 ? 's' : ''}${(divisionFilter || statusFilter || search) ? ' (filtered)' : ''}`
             : 'No agents deployed yet — run \u2018sidjua apply\u2019 to create agents from your workspace'

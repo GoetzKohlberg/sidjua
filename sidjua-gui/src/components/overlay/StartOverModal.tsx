@@ -200,10 +200,10 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
                 <div style={{ fontWeight: 600, color: 'var(--color-text)', marginBottom: '8px' }}>
                   {t('gui.start_over.current_workspace')}
                 </div>
-                <div>Agents: <strong style={{ color: 'var(--color-text)' }}>{summary.agentCount}</strong></div>
-                <div>Divisions: <strong style={{ color: 'var(--color-text)' }}>{summary.divisionCount}</strong></div>
-                <div>Chat histories: <strong style={{ color: 'var(--color-text)' }}>{summary.chatHistories}</strong></div>
-                <div>Size: <strong style={{ color: 'var(--color-text)' }}>{formatBytes(summary.totalSizeBytes)}</strong></div>
+                <div>{t('gui.start_over.label_agents')}: <strong style={{ color: 'var(--color-text)' }}>{summary.agentCount}</strong></div>
+                <div>{t('gui.start_over.label_divisions')}: <strong style={{ color: 'var(--color-text)' }}>{summary.divisionCount}</strong></div>
+                <div>{t('gui.start_over.label_chat_histories')}: <strong style={{ color: 'var(--color-text)' }}>{summary.chatHistories}</strong></div>
+                <div>{t('gui.start_over.label_size')}: <strong style={{ color: 'var(--color-text)' }}>{formatBytes(summary.totalSizeBytes)}</strong></div>
               </div>
             )}
 
@@ -258,8 +258,7 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
 
             <div style={{ fontSize: '14px', color: 'var(--color-text)', lineHeight: '1.7' }}>
               <p style={{ marginBottom: '12px' }}>
-                Your old workspace contains everything — what worked and what didn&apos;t.
-                When your new setup is running, point an agent to this backup:
+                {t('gui.start_over.learn_body_1')}
               </p>
               <div style={{
                 background:   'var(--color-bg)',
@@ -274,8 +273,7 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
                 sidjua analyze --workspace {backupPath}
               </div>
               <p style={{ marginTop: '12px', color: 'var(--color-text-secondary)' }}>
-                Let it figure out what went wrong. Learn from your experiments
-                before you repeat them.
+                {t('gui.start_over.learn_body_2')}
               </p>
             </div>
 
@@ -308,8 +306,7 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
           <>
             <h2 id="start-over-title" style={headingStyle}>{t('gui.start_over.ready_wipe_title')}</h2>
             <p style={bodyStyle}>
-              This will remove the current workspace and start a fresh <code>sidjua init</code>.
-              Your backup is safe at:
+              {t('gui.start_over.wipe_warning')}{' '}{t('gui.start_over.backup_safe_at')}
             </p>
             <div style={{
               background:   'var(--color-bg)',

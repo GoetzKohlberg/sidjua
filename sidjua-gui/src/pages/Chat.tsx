@@ -56,15 +56,7 @@ function AgentSwitcher({
   const navigate = useNavigate();
 
   return (
-    <div style={{
-      display:    'flex',
-      gap:        '4px',
-      padding:    '8px 16px',
-      borderBottom: '1px solid var(--color-border)',
-      background: 'var(--color-surface-alt)',
-      overflowX:  'auto',
-      flexShrink: 0,
-    }}>
+    <div className="page-chat--switcher">
       {agents.map((agent) => {
         const isActive = agent.id === currentId;
         return (
@@ -121,44 +113,24 @@ function ChatHeader({
   showApply?: boolean;
 }) {
   return (
-    <div style={{
-      display:      'flex',
-      alignItems:   'center',
-      gap:          '12px',
-      padding:      '12px 16px',
-      borderBottom: '1px solid var(--color-border)',
-      background:   'var(--color-surface)',
-      flexShrink:   0,
-    }}>
+    <div className="page-chat--header">
       <button
         onClick={onBack}
         aria-label="Back to Agents"
-        style={{
-          background: 'none', border: 'none', cursor: 'pointer',
-          color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center',
-          padding: '4px',
-        }}
+        className="page-chat--back-btn"
       >
         <ArrowLeft size={16} />
       </button>
 
-      <div style={{
-        width: '36px', height: '36px', borderRadius: '50%',
-        background: 'var(--color-accent-muted)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: 'var(--color-accent)', flexShrink: 0,
-      }}>
+      <div className="page-chat--agent-icon">
         <AgentIcon name={agent.icon} size={16} />
       </div>
 
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--color-text)' }}>
+      <div className="page-chat--header-info">
+        <div className="page-chat--header-name">
           {agent.name}
         </div>
-        <div style={{
-          fontSize: '11px', color: 'var(--color-text-muted)',
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>
+        <div className="page-chat--header-desc">
           {agent.description}
         </div>
       </div>
@@ -205,19 +177,10 @@ function ChatHeader({
 
 function ToolCallCard({ message }: { message: Message }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '8px' }}>
-      <div style={{
-        maxWidth:     '80%',
-        padding:      '8px 12px',
-        borderRadius: 'var(--radius-md)',
-        background:   'var(--color-surface-alt, #f3f4f6)',
-        border:       '1px solid var(--color-border)',
-        fontSize:     '12px',
-        color:        'var(--color-text-muted)',
-        fontFamily:   'monospace',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
-          <span style={{ fontSize: '10px', opacity: 0.7 }}>⚙</span>
+    <div className="page-chat--tool-call-wrap">
+      <div className="page-chat--tool-call-card">
+        <div className="page-chat--tool-call-header">
+          <span className="page-chat--tool-icon">⚙</span>
           <strong style={{ color: 'var(--color-text-secondary)' }}>
             Calling tool: {message.toolName ?? message.content}
           </strong>
@@ -235,7 +198,7 @@ function ToolCallCard({ message }: { message: Message }) {
 function ToolResultCard({ message }: { message: Message }) {
   const success = message.toolSuccess !== false;
   return (
-    <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '8px' }}>
+    <div className="page-chat--tool-result-wrap">
       <div style={{
         maxWidth:     '80%',
         padding:      '8px 12px',
@@ -323,16 +286,8 @@ function MessageBubble({ message }: { message: Message }) {
 
 function TypingIndicator() {
   return (
-    <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '12px' }}>
-      <div style={{
-        padding:      '12px 16px',
-        borderRadius: '16px 16px 16px 4px',
-        background:   'var(--color-surface-alt, #f3f4f6)',
-        border:       '1px solid var(--color-border)',
-        display:      'flex',
-        gap:          '4px',
-        alignItems:   'center',
-      }}>
+    <div className="page-chat--typing-indicator">
+      <div className="page-chat--typing-bubble">
         {[0, 1, 2].map((i) => (
           <span
             key={i}
@@ -387,24 +342,10 @@ function ChatMessages({
   const visibleMessages = showAll ? messages : messages.slice(-VISIBLE_LIMIT);
 
   return (
-    <div style={{
-      flex:      1,
-      overflowY: 'auto',
-      padding:   '16px',
-    }}>
+    <div className="page-chat--messages">
       {messages.length === 0 && !isStreaming && (
-        <div style={{
-          display:        'flex',
-          flexDirection:  'column',
-          alignItems:     'center',
-          justifyContent: 'center',
-          height:         '100%',
-          color:          'var(--color-text-muted)',
-          fontSize:       '13px',
-          textAlign:      'center',
-          gap:            '8px',
-        }}>
-          <span style={{ fontSize: '32px', opacity: 0.4 }}>💬</span>
+        <div className="page-chat--empty-state">
+          <span className="page-chat--empty-emoji">💬</span>
           <p style={{ margin: 0 }}>
             {providerConfigured ? (<>Start a conversation with <strong>{agentName}</strong>.<br /></>) : (<>{t('gui.chat.no_provider')}<br />{t('gui.chat.setup_provider')}<br /></>)}
             Type a message below.
@@ -413,18 +354,10 @@ function ChatMessages({
       )}
 
       {hiddenCount > 0 && (
-        <div style={{ textAlign: 'center', marginBottom: '12px' }}>
+        <div className="page-chat--show-more-wrap">
           <button
             onClick={onShowAll}
-            style={{
-              background:   'none',
-              border:       '1px solid var(--color-border)',
-              borderRadius: 'var(--radius-md)',
-              color:        'var(--color-text-muted)',
-              cursor:       'pointer',
-              fontSize:     '12px',
-              padding:      '5px 12px',
-            }}
+            className="page-chat--show-more-btn"
           >
             Show {hiddenCount} earlier messages
           </button>
@@ -488,23 +421,13 @@ function ChatInput({
   }
 
   return (
-    <div style={{
-      padding:      '12px 16px',
-      borderTop:    '1px solid var(--color-border)',
-      background:   'var(--color-surface)',
-      flexShrink:   0,
-    }}>
+    <div className="page-chat--input-container">
       {disabledReason && (
-        <div style={{
-          fontSize:     '12px',
-          color:        'var(--color-text-muted)',
-          marginBottom: '8px',
-          textAlign:    'center',
-        }}>
+        <div className="page-chat--disabled-msg">
           {disabledReason}
         </div>
       )}
-      <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+      <div className="page-chat--input-row">
         {onOpenFilePicker && (
           <PaperclipButton
             onClick={onOpenFilePicker}
@@ -566,15 +489,9 @@ function ChatInput({
           Send
         </button>
       </div>
-      <div style={{
-        textAlign:  'center',
-        fontSize:   '11px',
-        color:      'var(--color-text-muted)',
-        padding:    '4px 0 0 0',
-        lineHeight: 1.3,
-      }}>
+      <div className="page-chat--footer">
         SIDJUA agents use AI models that can make mistakes. Please verify important information.
-        <span style={{ display: 'block', fontSize: '10px', opacity: 0.7, marginTop: '2px' }}>
+        <span className="page-chat--footer-version">
           SIDJUA 1.0 — Development Preview
         </span>
       </div>
@@ -878,18 +795,11 @@ export function Chat() {
 
   if (!client) {
     return (
-      <div style={{
-        padding:      '24px',
-        background:   'var(--color-warning-bg)',
-        border:       '1px solid var(--color-warning)',
-        borderRadius: 'var(--radius-lg)',
-        color:        'var(--color-warning)',
-        fontSize:     '13px',
-      }}>
+      <div className="page-chat--not-connected">
         <strong>{GUI_ERRORS['GUI-CONN-005'].message}</strong>{' '}
         <button
           onClick={() => navigate('/settings')}
-          style={{ background: 'none', border: 'none', color: 'var(--color-accent)', cursor: 'pointer', textDecoration: 'underline', fontSize: 'inherit' }}
+          className="page-chat--link-btn"
         >
           Open Settings
         </button>{' '}
@@ -900,7 +810,7 @@ export function Chat() {
 
   if (agentsRes.loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+      <div className="page-chat--loading">
         <LoadingSpinner label="Loading agents…" />
       </div>
     );
@@ -908,18 +818,11 @@ export function Chat() {
 
   if (!currentAgent) {
     return (
-      <div style={{
-        padding:      '24px',
-        background:   'var(--color-surface)',
-        border:       '1px solid var(--color-border)',
-        borderRadius: 'var(--radius-lg)',
-        fontSize:     '13px',
-        color:        'var(--color-text)',
-      }}>
+      <div className="page-chat--not-found">
         <p>Agent <strong>{agentId}</strong> not found.</p>
         <button
           onClick={() => navigate('/agents')}
-          style={{ background: 'none', border: 'none', color: 'var(--color-accent)', cursor: 'pointer', textDecoration: 'underline', fontSize: 'inherit', padding: 0 }}
+          className="page-chat--link-btn"
         >
           Back to Agents
         </button>
@@ -947,16 +850,7 @@ export function Chat() {
         />
       )}
 
-    <div style={{
-      display:       'flex',
-      flexDirection: 'column',
-      height:        'calc(100vh - var(--header-height, 56px) - 96px)',
-      background:    'var(--color-surface)',
-      border:        '1px solid var(--color-border)',
-      borderRadius:  'var(--radius-lg)',
-      overflow:      'hidden',
-      boxShadow:     'var(--shadow-sm)',
-    }}>
+    <div className="page-chat--container">
       {/* No-provider banner */}
       {!providerConfigured && !providerRes.loading && (
         <div style={{
@@ -976,7 +870,7 @@ export function Chat() {
             Set up an LLM provider in{' '}
             <button
               onClick={() => navigate('/settings')}
-              style={{ background: 'none', border: 'none', color: 'var(--color-info)', cursor: 'pointer', textDecoration: 'underline', fontSize: 'inherit', padding: 0 }}
+              className="page-chat--info-link"
             >
               Settings
             </button>

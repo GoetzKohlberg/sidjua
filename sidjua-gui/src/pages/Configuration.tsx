@@ -15,24 +15,6 @@ import { formatUptime }  from '../lib/format';
 import type { SystemInfo, LoggingStatus } from '../api/types';
 
 
-const cardStyle: React.CSSProperties = {
-  background:   'var(--color-surface)',
-  border:       '1px solid var(--color-border)',
-  borderRadius: 'var(--radius-lg)',
-  padding:      '20px',
-  boxShadow:    'var(--shadow-sm)',
-};
-
-const cardTitleStyle: React.CSSProperties = {
-  fontSize:      '12px',
-  fontWeight:    600,
-  color:         'var(--color-text-secondary)',
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-  marginBottom:  '16px',
-};
-
-
 type TabId = 'divisions' | 'system' | 'logging';
 
 
@@ -93,11 +75,11 @@ function DivisionsTab() {
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <div style={cardStyle}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <p style={{ ...cardTitleStyle, marginBottom: 0 }}>{t('gui.config.divisions_title')}</p>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+    <div className="sidjua-col-gap-16">
+      <div className="sidjua-card">
+        <div className="page-config--div-header">
+          <p className="sidjua-card-title" style={{ marginBottom: 0 }}>{t('gui.config.divisions_title')}</p>
+          <div className="sidjua-row-gap-8">
             {divRes.loading && <LoadingSpinner size="sm" />}
             {divisions.length > 0 && <CopyButton text={jsonStr} />}
           </div>
@@ -108,26 +90,14 @@ function DivisionsTab() {
         )}
 
         {!divRes.loading && divisions.length === 0 && !divRes.error && (
-          <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>
+          <p className="sidjua-text-muted-sm">
             No divisions found. Run <code>sidjua apply</code> to provision.
           </p>
         )}
 
         {divisions.length > 0 && (
           // Safe React rendering — plain text, no XSS risk (FIX M3)
-          <pre
-            style={{
-              background:   'var(--color-bg)',
-              border:       '1px solid var(--color-border)',
-              borderRadius: 'var(--radius-md)',
-              padding:      '16px',
-              overflowX:    'auto',
-              fontSize:     '12px',
-              lineHeight:   1.6,
-              fontFamily:   '"SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace',
-              margin:       0,
-            }}
-          >
+          <pre className="page-config--code-block">
             <code>{jsonStr}</code>
           </pre>
         )}
@@ -135,22 +105,14 @@ function DivisionsTab() {
 
       {/* Division summary table */}
       {divisions.length > 0 && (
-        <div style={cardStyle}>
-          <p style={cardTitleStyle}>{t('gui.config.division_summary')}</p>
-          <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div className="sidjua-card">
+          <p className="sidjua-card-title">{t('gui.config.division_summary')}</p>
+          <div className="sidjua-table-wrap">
+          <table className="sidjua-table">
             <thead>
-              <tr style={{ background: 'var(--color-surface-alt)', borderBottom: '2px solid var(--color-border)' }}>
+              <tr>
                 {[t('gui.config.col_code'), t('gui.config.col_name'), t('gui.config.col_active'), t('gui.config.col_scope'), t('gui.config.col_required')].map((h) => (
-                  <th key={h} style={{
-                    textAlign:     'left',
-                    padding:       '8px 12px',
-                    fontSize:      '11px',
-                    color:         'var(--color-text-muted)',
-                    fontWeight:    600,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.04em',
-                  }}>
+                  <th key={h} className="sidjua-th">
                     {h}
                   </th>
                 ))}
@@ -158,16 +120,16 @@ function DivisionsTab() {
             </thead>
             <tbody>
               {divisions.map((d) => (
-                <tr key={d.code} style={{ borderBottom: '1px solid var(--color-border)' }}>
-                  <td style={{ padding: '8px 12px', fontSize: '12px', fontFamily: 'monospace', color: 'var(--color-accent)' }}>{d.code}</td>
-                  <td style={{ padding: '8px 12px', fontSize: '13px', color: 'var(--color-text)' }}>{d.name || '—'}</td>
-                  <td style={{ padding: '8px 12px', fontSize: '12px' }}>
+                <tr key={d.code} className="sidjua-tr--border">
+                  <td className="page-config--td-code">{d.code}</td>
+                  <td className="page-config--td-name">{d.name || '—'}</td>
+                  <td className="page-config--td-status">
                     <span style={{ color: d.active ? 'var(--color-success)' : 'var(--color-text-muted)' }}>
                       {d.active ? '✓ Active' : '✗ Inactive'}
                     </span>
                   </td>
-                  <td style={{ padding: '8px 12px', fontSize: '12px', color: 'var(--color-text-secondary)' }}>{d.scope ?? '—'}</td>
-                  <td style={{ padding: '8px 12px', fontSize: '12px', color: 'var(--color-text-secondary)' }}>{d.required ? 'Yes' : 'No'}</td>
+                  <td className="page-config--td-secondary">{d.scope ?? '—'}</td>
+                  <td className="page-config--td-secondary">{d.required ? 'Yes' : 'No'}</td>
                 </tr>
               ))}
             </tbody>
@@ -203,23 +165,14 @@ function SystemInfoTab() {
   ];
 
   return (
-    <div style={cardStyle}>
-      <p style={cardTitleStyle}>{t('gui.config.system_info')}</p>
+    <div className="sidjua-card">
+      <p className="sidjua-card-title">{t('gui.config.system_info')}</p>
       {(hLoading || infoRes.loading) && <LoadingSpinner />}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
         {rows.map(({ label, value }) => (
-          <div
-            key={label}
-            style={{
-              display:        'flex',
-              justifyContent: 'space-between',
-              alignItems:     'center',
-              padding:        '10px 0',
-              borderBottom:   '1px solid var(--color-border)',
-            }}
-          >
-            <span style={{ fontSize: '13px', color: 'var(--color-text-secondary)' }}>{label}</span>
-            <span style={{ fontSize: '13px', color: 'var(--color-text)', fontWeight: 500, textAlign: 'right', maxWidth: '60%', wordBreak: 'break-all' }}>
+          <div key={label} className="page-config--system-row">
+            <span className="page-config--system-label">{label}</span>
+            <span className="page-config--system-value">
               {value}
             </span>
           </div>
@@ -245,51 +198,41 @@ function LoggingTab() {
   const { t }      = useTranslation();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <div style={cardStyle}>
-        <p style={cardTitleStyle}>{t('gui.config.log_levels')}</p>
+    <div className="sidjua-col-gap-16">
+      <div className="sidjua-card">
+        <p className="sidjua-card-title">{t('gui.config.log_levels')}</p>
         {loggingRes.loading && <LoadingSpinner />}
-        {loggingRes.error && <p style={{ color: 'var(--color-danger)', fontSize: '13px' }}>{loggingRes.error}</p>}
+        {loggingRes.error && <p className="sidjua-text-error-sm">{loggingRes.error}</p>}
         {status && (
           <>
-            <div style={{
-              display:        'flex',
-              justifyContent: 'space-between',
-              padding:        '10px 0',
-              borderBottom:   '1px solid var(--color-border)',
-              marginBottom:   '12px',
-            }}>
-              <span style={{ fontSize: '13px', color: 'var(--color-text-secondary)' }}>{t('gui.config.global_level')}</span>
+            <div className="page-config--logging-header">
+              <span className="page-config--system-label">{t('gui.config.global_level')}</span>
               <span style={{ fontSize: '13px', fontWeight: 700, color: LEVEL_COLORS[status.global] ?? 'var(--color-text)' }}>
                 {status.global.toUpperCase()}
               </span>
             </div>
-            <div style={{
-              display:        'flex',
-              gap:            '16px',
-              marginBottom:   '16px',
-            }}>
-              <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>{t('gui.config.format_label')} <strong>{status.format}</strong></span>
-              <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>{t('gui.config.output_label')} <strong>{status.output}</strong></span>
+            <div className="page-config--logging-meta">
+              <span className="page-config--logging-meta-label">{t('gui.config.format_label')} <strong>{status.format}</strong></span>
+              <span className="page-config--logging-meta-label">{t('gui.config.output_label')} <strong>{status.output}</strong></span>
             </div>
-            <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '8px' }}>
+            <p className="page-config--overrides-label">
               {t('gui.config.component_overrides')}
             </p>
             {Object.keys(status.components).length === 0 ? (
-              <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>{t('gui.config.no_overrides')}</p>
+              <p className="sidjua-text-muted-sm">{t('gui.config.no_overrides')}</p>
             ) : (
-              <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <div className="sidjua-table-wrap">
+              <table className="sidjua-table">
                 <thead>
                   <tr>
-                    <th style={{ textAlign: 'left', padding: '6px 0', fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600 }}>{t('gui.config.col_component')}</th>
-                    <th style={{ textAlign: 'right', padding: '6px 0', fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600 }}>{t('gui.config.col_level')}</th>
+                    <th className="page-config--overrides-th">{t('gui.config.col_component')}</th>
+                    <th className="page-config--overrides-th-right">{t('gui.config.col_level')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {Object.entries(status.components).map(([comp, level]) => (
-                    <tr key={comp} style={{ borderTop: '1px solid var(--color-border)' }}>
-                      <td style={{ padding: '7px 0', fontSize: '12px', fontFamily: 'monospace', color: 'var(--color-text)' }}>{comp}</td>
+                    <tr key={comp} className="page-config--overrides-tr">
+                      <td className="page-config--overrides-td">{comp}</td>
                       <td style={{ padding: '7px 0', textAlign: 'right', fontSize: '12px', fontWeight: 700, color: LEVEL_COLORS[level] ?? 'var(--color-text)' }}>
                         {level.toUpperCase()}
                       </td>
@@ -299,7 +242,7 @@ function LoggingTab() {
               </table>
               </div>
             )}
-            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '12px' }}>
+            <p className="page-config--log-note">
               Log levels are runtime-ephemeral. Changes via{' '}
               <code>PUT /api/v1/logging/:component</code> are reset on restart.
             </p>
@@ -308,31 +251,27 @@ function LoggingTab() {
       </div>
 
       {/* Log file paths info box */}
-      <div style={{
-        ...cardStyle,
-        background:   'var(--color-info-bg)',
-        border:       '1px solid var(--color-info)',
-      }}>
-        <p style={cardTitleStyle}>{t('gui.config.log_files_title')}</p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+      <div className="sidjua-card sidjua-card--info">
+        <p className="sidjua-card-title">{t('gui.config.log_files_title')}</p>
+        <div className="page-config--log-info-row">
           <code style={{ fontSize: '12px', flex: 1, color: 'var(--color-text)' }}>
             {t('gui.config.log_error_path')}
           </code>
         </div>
-        <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '6px' }}>
+        <p className="page-config--log-label">
           {t('gui.config.copy_logs_label')}
         </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
-          <code style={{ fontSize: '12px', flex: 1, color: 'var(--color-text)', background: 'var(--color-bg)', borderRadius: 'var(--radius-sm)', padding: '4px 8px' }}>
+        <div className="page-config--log-cmd-row">
+          <code className="page-config--log-cmd-code">
             {t('gui.config.copy_logs_command')}
           </code>
           <CopyButton text={t('gui.config.copy_logs_command')} />
         </div>
-        <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginBottom: '6px' }}>
+        <p className="page-config--log-label">
           {t('gui.config.docker_logs_label')}
         </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <code style={{ fontSize: '12px', flex: 1, color: 'var(--color-text)', background: 'var(--color-bg)', borderRadius: 'var(--radius-sm)', padding: '4px 8px' }}>
+        <div className="page-config--log-docker-row">
+          <code className="page-config--log-cmd-code">
             {t('gui.config.docker_logs_command')}
           </code>
           <CopyButton text={t('gui.config.docker_logs_command')} />
@@ -354,10 +293,10 @@ export function Configuration() {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div className="sidjua-col-gap-20">
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '4px', borderBottom: '2px solid var(--color-border)' }}>
+      <div className="sidjua-tab-bar">
         {tabs.map((tabItem) => (
           <button
             key={tabItem.id}

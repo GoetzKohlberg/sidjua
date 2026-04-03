@@ -76,40 +76,25 @@ function ProviderCard({ provider, selected, onClick }: ProviderCardProps) {
         boxSizing:    'border-box',
       }} />
 
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--color-text)' }}>
+      <div className="page-settings--provider-content">
+        <div className="page-settings--provider-name-row">
+          <span className="page-settings--provider-name">
             {provider.display_name}
           </span>
           {provider.recommended && (
-            <span style={{
-              background:   'var(--color-llm-warn-bg)',
-              color:        'var(--color-llm-warn-text)',
-              fontSize:     '10px',
-              fontWeight:   700,
-              padding:      '1px 6px',
-              borderRadius: '4px',
-              letterSpacing: '0.03em',
-            }}>
+            <span className="page-settings--provider-rec-badge">
               {t('gui.settings.provider.recommended_badge')}
             </span>
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
+        <div className="page-settings--provider-meta">
           {isFree ? (
-            <span style={{
-              background: 'var(--color-success-bg)',
-              color:      'var(--color-success)',
-              fontSize:   '10px',
-              fontWeight: 700,
-              padding:    '1px 6px',
-              borderRadius: '4px',
-            }}>
+            <span className="page-settings--provider-free-badge">
               {t('gui.settings.provider.free_badge')}
             </span>
           ) : (
-            <span style={{ fontSize: '12px', color: 'var(--color-text-secondary)' }}>
+            <span className="page-settings--provider-tier">
               ${provider.input_price}/${provider.output_price} per 1M
             </span>
           )}
@@ -126,13 +111,13 @@ function ProviderCard({ provider, selected, onClick }: ProviderCardProps) {
           </span>
 
           {isFree && provider.rate_limit !== 'none' && (
-            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+            <span className="page-settings--provider-rate">
               {provider.rate_limit}
             </span>
           )}
         </div>
 
-        <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
+        <p className="page-settings--provider-hint">
           {provider.info}
         </p>
       </div>
@@ -240,9 +225,9 @@ function ApiKeySection({ provider, isCustom, onSaved }: ApiKeySectionProps) {
   }
 
   return (
-    <div style={keySectionStyle}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text)', margin: 0 }}>
+    <div className="page-settings--key-section">
+      <div className="page-settings--key-section-header">
+        <h3 className="page-settings--key-section-title">
           {isCustom ? t('gui.settings.provider.custom_setup') : provider?.display_name}
         </h3>
         {!isCustom && provider && (
@@ -250,7 +235,7 @@ function ApiKeySection({ provider, isCustom, onSaved }: ApiKeySectionProps) {
             href={provider.signup_url}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ fontSize: '12px', color: 'var(--color-accent)', textDecoration: 'none' }}
+            className="page-settings--signup-link"
           >
             {t('gui.settings.provider.sign_up')}
           </a>
@@ -260,35 +245,35 @@ function ApiKeySection({ provider, isCustom, onSaved }: ApiKeySectionProps) {
       {/* Custom fields */}
       {isCustom && (
         <>
-          <label style={labelStyle}>
+          <label className="page-settings--label">
             {t('gui.settings.provider.name')}
             <input
               type="text"
               value={customName}
               onChange={(e) => setCustomName(e.target.value)}
               placeholder="e.g. My Ollama, Anthropic Claude"
-              style={inputStyle}
+              className="page-settings--input"
             />
           </label>
-          <label style={labelStyle}>
+          <label className="page-settings--label">
             {t('gui.settings.provider.api_base')}
             <input
               type="url"
               value={customBase}
               onChange={(e) => setCustomBase(e.target.value)}
               placeholder="https://api.openai.com/v1 or http://localhost:11434/v1"
-              style={inputStyle}
+              className="page-settings--input"
               spellCheck={false}
             />
           </label>
-          <label style={labelStyle}>
+          <label className="page-settings--label">
             {t('gui.settings.provider.model')}
             <input
               type="text"
               value={customModel}
               onChange={(e) => setCustomModel(e.target.value)}
               placeholder="e.g. claude-sonnet-4-20250514, llama3.3:70b"
-              style={inputStyle}
+              className="page-settings--input"
               spellCheck={false}
             />
           </label>
@@ -296,7 +281,7 @@ function ApiKeySection({ provider, isCustom, onSaved }: ApiKeySectionProps) {
       )}
 
       {/* API key input */}
-      <label style={labelStyle}>
+      <label className="page-settings--label">
         {t('gui.settings.provider.api_key')}{' '}
         {isCustom && <span style={{ fontWeight: 400 }}>{t('gui.settings.provider.api_key_optional')}</span>}
         <div style={{ position: 'relative' }}>
@@ -305,7 +290,8 @@ function ApiKeySection({ provider, isCustom, onSaved }: ApiKeySectionProps) {
             value={apiKey}
             onChange={(e) => { setApiKey(e.target.value); setTestStatus('idle'); }}
             placeholder={isCustom ? t('gui.settings.provider.key_placeholder_local') : t('gui.settings.provider.key_placeholder_cloud')}
-            style={{ ...inputStyle, paddingRight: '40px' }}
+            className="page-settings--input"
+            style={{ paddingRight: '40px' }}
             autoComplete="off"
             spellCheck={false}
           />
@@ -333,22 +319,22 @@ function ApiKeySection({ provider, isCustom, onSaved }: ApiKeySectionProps) {
 
       {/* Test result */}
       {testStatus === 'ok' && (
-        <div style={{ fontSize: '13px', color: 'var(--color-success)', marginBottom: '12px' }}>
+        <div className="page-settings--test-ok">
           ✅ {testMessage}{responseMs !== null ? ` Response in ${responseMs}ms.` : ''}
         </div>
       )}
       {testStatus === 'error' && (
-        <div style={{ fontSize: '13px', color: 'var(--color-danger)', marginBottom: '12px' }}>
+        <div className="page-settings--error-msg">
           ❌ {testMessage}
         </div>
       )}
 
       {/* Buttons */}
-      <div style={{ display: 'flex', gap: '8px' }}>
+      <div className="page-settings--btn-row">
         <button
           onClick={() => { void handleTest(); }}
           disabled={testing || (!apiKey.trim() && !isCustom)}
-          style={secondaryButtonStyle}
+          className="page-settings--secondary-btn"
         >
           {testing ? <LoadingSpinner size="sm" label={t('gui.settings.provider.testing')} /> : t('gui.settings.provider.test')}
         </button>
@@ -434,27 +420,20 @@ function AdvancedMode({ catalog, config, onSaved }: AdvancedModeProps) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '8px' }}>
+    <div className="page-settings--advanced-list">
+      <p className="page-settings--helper-text">
         {t('gui.settings.provider.advanced_desc')}
       </p>
       {AGENT_IDS.map((agentId) => (
-        <div key={agentId} style={{
-          display:      'flex',
-          alignItems:   'center',
-          gap:          '12px',
-          padding:      '10px 14px',
-          background:   'var(--color-bg)',
-          border:       '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-md)',
-        }}>
-          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text)', width: '100px', flexShrink: 0, textTransform: 'capitalize' }}>
+        <div key={agentId} className="page-settings--agent-row">
+          <span className="page-settings--agent-label">
             {agentId}
           </span>
           <select
             value={overrides[agentId] ?? 'default'}
             onChange={(e) => setOverrides((prev) => ({ ...prev, [agentId]: e.target.value }))}
-            style={{ ...selectStyle, flex: 1 }}
+            className="page-settings--select"
+            style={{ flex: 1 }}
           >
             {allOptions.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
@@ -470,7 +449,7 @@ function AdvancedMode({ catalog, config, onSaved }: AdvancedModeProps) {
       </button>
 
       {/* HR agent hint */}
-      <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '12px', lineHeight: 1.6 }}>
+      <p className="page-settings--note">
         {t('gui.settings.agents.hr_hint')}
       </p>
     </div>
@@ -533,7 +512,7 @@ function ProviderSettings({ onConfigChange }: ProviderSettingsProps) {
 
   if (!client) {
     return (
-      <div style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>
+      <div className="sidjua-text-muted-sm">
         {t('gui.settings.llm_provider_connect_first')}
       </div>
     );
@@ -554,31 +533,13 @@ function ProviderSettings({ onConfigChange }: ProviderSettingsProps) {
     <div>
       {/* Current config banner */}
       {currentConfig?.configured && currentConfig.default_provider && (
-        <div style={{
-          background:   'var(--color-llm-ready-bg)',
-          border:       '1px solid var(--color-llm-ready-border)',
-          borderRadius: 'var(--radius-md)',
-          padding:      '10px 14px',
-          marginBottom: '16px',
-          display:      'flex',
-          alignItems:   'center',
-          justifyContent: 'space-between',
-          gap:          '8px',
-        }}>
-          <span style={{ fontSize: '13px', color: 'var(--color-success)' }}>
+        <div className="page-settings--config-banner">
+          <span className="page-settings--config-status">
             ✅ {currentConfig.default_provider.display_name} — {currentConfig.default_provider.api_key_preview}
           </span>
           <button
             onClick={() => { void handleReset(); }}
-            style={{
-              background:   'none',
-              border:       '1px solid var(--color-llm-ready-border)',
-              borderRadius: 'var(--radius-md)',
-              color:        'var(--color-success)',
-              cursor:       'pointer',
-              fontSize:     '12px',
-              padding:      '2px 8px',
-            }}
+            className="page-settings--change-btn"
           >
             {t('gui.settings.provider.change')}
           </button>
@@ -586,8 +547,8 @@ function ProviderSettings({ onConfigChange }: ProviderSettingsProps) {
       )}
 
       {/* Mode toggle */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', alignItems: 'center' }}>
-        <span style={{ fontSize: '13px', color: 'var(--color-text-secondary)', fontWeight: 500 }}>
+      <div className="page-settings--mode-toggle-row">
+        <span className="page-settings--period-label">
           {t('gui.settings.provider.mode_label')}
         </span>
         {(['simple', 'advanced'] as const).map((m) => (
@@ -620,8 +581,8 @@ function ProviderSettings({ onConfigChange }: ProviderSettingsProps) {
       {mode === 'simple' && (
         <>
           {/* Free providers */}
-          <div style={dividerStyle}>{t('gui.settings.provider.free_providers')}</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+          <div className="page-settings--divider">{t('gui.settings.provider.free_providers')}</div>
+          <div className="page-settings--provider-list">
             {freeProviders.map((p) => (
               <div key={p.id}>
                 <ProviderCard
@@ -646,8 +607,8 @@ function ProviderSettings({ onConfigChange }: ProviderSettingsProps) {
           </div>
 
           {/* Paid providers */}
-          <div style={dividerStyle}>{t('gui.settings.provider.paid_providers')}</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+          <div className="page-settings--divider">{t('gui.settings.provider.paid_providers')}</div>
+          <div className="page-settings--provider-list">
             {paidProviders.map((p) => (
               <div key={p.id}>
                 <ProviderCard
@@ -672,13 +633,13 @@ function ProviderSettings({ onConfigChange }: ProviderSettingsProps) {
           </div>
 
           {/* Custom provider */}
-          <div style={dividerStyle}>{t('gui.settings.provider.custom_provider')}</div>
+          <div className="page-settings--divider">{t('gui.settings.provider.custom_provider')}</div>
           <div style={{ marginBottom: '16px' }}>
             <button
               onClick={() => { setShowCustom((v) => !v); setSelectedId(null); }}
+              className="page-settings--secondary-btn"
               style={{
-                ...secondaryButtonStyle,
-                background: showCustom ? 'var(--color-accent-muted)' : undefined,
+                background:  showCustom ? 'var(--color-accent-muted)' : undefined,
                 borderColor: showCustom ? 'var(--color-accent)' : undefined,
                 color:       showCustom ? 'var(--color-accent)' : undefined,
               }}
@@ -686,7 +647,7 @@ function ProviderSettings({ onConfigChange }: ProviderSettingsProps) {
               {showCustom ? '▼' : '▶'} {showCustom ? t('gui.settings.provider.custom_label') : t('gui.settings.provider.add_custom')}
             </button>
             {!showCustom && (
-              <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '6px' }}>
+              <p className="page-settings--provider-hint">
                 {t('gui.settings.provider.ollama_hint')}
               </p>
             )}
@@ -719,50 +680,25 @@ function SettingsHelpPanel() {
   ] as const;
 
   return (
-    <aside style={{
-      display:        'flex',
-      flexDirection:  'column',
-      gap:            '16px',
-      position:       'sticky',
-      top:            '24px',
-      alignSelf:      'flex-start',
-    }}>
+    <aside className="page-settings--help-aside">
       {/* Getting Started */}
-      <div style={helpCardStyle}>
-        <h3 style={helpHeadingStyle}>{t('gui.settings.help.getting_started')}</h3>
+      <div className="sidjua-card">
+        <h3 className="page-settings--help-heading">{t('gui.settings.help.getting_started')}</h3>
 
         {/* API key callout — prominent */}
-        <div style={{
-          background:   'var(--color-accent-subtle, rgba(99,102,241,0.08))',
-          border:       '1px solid var(--color-accent-border, rgba(99,102,241,0.2))',
-          borderLeft:   '4px solid var(--color-accent)',
-          borderRadius: 'var(--radius-md)',
-          padding:      '12px 14px',
-          marginBottom: '12px',
-        }}>
-          <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text)', marginBottom: '6px' }}>
+        <div className="page-settings--api-callout">
+          <div className="page-settings--callout-heading">
             {t('gui.settings.help.where_apikey')}
           </div>
-          <code style={{
-            display:      'block',
-            fontFamily:   'monospace',
-            fontSize:     '11px',
-            background:   'var(--color-bg)',
-            color:        'var(--color-text)',
-            padding:      '6px 8px',
-            borderRadius: 'var(--radius-sm)',
-            border:       '1px solid var(--color-border)',
-            marginBottom: '6px',
-            userSelect:   'all',
-          }}>
+          <code className="page-settings--callout-code">
             {t('gui.settings.help.apikey_command')}
           </code>
-          <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
+          <div className="page-settings--callout-note">
             {t('gui.settings.help.container_note')}
           </div>
         </div>
 
-        <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', lineHeight: '1.7' }}>
+        <div className="page-settings--help-body">
           {t('gui.settings.help.getting_started_body').split('\n').map((line, i) => (
             line.trim() === '' ? <br key={i} /> : (
               <p key={i} style={{
@@ -782,15 +718,15 @@ function SettingsHelpPanel() {
       </div>
 
       {/* About Settings */}
-      <div style={helpCardStyle}>
-        <h3 style={helpHeadingStyle}>{t('gui.settings.help.about_settings')}</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div className="sidjua-card">
+        <h3 className="page-settings--help-heading">{t('gui.settings.help.about_settings')}</h3>
+        <div className="page-settings--help-sections">
           {helpSections.map(({ key, label }) => (
             <div key={key}>
-              <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text)', marginBottom: '2px' }}>
+              <div className="page-settings--help-section-label">
                 {label}
               </div>
-              <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', lineHeight: '1.5' }}>
+              <div className="page-settings--help-section-text">
                 {t(`gui.settings.help.${key}`)}
               </div>
             </div>
@@ -992,31 +928,26 @@ export function Settings() {
     form.apiKey    !== config.apiKey;
 
   return (
-    <div style={{
-      display:               'grid',
-      gridTemplateColumns:   'minmax(0, 620px) minmax(260px, 360px)',
-      gap:                   '24px',
-      alignItems:            'flex-start',
-    }}>
+    <div className="page-settings--layout">
       {/* ── Left column: settings cards ── */}
       <div>
         {/* Server Connection */}
-        <section style={sectionStyle}>
-          <h2 style={sectionHeadingStyle}>{t('gui.settings.server_connection')}</h2>
+        <section className="page-settings--section">
+          <h2 className="page-settings--section-h2">{t('gui.settings.server_connection')}</h2>
 
-          <label style={labelStyle}>
+          <label className="page-settings--label">
             {t('gui.settings.server_url')}
             <input
               type="url"
               value={form.serverUrl}
               onChange={handleChange('serverUrl')}
               placeholder="http://localhost:3000"
-              style={inputStyle}
+              className="page-settings--input"
               spellCheck={false}
             />
           </label>
 
-          <label style={labelStyle}>
+          <label className="page-settings--label">
             {t('gui.settings.api_key')}
             <div style={{ position: 'relative' }}>
               <input
@@ -1025,7 +956,8 @@ export function Settings() {
                 onChange={handleChange('apiKey')}
                 onInput={handleApiKeyInput}
                 placeholder="sk-…"
-                style={{ ...inputStyle, paddingRight: '40px' }}
+                className="page-settings--input"
+                style={{ paddingRight: '40px' }}
                 autoComplete="current-password"
                 spellCheck={false}
               />
@@ -1052,7 +984,7 @@ export function Settings() {
             </div>
           </label>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div className="page-settings--btn-row">
             <button
               onClick={handleSave}
               disabled={!isDirty}
@@ -1064,22 +996,22 @@ export function Settings() {
             <button
               onClick={() => { void handleTest(); }}
               disabled={testing}
-              style={secondaryButtonStyle}
+              className="page-settings--secondary-btn"
             >
               {testing ? <LoadingSpinner size="sm" label={t('gui.settings.testing')} /> : t('gui.settings.test_connection')}
             </button>
           </div>
 
           {status === 'connected' && (
-            <p style={{ fontSize: '13px', color: 'var(--color-success)', marginTop: '8px' }}>
+            <p className="page-settings--connected">
               {t('gui.settings.connected')}
             </p>
           )}
         </section>
 
         {/* LLM Provider */}
-        <section style={sectionStyle}>
-          <h2 style={sectionHeadingStyle}>{t('gui.settings.llm_provider')}</h2>
+        <section className="page-settings--section">
+          <h2 className="page-settings--section-h2">{t('gui.settings.llm_provider')}</h2>
           <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '16px' }}>
             {t('gui.settings.llm_provider_desc')}
           </p>
@@ -1087,52 +1019,32 @@ export function Settings() {
         </section>
 
         {/* Workspace */}
-        <section style={sectionStyle}>
-          <h2 style={sectionHeadingStyle}>{t('gui.settings.workspace')}</h2>
+        <section className="page-settings--section">
+          <h2 className="page-settings--section-h2">{t('gui.settings.workspace')}</h2>
 
           {/* Backup guidance */}
           <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '16px', lineHeight: 1.6 }}>
             {t('gui.settings.workspace_backup_hint')}
           </p>
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
+          <div className="page-settings--workspace-actions">
             <button
               disabled
               title={t('gui.settings.workspace_coming_soon')}
-              style={{
-                padding:      '9px 20px',
-                borderRadius: 'var(--radius-md)',
-                border:       '1px solid var(--color-accent)',
-                background:   'var(--color-accent)',
-                color:        'var(--color-text-inverse)',
-                fontWeight:   600,
-                fontSize:     '14px',
-                cursor:       'not-allowed',
-                opacity:      0.5,
-              }}
+              className="page-settings--ws-btn-primary"
             >
               {t('gui.settings.workspace_backup_button')}
             </button>
             <button
               disabled
               title={t('gui.settings.workspace_coming_soon')}
-              style={{
-                padding:      '9px 20px',
-                borderRadius: 'var(--radius-md)',
-                border:       '1px solid var(--color-accent)',
-                background:   'transparent',
-                color:        'var(--color-accent)',
-                fontWeight:   600,
-                fontSize:     '14px',
-                cursor:       'not-allowed',
-                opacity:      0.5,
-              }}
+              className="page-settings--ws-btn-secondary"
             >
               {t('gui.settings.workspace_restore_button')}
             </button>
           </div>
 
           {/* Separator */}
-          <div style={{ borderTop: '1px solid var(--color-border)', marginBottom: '16px' }} />
+          <div className="page-settings--separator" />
 
           {/* Reset / Start Over */}
           <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '12px', lineHeight: 1.6 }}>
@@ -1140,25 +1052,15 @@ export function Settings() {
           </p>
           <button
             onClick={() => setShowStartOver(true)}
-            style={{
-              padding:      '9px 20px',
-              borderRadius: 'var(--radius-md)',
-              border:       '1px solid #f59e0b',
-              background:   'transparent',
-              color:        '#b45309',
-              fontWeight:   600,
-              fontSize:     '14px',
-              cursor:       'pointer',
-              transition:   'all var(--transition-fast)',
-            }}
+            className="page-settings--start-over-btn"
           >
             {t('gui.settings.start_over')}
           </button>
         </section>
 
         {/* Language */}
-        <section style={sectionStyle}>
-          <h2 style={sectionHeadingStyle}>{t('gui.settings.language')}</h2>
+        <section className="page-settings--section">
+          <h2 className="page-settings--section-h2">{t('gui.settings.language')}</h2>
           <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '16px' }}>
             {t('gui.settings.language_desc')}
           </p>
@@ -1167,26 +1069,18 @@ export function Settings() {
 
         {/* Languages management (installed list) */}
         {installedLangs !== null && (
-          <section style={sectionStyle}>
-            <h2 style={sectionHeadingStyle}>{t('gui.settings.languages_header')}</h2>
-            <div style={{
-              background:    'var(--color-bg)',
-              border:        '1px solid var(--color-border)',
-              borderRadius:  'var(--radius-md)',
-              padding:       '14px 16px',
-              display:       'flex',
-              flexDirection: 'column',
-              gap:           '8px',
-            }}>
-              <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: '4px' }}>
+          <section className="page-settings--section">
+            <h2 className="page-settings--section-h2">{t('gui.settings.languages_header')}</h2>
+            <div className="page-settings--lang-list">
+              <div className="page-settings--lang-list-header">
                 {t('gui.settings.languages_installed')}
               </div>
               {installedLangs.map((code) => (
-                <div key={code} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                <div key={code} className="page-settings--lang-row">
                   <span style={{ fontSize: '13px', color: 'var(--color-text)' }}>
                     {code}
                     {code === activeLang && (
-                      <span style={{ marginLeft: '8px', fontSize: '11px', color: 'var(--color-success)', fontWeight: 600 }}>
+                      <span className="page-settings--lang-active">
                         {t('gui.settings.languages_active')}
                       </span>
                     )}
@@ -1218,12 +1112,13 @@ export function Settings() {
                 const notInstalled = availableLangs.filter((c) => !installedLangs.includes(c));
                 if (notInstalled.length === 0) return null;
                 return (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', paddingTop: '8px', borderTop: '1px solid var(--color-border)' }}>
+                  <div className="page-settings--lang-add-row">
                     <select
                       value={addLangCode}
                       onChange={(e) => setAddLangCode(e.target.value)}
                       disabled={langBusy}
-                      style={{ ...selectStyle, flex: 1 }}
+                      className="page-settings--select"
+                      style={{ flex: 1 }}
                     >
                       <option value="">{t('gui.settings.languages_add')}…</option>
                       {notInstalled.map((c) => (
@@ -1251,17 +1146,17 @@ export function Settings() {
               })()}
 
               {langError && (
-                <p style={{ fontSize: '12px', color: 'var(--color-danger)', margin: 0 }}>{langError}</p>
+                <p className="page-settings--error-msg-sm">{langError}</p>
               )}
             </div>
           </section>
         )}
 
         {/* Appearance */}
-        <section style={sectionStyle}>
-          <h2 style={sectionHeadingStyle}>{t('gui.settings.appearance')}</h2>
+        <section className="page-settings--section">
+          <h2 className="page-settings--section-h2">{t('gui.settings.appearance')}</h2>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div className="page-settings--theme-toggle">
             {(['light', 'dark'] as const).map((thm) => (
               <button
                 key={thm}
@@ -1286,23 +1181,15 @@ export function Settings() {
         </section>
 
         {/* Logging */}
-        <section style={sectionStyle}>
-          <h2 style={sectionHeadingStyle}>{t('gui.settings.logging')}</h2>
-          <div style={{
-            background:   'var(--color-bg)',
-            border:       '1px solid var(--color-border)',
-            borderRadius: 'var(--radius-md)',
-            padding:      '14px 16px',
-            display:      'flex',
-            flexDirection: 'column',
-            gap:          '8px',
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+        <section className="page-settings--section">
+          <h2 className="page-settings--section-h2">{t('gui.settings.logging')}</h2>
+          <div className="page-settings--toggle-box">
+            <div className="page-settings--toggle-row">
               <div>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text)' }}>
+                <span className="page-settings--toggle-label">
                   {t('gui.settings.error_logging')}
                 </span>
-                <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', margin: '4px 0 0' }}>
+                <p className="page-settings--toggle-desc">
                   {t('gui.settings.error_logging_desc')}
                 </p>
               </div>
@@ -1340,9 +1227,9 @@ export function Settings() {
               </button>
             </div>
             {errorLoggingError && (
-              <p style={{ fontSize: '12px', color: 'var(--color-danger)', margin: 0 }}>{errorLoggingError}</p>
+              <p className="page-settings--error-msg-sm">{errorLoggingError}</p>
             )}
-            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', margin: 0 }}>
+            <p className="page-settings--toggle-note">
               {t('gui.settings.error_logging_retrieve')}{' '}
               <code style={{ fontSize: '11px' }}>{t('gui.settings.error_logging_retrieve_cmd')}</code>.
             </p>
@@ -1350,24 +1237,16 @@ export function Settings() {
         </section>
 
         {/* Security (Bouncer) */}
-        <section style={sectionStyle}>
-          <h2 style={sectionHeadingStyle}>{t('gui.settings.security_header')}</h2>
-          <div style={{
-            background:    'var(--color-bg)',
-            border:        '1px solid var(--color-border)',
-            borderRadius:  'var(--radius-md)',
-            padding:       '14px 16px',
-            display:       'flex',
-            flexDirection: 'column',
-            gap:           '8px',
-          }}>
+        <section className="page-settings--section">
+          <h2 className="page-settings--section-h2">{t('gui.settings.security_header')}</h2>
+          <div className="page-settings--toggle-box">
             {/* Bouncer enabled toggle */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+            <div className="page-settings--toggle-row">
               <div>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text)' }}>
+                <span className="page-settings--toggle-label">
                   {t('gui.settings.bouncer_enabled')}
                 </span>
-                <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', margin: '4px 0 0' }}>
+                <p className="page-settings--toggle-desc">
                   {t('gui.settings.bouncer_enabled_desc')}
                 </p>
               </div>
@@ -1406,15 +1285,15 @@ export function Settings() {
 
             {/* Sensitivity dropdown — only shown when bouncer enabled */}
             {bouncerEnabled === true && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
-                <span style={{ fontSize: '13px', color: 'var(--color-text-secondary)', flex: 1 }}>
+              <div className="page-settings--sensitivity-row">
+                <span className="page-settings--sensitivity-label">
                   {t('gui.settings.bouncer_sensitivity')}
                 </span>
                 <select
                   value={bouncerSensitivity}
                   disabled={bouncerBusy}
                   onChange={(e) => { void handleBouncerSensitivity(e.target.value as 'strict' | 'normal' | 'relaxed'); }}
-                  style={selectStyle}
+                  className="page-settings--select"
                 >
                   <option value="strict">{t('gui.settings.bouncer_sensitivity_strict')}</option>
                   <option value="normal">{t('gui.settings.bouncer_sensitivity_normal')}</option>
@@ -1424,15 +1303,15 @@ export function Settings() {
             )}
 
             {bouncerError && (
-              <p style={{ fontSize: '12px', color: 'var(--color-danger)', margin: 0 }}>{bouncerError}</p>
+              <p className="page-settings--error-msg-sm">{bouncerError}</p>
             )}
           </div>
         </section>
 
         {/* About */}
-        <section style={sectionStyle}>
-          <h2 style={sectionHeadingStyle}>{t('gui.settings.about')}</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <section className="page-settings--section">
+          <h2 className="page-settings--section-h2">{t('gui.settings.about')}</h2>
+          <div className="page-settings--about-rows">
             <AboutRow
               label={t('gui.settings.version')}
               value={buildInfo
@@ -1446,7 +1325,7 @@ export function Settings() {
               <AboutRow label={t('gui.settings.build_ref')} value={buildInfo.buildRef} />
             )}
             {!buildInfo?.buildDate && (
-              <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', margin: 0 }}>
+              <p className="page-settings--dev-mode-note">
                 {t('gui.settings.dev_mode')}
               </p>
             )}
@@ -1476,101 +1355,17 @@ export function Settings() {
 
 function AboutRow({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ display: 'flex', gap: '16px', alignItems: 'baseline' }}>
-      <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', minWidth: '64px' }}>
+    <div className="page-settings--about-row">
+      <span className="page-settings--about-label">
         {label}
       </span>
-      <code style={{ fontSize: '12px', color: 'var(--color-text)', fontFamily: 'monospace' }}>
+      <code className="page-settings--about-value">
         {value}
       </code>
     </div>
   );
 }
 
-
-const sectionStyle: React.CSSProperties = {
-  background:    'var(--color-surface)',
-  border:        '1px solid var(--color-border)',
-  borderRadius:  'var(--radius-lg)',
-  padding:       '24px',
-  marginBottom:  '20px',
-  boxShadow:     'var(--shadow-sm)',
-};
-
-const sectionHeadingStyle: React.CSSProperties = {
-  fontSize:      '15px',
-  fontWeight:    600,
-  marginBottom:  '20px',
-  color:         'var(--color-text)',
-};
-
-const helpCardStyle: React.CSSProperties = {
-  background:   'var(--color-surface)',
-  border:       '1px solid var(--color-border)',
-  borderRadius: 'var(--radius-lg)',
-  padding:      '20px',
-  boxShadow:    'var(--shadow-sm)',
-};
-
-const helpHeadingStyle: React.CSSProperties = {
-  fontSize:     '13px',
-  fontWeight:   700,
-  color:        'var(--color-text)',
-  marginBottom: '12px',
-  marginTop:    0,
-};
-
-const labelStyle: React.CSSProperties = {
-  display:       'flex',
-  flexDirection: 'column',
-  gap:           '6px',
-  fontSize:      '13px',
-  fontWeight:    500,
-  color:         'var(--color-text-secondary)',
-  marginBottom:  '16px',
-};
-
-const inputStyle: React.CSSProperties = {
-  padding:       '8px 12px',
-  borderRadius:  'var(--radius-md)',
-  border:        '1px solid var(--color-border)',
-  background:    'var(--color-bg)',
-  color:         'var(--color-text)',
-  fontSize:      '14px',
-  outline:       'none',
-  transition:    'border-color var(--transition-fast)',
-  width:         '100%',
-  boxSizing:     'border-box',
-};
-
-const selectStyle: React.CSSProperties = {
-  padding:      '6px 10px',
-  borderRadius: 'var(--radius-md)',
-  border:       '1px solid var(--color-border)',
-  background:   'var(--color-bg)',
-  color:        'var(--color-text)',
-  fontSize:     '13px',
-  outline:      'none',
-};
-
-const keySectionStyle: React.CSSProperties = {
-  background:   'var(--color-surface-alt, #f9fafb)',
-  border:       '1px solid var(--color-border)',
-  borderRadius: 'var(--radius-md)',
-  padding:      '16px',
-  marginTop:    '4px',
-};
-
-const dividerStyle: React.CSSProperties = {
-  fontSize:      '11px',
-  fontWeight:    700,
-  color:         'var(--color-text-muted)',
-  textTransform: 'uppercase',
-  letterSpacing: '0.06em',
-  marginBottom:  '10px',
-  paddingBottom: '6px',
-  borderBottom:  '1px solid var(--color-border)',
-};
 
 function primaryButtonStyle(disabled: boolean): React.CSSProperties {
   return {
@@ -1588,20 +1383,5 @@ function primaryButtonStyle(disabled: boolean): React.CSSProperties {
     gap:             '6px',
   };
 }
-
-const secondaryButtonStyle: React.CSSProperties = {
-  padding:         '8px 20px',
-  borderRadius:    'var(--radius-md)',
-  border:          '1px solid var(--color-border)',
-  background:      'var(--color-surface)',
-  color:           'var(--color-text)',
-  fontWeight:      500,
-  fontSize:        '14px',
-  cursor:          'pointer',
-  display:         'inline-flex',
-  alignItems:      'center',
-  gap:             '8px',
-  transition:      'all var(--transition-fast)',
-};
 
 export default Settings;
