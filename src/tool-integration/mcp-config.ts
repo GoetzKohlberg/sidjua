@@ -11,6 +11,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { createLogger } from "../core/logger.js";
+import { McpServerEntrySchema, parseAndValidateYamlSafe } from "../core/schemas/index.js";
 
 const logger = createLogger("mcp-config");
 
@@ -67,9 +68,12 @@ export function loadMcpConfig(configPath?: string): McpConfig {
       return { servers: [], settings: { ...DEFAULT_SETTINGS } };
     }
 
-    const servers = Array.isArray(parsed["servers"])
-      ? (parsed["servers"] as unknown[]).filter(isValidServerEntry)
-      : [];
+    // Validate each server entry individually; skip invalid ones (preserve old filter behaviour)
+    const rawServers = Array.isArray(parsed["servers"]) ? parsed["servers"] as unknown[] : [];
+    const servers: McpServerEntry[] = rawServers.flatMap((entry) => {
+      const r = parseAndValidateYamlSafe(McpServerEntrySchema, entry);
+      return r.success ? [r.data as McpServerEntry] : [];
+    });
 
     const rawSettings = typeof parsed["settings"] === "object" && parsed["settings"] !== null
       ? parsed["settings"] as Record<string, unknown>

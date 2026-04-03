@@ -690,7 +690,16 @@ async function provisionLifecycleFiles(workDir: string, quiet: boolean): Promise
     quiet,
   );
 
-  log("✓ Lifecycle foundation files written (config/update.yaml, backups/retention.json, .migration-state.json)");
+  // config/mcp-servers.yaml — MCP server registry (blank template)
+  const mcpDefaultSrc = resolve(new URL(".", import.meta.url).pathname, "../../../config/mcp-servers.yaml.default");
+  let mcpDefaultContent = "# SIDJUA MCP Servers — edit to add MCP servers\nservers: {}\n";
+  try {
+    const { readFileSync } = await import("node:fs");
+    mcpDefaultContent = readFileSync(mcpDefaultSrc, "utf-8");
+  } catch (_e) { /* fallback to inline default */ }
+  await writeIfAbsent(join(workDir, "config", "mcp-servers.yaml"), mcpDefaultContent, quiet);
+
+  log("✓ Lifecycle foundation files written (config/update.yaml, config/mcp-servers.yaml, backups/retention.json, .migration-state.json)");
 }
 
 

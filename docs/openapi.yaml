@@ -1,0 +1,590 @@
+openapi: "3.0.3"
+info:
+  title: SIDJUA REST API
+  version: "1.0.1"
+  description: |
+    SIDJUA Free — Multi-Agent Governance Framework REST API.
+
+    All endpoints (except `/api/v1/health`) require a Bearer token:
+    ```
+    Authorization: Bearer <token>
+    ```
+
+    Tokens carry scopes: `readonly`, `operator`, `admin`, `bootstrap`.
+    Endpoints that mutate state require at least `operator` scope.
+  license:
+    name: AGPL-3.0-only
+    url: https://www.gnu.org/licenses/agpl-3.0.html
+
+servers:
+  - url: /
+    description: Local SIDJUA instance
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:    { type: string, example: "AUTH-001" }
+            message: { type: string, example: "Unauthorized" }
+            detail:  { type: string }
+
+    AgentStatus:
+      type: string
+      enum: [stopped, starting, active, idle, stopping, error]
+
+    AgentSummary:
+      type: object
+      required: [id, name, tier, division, status]
+      properties:
+        id:       { type: string }
+        name:     { type: string }
+        tier:     { type: integer, enum: [1, 2, 3] }
+        division: { type: string }
+        status:   { $ref: "#/components/schemas/AgentStatus" }
+        model:    { type: string }
+        provider: { type: string }
+
+    TaskStatus:
+      type: string
+      enum: [PENDING, WAITING, RUNNING, DONE, FAILED, ESCALATED, CANCELLED]
+
+    TaskSummary:
+      type: object
+      required: [id, title, status, created_at]
+      properties:
+        id:         { type: string, format: uuid }
+        title:      { type: string }
+        status:     { $ref: "#/components/schemas/TaskStatus" }
+        agent_id:   { type: string }
+        division:   { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    TokenSummary:
+      type: object
+      required: [id, name, scope, created_at]
+      properties:
+        id:         { type: string }
+        name:       { type: string }
+        scope:      { type: string, enum: [readonly, operator, admin, bootstrap] }
+        created_at: { type: string, format: date-time }
+        expires_at: { type: string, format: date-time, nullable: true }
+
+    HealthStatus:
+      type: object
+      required: [status, version]
+      properties:
+        status:  { type: string, enum: [ok, degraded, unhealthy] }
+        version: { type: string }
+        uptime_seconds: { type: number }
+        db_ok:   { type: boolean }
+
+paths:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Health
+  # ─────────────────────────────────────────────────────────────────────────
+  /api/v1/health:
+    get:
+      summary: Health check
+      description: Returns system health. No authentication required.
+      security: []
+      operationId: getHealth
+      tags: [System]
+      responses:
+        "200":
+          description: System is healthy or degraded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/HealthStatus" }
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Agents
+  # ─────────────────────────────────────────────────────────────────────────
+  /api/v1/agents:
+    get:
+      summary: List agents
+      operationId: listAgents
+      tags: [Agents]
+      parameters:
+        - in: query
+          name: division
+          schema: { type: string }
+        - in: query
+          name: status
+          schema: { $ref: "#/components/schemas/AgentStatus" }
+      responses:
+        "200":
+          description: Agent list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agents: { type: array, items: { $ref: "#/components/schemas/AgentSummary" } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /api/v1/agents/{id}:
+    get:
+      summary: Get agent
+      operationId: getAgent
+      tags: [Agents]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Agent detail
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgentSummary" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      summary: Update agent
+      operationId: updateAgent
+      tags: [Agents]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:     { type: string }
+                division: { type: string }
+      responses:
+        "200":
+          description: Updated agent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AgentSummary" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/agents/{id}/start:
+    post:
+      summary: Start agent
+      operationId: startAgent
+      tags: [Agents]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Agent started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/agents/{id}/stop:
+    post:
+      summary: Stop agent
+      operationId: stopAgent
+      tags: [Agents]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Agent stopped
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Tasks
+  # ─────────────────────────────────────────────────────────────────────────
+  /api/v1/tasks:
+    get:
+      summary: List tasks
+      operationId: listTasks
+      tags: [Tasks]
+      parameters:
+        - in: query
+          name: status
+          schema: { $ref: "#/components/schemas/TaskStatus" }
+        - in: query
+          name: agent_id
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 50, maximum: 200 }
+        - in: query
+          name: offset
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: Task list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tasks: { type: array, items: { $ref: "#/components/schemas/TaskSummary" } }
+                  total: { type: integer }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      summary: Create task
+      operationId: createTask
+      tags: [Tasks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, description]
+              properties:
+                title:       { type: string }
+                description: { type: string }
+                division:    { type: string }
+                agent_id:    { type: string }
+                tier:        { type: integer, enum: [1, 2, 3] }
+                token_budget:  { type: integer }
+                cost_budget_usd: { type: number }
+      responses:
+        "201":
+          description: Task created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TaskSummary" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+
+  /api/v1/tasks/{id}:
+    get:
+      summary: Get task
+      operationId: getTask
+      tags: [Tasks]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Task detail
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TaskSummary" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      summary: Cancel / delete task
+      operationId: deleteTask
+      tags: [Tasks]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Task cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/tasks/{id}/summary:
+    get:
+      summary: Get task summary (LLM-generated)
+      operationId: getTaskSummary
+      tags: [Tasks]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Task summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  summary_text: { type: string }
+                  key_facts:    { type: array, items: { type: string } }
+                  status:       { type: string }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/tasks/{id}/result:
+    get:
+      summary: Get task result / output
+      operationId: getTaskResult
+      tags: [Tasks]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Task output
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content_text:   { type: string }
+                  content_binary: { type: string, format: byte }
+                  mime_type:      { type: string }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Chat
+  # ─────────────────────────────────────────────────────────────────────────
+  /api/v1/chat/{agentId}:
+    post:
+      summary: Send chat message to agent
+      operationId: sendChatMessage
+      tags: [Chat]
+      parameters:
+        - in: path
+          name: agentId
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message:    { type: string }
+                session_id: { type: string }
+      responses:
+        "200":
+          description: Agent reply
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reply:      { type: string }
+                  session_id: { type: string }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /api/v1/chat/{agentId}/history:
+    get:
+      summary: Get chat history for agent
+      operationId: getChatHistory
+      tags: [Chat]
+      parameters:
+        - in: path
+          name: agentId
+          required: true
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 50 }
+      responses:
+        "200":
+          description: Chat messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        role:    { type: string, enum: [user, assistant, system, tool_call, tool_result] }
+                        content: { type: string }
+                        created_at: { type: string, format: date-time }
+    delete:
+      summary: Clear chat history for agent
+      operationId: clearChatHistory
+      tags: [Chat]
+      parameters:
+        - in: path
+          name: agentId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: History cleared
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+
+  /api/v1/chat/scan:
+    post:
+      summary: Bouncer scan — check message for sensitive data
+      operationId: scanMessage
+      tags: [Chat]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message:     { type: string }
+                sensitivity: { type: string, enum: [low, medium, high] }
+      responses:
+        "200":
+          description: Scan result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  blocked:  { type: boolean }
+                  redacted: { type: string }
+                  findings: { type: array, items: { type: object } }
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Tokens
+  # ─────────────────────────────────────────────────────────────────────────
+  /api/v1/tokens:
+    get:
+      summary: List API tokens
+      operationId: listTokens
+      tags: [Tokens]
+      responses:
+        "200":
+          description: Token list (secrets redacted)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tokens: { type: array, items: { $ref: "#/components/schemas/TokenSummary" } }
+    post:
+      summary: Create API token
+      operationId: createToken
+      tags: [Tokens]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, scope]
+              properties:
+                name:       { type: string }
+                scope:      { type: string, enum: [readonly, operator, admin] }
+                expires_at: { type: string, format: date-time }
+      responses:
+        "201":
+          description: Token created (plaintext token returned once)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:   { type: string }
+                  id:      { type: string }
+                  name:    { type: string }
+                  scope:   { type: string }
+
+  /api/v1/tokens/{id}:
+    delete:
+      summary: Revoke token
+      operationId: revokeToken
+      tags: [Tokens]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Token revoked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Audit
+  # ─────────────────────────────────────────────────────────────────────────
+  /api/v1/audit:
+    get:
+      summary: List audit trail entries
+      operationId: listAuditEntries
+      tags: [Audit]
+      parameters:
+        - in: query
+          name: agent_id
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 100, maximum: 1000 }
+        - in: query
+          name: offset
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: Audit entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries: { type: array, items: { type: object } }
+                  total:   { type: integer }
+
+components:
+  responses:
+    Unauthorized:
+      description: Missing or invalid Bearer token
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    BadRequest:
+      description: Invalid request body
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }

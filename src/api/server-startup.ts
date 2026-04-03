@@ -45,6 +45,7 @@ import { wireCheckpointDb }      from "../core/agents/checkpoint.js";
 import { wireFreezeAuditDb }     from "../core/agents/freeze-audit.js";
 import { reconcileOnStartup }    from "../core/agents/reconcile.js";
 import { runMigrations, getSchemaVersion } from "../core/updater/migrations/index.js";
+import { McpRegistry } from "../core/mcp/mcp-registry.js";
 
 const logger = createLogger("api-server-cli");
 
@@ -300,6 +301,12 @@ export async function runServerStart(
     process.exit(1);
   }
 
+  // ── MCP Registry — initialize from config/mcp-servers.yaml ─────────────
+  // DUAL PATH: server-startup.ts (Docker). start.ts (CLI foreground) does the same.
+  const mcpSecretResolver = (key: string): string | undefined => process.env[key];
+  const mcpRegistry = new McpRegistry(mcpSecretResolver);
+  await mcpRegistry.initialize(join(opts.workDir, "config", "mcp-servers.yaml"));
+
   // ── Register all API routes (agents, tasks, costs, audit, etc.) ──────────
   const uploadStore  = db !== null ? new UploadStore(db) : null;
   const fileStorage  = new FileStorage({
@@ -333,6 +340,7 @@ export async function runServerStart(
     fileStorage,
     extractionService,
     activityEmitter,
+    mcpRegistry,
   });
 
   // ── GUI static file serving ───────────────────────────────────────────────
@@ -432,6 +440,7 @@ export async function runServerStart(
     if (orchestrator !== null) {
       try { await orchestrator.stop(); } catch (_e) { /* cleanup-ignore */ }
     }
+    try { await mcpRegistry.shutdown(); } catch (_e) { /* cleanup-ignore */ }
     if (db !== null) {
       try { persistChatState(db); } catch (e: unknown) {
         logger.warn("server_chat_persist", "Shutdown chat checkpoint failed", {

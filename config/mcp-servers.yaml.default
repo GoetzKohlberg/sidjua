@@ -1,0 +1,55 @@
+# SIDJUA — MCP Server Configuration
+# Copy to config/mcp-servers.yaml and edit to add your MCP servers.
+# Restart `sidjua server start` after editing.
+#
+# Secret references: use ${secrets:ENV_VAR_NAME} to read from environment variables.
+# Example: api_key: "${secrets:MY_API_KEY}"
+#
+# Transport options:
+#   stdio — spawn a local subprocess (command + args)
+#   sse   — connect to a remote SSE endpoint (url)
+#
+# Governance fields (all required):
+#   allowed_divisions — list of division names, or ["*"] for all
+#   allowed_tiers     — list of agent tiers: T1, T2, T3
+#   max_calls_per_minute — rate limit per agent per server
+#   forbidden_patterns   — tool name patterns to block (e.g. "delete_*", "bash")
+#   classification_ceiling — max task classification: PUBLIC, INTERNAL, CONFIDENTIAL, SECRET, FYEO
+#   budget_per_call    — USD budget consumed per tool call
+#
+# --- Example stdio server (local filesystem tools) ---
+#
+# servers:
+#   filesystem:
+#     transport: stdio
+#     command: npx
+#     args: ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"]
+#     description: "Filesystem MCP server — read/write files in /tmp"
+#     governance:
+#       allowed_divisions: ["*"]
+#       allowed_tiers: ["T1", "T2", "T3"]
+#       max_calls_per_minute: 60
+#       forbidden_patterns: []
+#       classification_ceiling: INTERNAL
+#       budget_per_call: 0.001
+#
+# --- Example SSE server (remote) ---
+#
+# servers:
+#   my_remote_server:
+#     transport: sse
+#     url: "https://mcp.example.com/sse"
+#     headers:
+#       Authorization: "Bearer ${secrets:MCP_API_KEY}"
+#     description: "Remote MCP server"
+#     governance:
+#       allowed_divisions: ["engineering"]
+#       allowed_tiers: ["T1", "T2"]
+#       max_calls_per_minute: 30
+#       forbidden_patterns: ["delete_*", "drop_*"]
+#       classification_ceiling: CONFIDENTIAL
+#       budget_per_call: 0.005
+
+# No servers configured by default.
+# Uncomment and edit the examples above to add your first MCP server.
+servers: {}

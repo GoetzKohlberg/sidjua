@@ -34,6 +34,15 @@ import type {
 import { readYamlFile, readYamlFileWithHash } from "../utils/yaml.js";
 import { GovernanceError } from "./errors.js";
 import { createLogger } from "../core/logger.js";
+import {
+  ForbiddenConfigSchema,
+  ApprovalWorkflowsConfigSchema,
+  ClassificationLevelsConfigSchema,
+  ClassificationRulesConfigSchema,
+  PolicyConfigFileSchema,
+  SecurityConfigFileSchema,
+  parseAndValidateYamlSafe,
+} from "../core/schemas/index.js";
 
 const logger = createLogger("config-loader");
 
@@ -86,9 +95,13 @@ export function loadGovernanceConfig(basePath: string): GovernanceConfig {
   if (existsSync(forbiddenPath)) {
     const { parsed, contentHash } = loadYamlSafe(forbiddenPath, "forbidden-actions.yaml");
     fileHashes[relPath(basePath, forbiddenPath)] = contentHash;
-    const raw = parsed as { forbidden?: unknown } | null;
-    if (raw !== null && Array.isArray(raw?.forbidden)) {
-      forbidden = raw.forbidden as ForbiddenRule[];
+    const validated = parseAndValidateYamlSafe(ForbiddenConfigSchema, parsed);
+    if (validated.success) {
+      forbidden = validated.data.forbidden as ForbiddenRule[];
+    } else {
+      logger.warn("governance_config_invalid", "forbidden-actions.yaml failed schema validation — using empty rules", {
+        metadata: { path: forbiddenPath },
+      });
     }
   }
 
@@ -98,9 +111,13 @@ export function loadGovernanceConfig(basePath: string): GovernanceConfig {
   if (existsSync(approvalPath)) {
     const { parsed, contentHash } = loadYamlSafe(approvalPath, "approval-workflows.yaml");
     fileHashes[relPath(basePath, approvalPath)] = contentHash;
-    const raw = parsed as { workflows?: unknown } | null;
-    if (raw !== null && Array.isArray(raw?.workflows)) {
-      approval = raw.workflows as ApprovalWorkflow[];
+    const validated = parseAndValidateYamlSafe(ApprovalWorkflowsConfigSchema, parsed);
+    if (validated.success) {
+      approval = validated.data.workflows as ApprovalWorkflow[];
+    } else {
+      logger.warn("governance_config_invalid", "approval-workflows.yaml failed schema validation — using empty rules", {
+        metadata: { path: approvalPath },
+      });
     }
   }
 
@@ -115,26 +132,31 @@ export function loadGovernanceConfig(basePath: string): GovernanceConfig {
   if (existsSync(levelsPath)) {
     const { parsed, contentHash } = loadYamlSafe(levelsPath, "levels.yaml");
     fileHashes[relPath(basePath, levelsPath)] = contentHash;
-    const raw = parsed as { levels?: unknown } | null;
-    if (raw !== null && Array.isArray(raw?.levels)) {
-      classificationLevels = raw.levels as ClassificationLevel[];
+    const validated = parseAndValidateYamlSafe(ClassificationLevelsConfigSchema, parsed);
+    if (validated.success) {
+      classificationLevels = validated.data.levels as ClassificationLevel[];
+    } else {
+      logger.warn("governance_config_invalid", "classification/levels.yaml failed schema validation — using defaults", {
+        metadata: { path: levelsPath },
+      });
     }
   }
 
   if (existsSync(rulesPath)) {
     const { parsed, contentHash } = loadYamlSafe(rulesPath, "rules.yaml");
     fileHashes[relPath(basePath, rulesPath)] = contentHash;
-    const raw = parsed as {
-      agent_clearance?: unknown;
-      division_overrides?: unknown;
-    } | null;
-    if (raw !== null) {
-      if (raw.agent_clearance !== null && typeof raw.agent_clearance === "object") {
-        agentClearance = raw.agent_clearance as Record<string, string>;
+    const validated = parseAndValidateYamlSafe(ClassificationRulesConfigSchema, parsed);
+    if (validated.success) {
+      if (validated.data.agent_clearance !== undefined) {
+        agentClearance = validated.data.agent_clearance;
       }
-      if (raw.division_overrides !== null && typeof raw.division_overrides === "object") {
-        divisionOverrides = raw.division_overrides as Record<string, Record<string, string>>;
+      if (validated.data.division_overrides !== undefined) {
+        divisionOverrides = validated.data.division_overrides;
       }
+    } else {
+      logger.warn("governance_config_invalid", "classification/rules.yaml failed schema validation — using defaults", {
+        metadata: { path: rulesPath },
+      });
     }
   }
 
@@ -148,9 +170,13 @@ export function loadGovernanceConfig(basePath: string): GovernanceConfig {
   if (existsSync(securityPath)) {
     const { parsed, contentHash } = loadYamlSafe(securityPath, "security/security.yaml");
     fileHashes[relPath(basePath, securityPath)] = contentHash;
-    const raw = parsed as { filter?: unknown } | null;
-    if (raw !== null && raw.filter !== null && typeof raw.filter === "object") {
-      security = raw as SecurityConfig;
+    const validated = parseAndValidateYamlSafe(SecurityConfigFileSchema, parsed);
+    if (validated.success) {
+      security = validated.data as SecurityConfig;
+    } else {
+      logger.warn("governance_config_invalid", "security/security.yaml failed schema validation — stage skipped", {
+        metadata: { path: securityPath },
+      });
     }
   }
 
@@ -247,10 +273,15 @@ function loadAllPolicies(
   for (const filePath of yamlFiles) {
     const { parsed, contentHash } = loadYamlSafe(filePath, filePath);
     fileHashes[relPath(basePath, filePath)] = contentHash;
-    const raw = parsed as { rules?: unknown } | null;
-    const rules: PolicyRule[] = Array.isArray(raw?.rules)
-      ? (raw.rules as PolicyRule[])
+    const validated = parseAndValidateYamlSafe(PolicyConfigFileSchema, parsed);
+    const rules: PolicyRule[] = validated.success
+      ? (validated.data.rules as PolicyRule[])
       : [];
+    if (!validated.success) {
+      logger.warn("governance_config_invalid", "Policy file failed schema validation — skipping rules", {
+        metadata: { path: filePath },
+      });
+    }
     result.push({ source_file: filePath, rules });
   }
 

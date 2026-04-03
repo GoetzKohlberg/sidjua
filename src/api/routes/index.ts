@@ -73,6 +73,8 @@ import type { ExtractionService }        from "../../uploads/extraction-service.
 import { apply }                         from "../../apply/index.js";
 import type { ActivityEmitter }          from "../../core/activity/activity-emitter.js";
 import type { HeartbeatMonitor }         from "../../agents/heartbeat.js";
+import { registerMcpRoutes }             from "./mcp-routes.js";
+import type { McpRegistry }             from "../../core/mcp/mcp-registry.js";
 
 import type { AgentRegistryLike }   from "./agents.js";
 import type { SecretRouteServices }    from "./secrets.js";
@@ -152,6 +154,8 @@ export interface AllRouteServices {
   activityEmitter?: ActivityEmitter | null;
   /** P359: HeartbeatMonitor instance — optional; status endpoint shows unknown if absent. */
   heartbeat?: HeartbeatMonitor | null;
+  /** P374: MCP registry — optional; MCP routes return 503 if absent. */
+  mcpRegistry?: McpRegistry | null;
 }
 
 
@@ -301,6 +305,11 @@ export function registerAllRoutes(app: Hono, services: AllRouteServices = {}): v
   // P269: Token management routes (always register — enables token CRUD via API)
   if (services.tokenStore !== null && services.tokenStore !== undefined) {
     registerTokenRoutes(app, { tokenStore: services.tokenStore });
+  }
+
+  // MCP registry routes (optional — omitted if registry is absent)
+  if (services.mcpRegistry != null) {
+    registerMcpRoutes(app, { mcpRegistry: services.mcpRegistry });
   }
 
   // Blue/Green update routes

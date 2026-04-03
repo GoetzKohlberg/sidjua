@@ -21,6 +21,7 @@ import type { OrchestratorConfig, OrchestratorConfigRaw } from "./types.js";
 import type { Database }               from "../utils/db.js";
 import { readYamlFile }                from "../utils/yaml.js";
 import { createLogger }                from "../core/logger.js";
+import { OrchestratorConfigRawSchema, parseAndValidateYamlSafe } from "../core/schemas/index.js";
 import { initTaskEventBridge }         from "../core/activity/bridges/task-event-bridge.js";
 import { ToolRegistry }                from "../tool-integration/tool-registry.js";
 import { ToolManager }                 from "../tool-integration/tool-manager.js";
@@ -64,7 +65,13 @@ export async function bootstrapOrchestrator(
 
   let raw: OrchestratorConfigRaw = {};
   try {
-    raw = readYamlFile(configPath) as OrchestratorConfigRaw;
+    const parsed = readYamlFile(configPath) as unknown;
+    const validated = parseAndValidateYamlSafe(OrchestratorConfigRawSchema, parsed);
+    if (validated.success) {
+      raw = validated.data as OrchestratorConfigRaw;
+    } else {
+      logger.warn("orchestrator-bootstrap", "orchestrator.yaml failed schema validation — using defaults", {});
+    }
   } catch (_e) {
     // Non-fatal: orchestrator.yaml may not exist yet (first run before `sidjua apply`)
     logger.info("orchestrator-bootstrap", "orchestrator.yaml not found — using defaults", {});

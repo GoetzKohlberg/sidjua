@@ -1,0 +1,20 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": [
+    "src/core/schemas/index.ts",
+    "src/core/error-codes.ts",
+    "src/core/logger.ts",
+    "src/types/pipeline.ts",
+    "src/agents/types.ts",
+    "src/orchestrator/types.ts",
+    "src/tool-integration/mcp-config.ts"
+  ],
+  "entryPointStrategy": "expand",
+  "out": "docs/api",
+  "plugin": ["typedoc-plugin-markdown"],
+  "readme": "none",
+  "hideGenerator": true,
+  "excludeInternal": true,
+  "excludePrivate": true,
+  "skipErrorChecking": false
+}

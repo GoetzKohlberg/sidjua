@@ -21,6 +21,7 @@ import { isProcessAlive } from "../utils/process.js";
 import { createLogger } from "../../core/logger.js";
 import { createApiServer, DEFAULT_SERVER_CONFIG } from "../../api/server.js";
 import { registerAllRoutes } from "../../api/routes/index.js";
+import { McpRegistry } from "../../core/mcp/mcp-registry.js";
 import { openDatabase } from "../../utils/db.js";
 import { AgentRegistry } from "../../agent-lifecycle/agent-registry.js";
 import { readYamlFile } from "../../utils/yaml.js";
@@ -454,6 +455,11 @@ export async function runStartCommand(opts: StartCommandOptions): Promise<number
       tokenStore,
     });
 
+    // ── MCP Registry — DUAL PATH: server-startup.ts (Docker) does the same ──
+    const mcpSecretResolver = (key: string): string | undefined => process.env[key];
+    const mcpRegistry = new McpRegistry(mcpSecretResolver);
+    await mcpRegistry.initialize(join(opts.workDir, "config", "mcp-servers.yaml"));
+
     // Register all API routes (tasks, agents, divisions, costs, governance, etc.)
     const messagingRouteServices = messagingGateway !== null && messagingRegistry !== null
       ? {
@@ -476,6 +482,7 @@ export async function runStartCommand(opts: StartCommandOptions): Promise<number
       ...(sharedEventBus !== null ? { eventBus: sharedEventBus } : {}),
       ...messagingRouteServices,
       ...(registry !== undefined ? { registry } : {}),
+      mcpRegistry,
     };
     registerAllRoutes(server.app, routeServices);
 
@@ -561,6 +568,7 @@ export async function runStartCommand(opts: StartCommandOptions): Promise<number
       if (orchestrator !== null) {
         try { await orchestrator.stop(); } catch (_e) { /* cleanup-ignore */ }
       }
+      try { await mcpRegistry.shutdown(); } catch (_e) { /* cleanup-ignore */ }
       if (messagingGateway !== null) {
         try { await messagingGateway.stop(); } catch (_e) { /* cleanup-ignore */ }
       }
