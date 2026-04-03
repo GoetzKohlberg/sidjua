@@ -78,19 +78,22 @@ src/core/update/migration-framework.ts — MigrationRunner + MigrationRegistry
 tests/api/update-system.test.ts — drain/readonly/lifecycle/updater proxy tests (23 tests total)
 
 ## CURRENT
-Version: 1.0.1 | Build: 82 | Tests: 8108 pass, 0 fail (3 pre-existing flaky: gui-smoke+tls+multi-agent), 18 skipped
-Last commit: 7905fad — P375 (tool calling in orchestrator)
+Version: 1.0.1 | Build: 82 | Tests: 8159 pass, 0 fail (3 pre-existing flaky: gui-smoke+tls+multi-agent), 18 skipped
+Last commit: 7905fad — P375 (tool calling in orchestrator) | P376+P377 uncommitted
 Deadline V1.0.2: 2026-04-20 | V1.0.3: 2026-05-01 | V1.1: 2026-05-15
 
 ## NOTES FOR NEXT SESSION
 P373 YAML Schema Validation + Docs Pipeline — COMPLETE (commit ccdf8b4)
 P374 MCP Client Core — COMPLETE (commit ccdf8b4, 55 new tests)
 P375 Tool Calling in Orchestrator — COMPLETE (commit 7905fad, 33 new tests)
+P376 Module SDK Light — COMPLETE (36 new tests, uncommitted)
+P377 Streaming — LLM SSE Endpoint, Provider Streaming, Tool-Use Events — COMPLETE (15 new tests, uncommitted)
 
 MCP key files:
   src/core/mcp/types.ts — JSON-RPC 2.0, McpTool, McpServerConfig, governance types, risk levels
   src/core/mcp/mcp-client.ts — STDIO + SSE transports, crash recovery (max 3), arg-hash logging only
   src/core/mcp/mcp-registry.ts — YAML parsing, ${secrets:KEY} resolution, tool index, governance filter
+    + initializeWithModules(Map<string, McpServerConfig>) — YAML wins on name collision
   src/core/mcp/mcp-governance-hook.ts — 6-stage fail-closed (risk→RBAC→budget→forbidden→ceiling→rate)
   src/core/mcp/mcp-tool-adapter.ts — Anthropic/OpenAI/Ollama format conversion + detectProviderFromModel()
   src/core/mcp/tool-selector.ts — selectRelevantTools() keyword-scored, caps at maxTools
@@ -98,9 +101,35 @@ MCP key files:
   src/core/mcp/memory-verifier.ts — verifyMemoryReferences() path existence + workDir boundary
   src/core/mcp/tool-executor.ts — McpLlmProvider, createMcpLlmProvider(), executeWithToolLoop()
     MAX_TOOL_ITERATIONS=10, hard ceiling=25, activityEmitter for mcp.tool.{called,success,blocked,error}
+  src/core/mcp/tool-executor-streaming.ts — executeWithToolLoopStreaming() AsyncGenerator<LlmStreamEvent>
+    same governance/audit as executeWithToolLoop; fallback for non-streaming adapters
+    tool_use_input_delta NOT forwarded to caller (security: may contain secrets)
   src/api/routes/mcp-routes.ts — /api/v1/mcp/servers, /tools, /tools/:agentId, /reload, /test/:server
+  src/api/routes/stream-routes.ts — GET /api/v1/stream/:agentId?message=<text>
+    requireScope("readonly"), max 5 concurrent streams/token, 5-min idle timeout
+    builds ProviderAdapter from ConfiguredProvider; uses executeWithToolLoopStreaming when mcpRegistry present
   config/mcp-servers.yaml.default — template copied by sidjua init
   DUAL PATH wired: server-startup.ts + start.ts both create McpRegistry and call shutdown()
+
+Module SDK key files (P376):
+  src/core/modules/types.ts — ModuleDefinition, InstalledModule
+  src/core/modules/module-scanner.ts — scanModules() reads modules/ dir, validates module.yaml
+    NAME_PATTERN = /^[a-z0-9][a-z0-9-]{0,62}[a-z0-9]$/, path traversal in cmd/args rejected
+  src/core/modules/module-installer.ts — installModule() npm --ignore-scripts, removeModule(), deriveModuleName()
+    NPM_TIMEOUT_MS=120_000; cleanup on failure catches (_err)
+  src/core/modules/module-scaffolder.ts — scaffoldModule() creates module.yaml+package.json+index.js
+  src/core/modules/module-registry-bridge.ts — moduleToMcpConfig(), mergeGovernanceOverrides(), buildModuleConfigMap()
+    relative stdio command resolved: join(module.path, command)
+  DUAL PATH: server-startup.ts + start.ts both call scanModules() + initializeWithModules()
+  CLI: sidjua module init/add/remove/test (in src/cli/commands/module.ts)
+  sidjua init now creates modules/ directory (src/cli/commands/init.ts)
+  i18n: 18 cli.module.* keys in en.json/de.json/_template.json + all 42 other locales
+
+Provider streaming (P377):
+  LlmStreamEvent in src/providers/types.ts — text_delta, tool_use_start/end/input_delta, message_done, error
+  chatStream?() optional on ProviderAdapter interface
+  AnthropicAdapter.chatStream() — SSE: content_block_start/delta/stop, message_delta/stop
+  OpenAICompatibleAdapter.chatStream() — SSE: choices[0].delta.content + tool_calls
 
 P375 integration in reasoning-loop.ts:
   ReasoningLoopDeps.mcpRegistry?: McpRegistry | null
@@ -108,5 +137,5 @@ P375 integration in reasoning-loop.ts:
   ToolCall.id now preserved in AnthropicAdapter + OpenAICompatibleAdapter parseToolResponse()
   ActivitySeverity: "warning" (not "warn") — matches activity-types.ts
 
-Next: continue Block H P358-P360 or start next Opus spec.
+Next: commit P376+P377, then continue Block H P358-P360 or start next Opus spec.
 

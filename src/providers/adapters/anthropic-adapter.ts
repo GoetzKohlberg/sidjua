@@ -22,6 +22,7 @@ import type {
   LLMMessage,
   LLMRequest,
   LLMResponse,
+  LlmStreamEvent,
   ModelDefinition,
   ProviderAdapter,
   ToolCall,
@@ -110,6 +111,161 @@ export class AnthropicAdapter implements ProviderAdapter {
     const start  = Date.now();
     const raw    = await this.post("/v1/messages", body);
     return this.parseToolResponse(raw, model, start);
+  }
+
+  async *chatStream(request: LLMRequest, tools?: ToolDefinition[]): AsyncGenerator<LlmStreamEvent> {
+    const model = request.model ?? this.defaultModel;
+    const body  = this.buildBody(request, model, tools);
+    const url   = `${this.baseUrl}/v1/messages`;
+
+    const controller = new AbortController();
+    const timer      = setTimeout(() => controller.abort(), this.timeout);
+
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method:  "POST",
+        headers: {
+          "x-api-key":         this.apiKey,
+          "anthropic-version": "2023-06-01",
+          "content-type":      "application/json",
+        },
+        body:   JSON.stringify({ ...body, stream: true }),
+        signal: controller.signal,
+      });
+    } catch (err: unknown) {
+      clearTimeout(timer);
+      yield { type: "error", error: err instanceof Error ? err.message : String(err) };
+      return;
+    }
+    clearTimeout(timer);
+
+    if (!res.ok) {
+      yield { type: "error", error: `API error: ${res.status}` };
+      return;
+    }
+
+    const reader = res.body?.getReader();
+    if (reader === undefined || reader === null) {
+      yield { type: "error", error: "No response body" };
+      return;
+    }
+
+    const decoder = new TextDecoder();
+    let buffer    = "";
+    // Track which content-block index is tool_use (for input accumulation)
+    const blockTypes = new Map<number, "text" | "tool_use">();
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const data = line.slice(6).trim();
+          if (data === "[DONE]") return;
+
+          let event: Record<string, unknown>;
+          try {
+            event = JSON.parse(data) as Record<string, unknown>;
+          } catch (_parseErr: unknown) {
+            continue; // skip malformed SSE event
+          }
+
+          yield* this.parseAnthropicStreamEvent(event, blockTypes);
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  }
+
+  private *parseAnthropicStreamEvent(
+    event:      Record<string, unknown>,
+    blockTypes: Map<number, "text" | "tool_use">,
+  ): Generator<LlmStreamEvent> {
+    const eventType = event["type"] as string | undefined;
+    if (eventType === undefined) return;
+
+    switch (eventType) {
+      case "content_block_start": {
+        const index = event["index"] as number | undefined;
+        const block = event["content_block"] as Record<string, unknown> | undefined;
+        if (index === undefined || block === undefined) break;
+        const blockType = block["type"] as string | undefined;
+        if (blockType === "tool_use") {
+          blockTypes.set(index, "tool_use");
+          yield {
+            type:    "tool_use_start",
+            toolUse: {
+              id:   String(block["id"]   ?? ""),
+              name: String(block["name"] ?? ""),
+            },
+          };
+        } else {
+          blockTypes.set(index, "text");
+        }
+        break;
+      }
+
+      case "content_block_delta": {
+        const index = event["index"] as number | undefined;
+        const delta = event["delta"] as Record<string, unknown> | undefined;
+        if (index === undefined || delta === undefined) break;
+        const deltaType = delta["type"] as string | undefined;
+
+        if (deltaType === "text_delta") {
+          yield { type: "text_delta", text: String(delta["text"] ?? "") };
+        } else if (deltaType === "input_json_delta") {
+          // Tool input accumulated — NOT yielded (security: may contain secrets).
+          // Emit a typed event that callers can choose to ignore.
+          yield {
+            type:    "tool_use_input_delta",
+            toolUse: {
+              id:           "",
+              name:         "",
+              inputPartial: String(delta["partial_json"] ?? ""),
+            },
+          };
+        }
+        break;
+      }
+
+      case "content_block_stop": {
+        const index = event["index"] as number | undefined;
+        if (index !== undefined && blockTypes.get(index) === "tool_use") {
+          yield { type: "tool_use_end", toolUse: { id: "", name: "" } };
+        }
+        break;
+      }
+
+      case "message_delta": {
+        const usage = event["usage"] as Record<string, unknown> | undefined;
+        yield {
+          type:  "message_done",
+          usage: {
+            inputTokens:  0, // input tokens are in message_start
+            outputTokens: Number(usage?.["output_tokens"] ?? 0),
+          },
+        };
+        break;
+      }
+
+      case "message_stop":
+        yield { type: "message_done" };
+        break;
+
+      case "error": {
+        const errObj = event["error"] as Record<string, unknown> | undefined;
+        yield { type: "error", error: String(errObj?.["message"] ?? "Unknown stream error") };
+        break;
+      }
+    }
   }
 
   estimateTokens(messages: LLMMessage[]): number {

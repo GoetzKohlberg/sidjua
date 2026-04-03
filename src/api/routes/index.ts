@@ -75,6 +75,8 @@ import type { ActivityEmitter }          from "../../core/activity/activity-emit
 import type { HeartbeatMonitor }         from "../../agents/heartbeat.js";
 import { registerMcpRoutes }             from "./mcp-routes.js";
 import type { McpRegistry }             from "../../core/mcp/mcp-registry.js";
+import { registerStreamRoutes }          from "./stream-routes.js";
+export type { StreamRouteServices }      from "./stream-routes.js";
 
 import type { AgentRegistryLike }   from "./agents.js";
 import type { SecretRouteServices }    from "./secrets.js";
@@ -311,6 +313,13 @@ export function registerAllRoutes(app: Hono, services: AllRouteServices = {}): v
   if (services.mcpRegistry != null) {
     registerMcpRoutes(app, { mcpRegistry: services.mcpRegistry });
   }
+
+  // P377: LLM SSE streaming endpoint
+  registerStreamRoutes(app, {
+    mcpRegistry: services.mcpRegistry ?? null,
+    workDir,
+    db,
+  });
 
   // Blue/Green update routes
   registerUpdaterRoutes(app);

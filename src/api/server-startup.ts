@@ -46,6 +46,7 @@ import { wireFreezeAuditDb }     from "../core/agents/freeze-audit.js";
 import { reconcileOnStartup }    from "../core/agents/reconcile.js";
 import { runMigrations, getSchemaVersion } from "../core/updater/migrations/index.js";
 import { McpRegistry } from "../core/mcp/mcp-registry.js";
+import { scanModules, buildModuleConfigMap } from "../core/modules/index.js";
 
 const logger = createLogger("api-server-cli");
 
@@ -306,6 +307,13 @@ export async function runServerStart(
   const mcpSecretResolver = (key: string): string | undefined => process.env[key];
   const mcpRegistry = new McpRegistry(mcpSecretResolver);
   await mcpRegistry.initialize(join(opts.workDir, "config", "mcp-servers.yaml"));
+
+  // ── Module SDK — scan modules/ and register as additional MCP servers ────
+  const installedModules = scanModules(join(opts.workDir, "modules"));
+  if (installedModules.length > 0) {
+    const moduleConfigs = buildModuleConfigMap(installedModules);
+    await mcpRegistry.initializeWithModules(moduleConfigs);
+  }
 
   // ── Register all API routes (agents, tasks, costs, audit, etc.) ──────────
   const uploadStore  = db !== null ? new UploadStore(db) : null;

@@ -124,6 +124,27 @@ export interface ModelDefinition {
 }
 
 
+/**
+ * A single event emitted by a streaming LLM call.
+ * Used by chatStream() and executeWithToolLoopStreaming().
+ */
+export interface LlmStreamEvent {
+  type: "text_delta" | "tool_use_start" | "tool_use_input_delta" | "tool_use_end" | "message_done" | "error";
+  /** For text_delta: the token text. */
+  text?: string;
+  /** For tool_use_start / tool_use_end / tool_use_input_delta. */
+  toolUse?: {
+    id:            string;
+    name:          string;
+    /** JSON fragment being built — only populated for tool_use_input_delta. */
+    inputPartial?: string;
+  };
+  /** For message_done: token usage. */
+  usage?: { inputTokens: number; outputTokens: number };
+  /** For error: human-readable description. */
+  error?: string;
+}
+
 export interface ProviderAdapter {
   readonly providerName: string;
   readonly defaultModel: string;
@@ -133,6 +154,15 @@ export interface ProviderAdapter {
 
   /** Chat with AGENT_DECISION_TOOLS injected. */
   chatWithTools(request: LLMRequest, tools: ToolDefinition[]): Promise<ToolLLMResponse>;
+
+  /**
+   * Streaming chat completion.
+   * Optional — providers that don't implement this fall back to chatWithTools().
+   * Yields LlmStreamEvent items token-by-token.
+   * Tool input deltas (tool_use_input_delta) MUST NOT be forwarded to the client
+   * because they may contain secrets.
+   */
+  chatStream?(request: LLMRequest, tools?: ToolDefinition[]): AsyncGenerator<LlmStreamEvent>;
 
   /** Heuristic token estimation for pre-call budget checks. */
   estimateTokens(messages: LLMMessage[]): number;

@@ -42,3 +42,4 @@ export type {
   ToolLoopContext,
   ToolLoopResult,
 } from "./tool-executor.js";
+export { executeWithToolLoopStreaming } from "./tool-executor-streaming.js";

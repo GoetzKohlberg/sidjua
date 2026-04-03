@@ -540,6 +540,7 @@ async function createWorkspace(workDir: string, quiet: boolean): Promise<void> {
     "agents/templates",
     "governance/boundaries",
     "docs",
+    "modules",
   ];
 
   for (const d of dirs) {

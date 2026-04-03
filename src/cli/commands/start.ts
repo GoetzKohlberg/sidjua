@@ -22,6 +22,7 @@ import { createLogger } from "../../core/logger.js";
 import { createApiServer, DEFAULT_SERVER_CONFIG } from "../../api/server.js";
 import { registerAllRoutes } from "../../api/routes/index.js";
 import { McpRegistry } from "../../core/mcp/mcp-registry.js";
+import { scanModules, buildModuleConfigMap } from "../../core/modules/index.js";
 import { openDatabase } from "../../utils/db.js";
 import { AgentRegistry } from "../../agent-lifecycle/agent-registry.js";
 import { readYamlFile } from "../../utils/yaml.js";
@@ -459,6 +460,13 @@ export async function runStartCommand(opts: StartCommandOptions): Promise<number
     const mcpSecretResolver = (key: string): string | undefined => process.env[key];
     const mcpRegistry = new McpRegistry(mcpSecretResolver);
     await mcpRegistry.initialize(join(opts.workDir, "config", "mcp-servers.yaml"));
+
+    // ── Module SDK — scan modules/ and register as additional MCP servers ──
+    const installedModules = scanModules(join(opts.workDir, "modules"));
+    if (installedModules.length > 0) {
+      const moduleConfigs = buildModuleConfigMap(installedModules);
+      await mcpRegistry.initializeWithModules(moduleConfigs);
+    }
 
     // Register all API routes (tasks, agents, divisions, costs, governance, etc.)
     const messagingRouteServices = messagingGateway !== null && messagingRegistry !== null

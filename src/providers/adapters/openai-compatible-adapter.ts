@@ -22,6 +22,7 @@ import type {
   LLMMessage,
   LLMRequest,
   LLMResponse,
+  LlmStreamEvent,
   ModelDefinition,
   ProviderAdapter,
   ToolCall,
@@ -124,6 +125,127 @@ export class OpenAICompatibleAdapter implements ProviderAdapter {
     const start = Date.now();
     const raw   = await this.post("/chat/completions", body);
     return this.parseToolResponse(raw, model, start);
+  }
+
+  async *chatStream(request: LLMRequest, tools?: ToolDefinition[]): AsyncGenerator<LlmStreamEvent> {
+    const model = request.model ?? this.defaultModel;
+    const body  = this.buildBody(request, model, tools);
+    const url   = `${this.baseUrl}/chat/completions`;
+
+    const controller = new AbortController();
+    const timer      = setTimeout(() => controller.abort(), this.timeout);
+
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method:  "POST",
+        headers: {
+          "Authorization": `Bearer ${this.apiKey}`,
+          "Content-Type":  "application/json",
+          ...this.customHeaders,
+        },
+        body:   JSON.stringify({ ...body, stream: true }),
+        signal: controller.signal,
+      });
+    } catch (err: unknown) {
+      clearTimeout(timer);
+      yield { type: "error", error: err instanceof Error ? err.message : String(err) };
+      return;
+    }
+    clearTimeout(timer);
+
+    if (!res.ok) {
+      yield { type: "error", error: `API error: ${res.status}` };
+      return;
+    }
+
+    const reader = res.body?.getReader();
+    if (reader === undefined || reader === null) {
+      yield { type: "error", error: "No response body" };
+      return;
+    }
+
+    const decoder = new TextDecoder();
+    let buffer    = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const data = line.slice(6).trim();
+          if (data === "[DONE]") return;
+
+          let chunk: Record<string, unknown>;
+          try {
+            chunk = JSON.parse(data) as Record<string, unknown>;
+          } catch (_parseErr: unknown) {
+            continue; // skip malformed SSE chunk
+          }
+
+          yield* this.parseOpenAiChunk(chunk);
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
+  }
+
+  private *parseOpenAiChunk(chunk: Record<string, unknown>): Generator<LlmStreamEvent> {
+    const choices = chunk["choices"] as Array<Record<string, unknown>> | undefined;
+    if (!Array.isArray(choices) || choices.length === 0) return;
+
+    const choice = choices[0] as Record<string, unknown>;
+    const delta  = choice["delta"] as Record<string, unknown> | undefined;
+    if (delta === undefined) return;
+
+    // Text content
+    const content = delta["content"];
+    if (typeof content === "string" && content.length > 0) {
+      yield { type: "text_delta", text: content };
+    }
+
+    // Tool calls
+    const toolCalls = delta["tool_calls"] as Array<Record<string, unknown>> | undefined;
+    if (Array.isArray(toolCalls)) {
+      for (const tc of toolCalls) {
+        const fn = tc["function"] as Record<string, unknown> | undefined;
+        // New tool call: has id
+        if (typeof tc["id"] === "string" && tc["id"].length > 0) {
+          yield {
+            type:    "tool_use_start",
+            toolUse: {
+              id:   String(tc["id"]),
+              name: String(fn?.["name"] ?? ""),
+            },
+          };
+        }
+        // Input delta: may contain secrets — NOT forwarded
+        const args = fn?.["arguments"];
+        if (typeof args === "string" && args.length > 0) {
+          yield {
+            type:    "tool_use_input_delta",
+            toolUse: {
+              id:           String(tc["id"] ?? ""),
+              name:         "",
+              inputPartial: args,
+            },
+          };
+        }
+      }
+    }
+
+    // Finish reason signals end of message
+    const finishReason = choice["finish_reason"];
+    if (finishReason !== null && finishReason !== undefined) {
+      yield { type: "message_done" };
+    }
   }
 
   estimateTokens(messages: LLMMessage[]): number {

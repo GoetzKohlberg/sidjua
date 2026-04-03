@@ -303,4 +303,55 @@ export class McpRegistry {
     await this.shutdown();
     await this.initialize(path);
   }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Module Integration
+  // ──────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Register additional MCP servers derived from installed modules.
+   * Call after initialize() — module configs are merged with any
+   * YAML-configured servers (YAML wins on name collision).
+   */
+  async initializeWithModules(moduleConfigs: Map<string, McpServerConfig>): Promise<void> {
+    if (moduleConfigs.size === 0) return;
+
+    let registered = 0;
+    for (const [name, config] of moduleConfigs) {
+      // YAML-configured server with same name takes precedence
+      if (this.clients.has(name)) {
+        logger.info("mcp_module_skipped_yaml_wins", "YAML server config overrides module", {
+          metadata: { server: name },
+        });
+        continue;
+      }
+
+      try {
+        const resolved = this.resolveSecrets(config);
+        this.validateConfig(name, resolved);
+        const client = new McpClient(name, resolved);
+        await client.connect();
+        this.clients.set(name, client);
+
+        for (const tool of client.getTools()) {
+          if (this.toolIndex.has(tool.name)) {
+            logger.warn("mcp_tool_name_conflict", "Tool name conflict — later server wins", {
+              metadata: { tool: tool.name, existing: this.toolIndex.get(tool.name), replacing: name },
+            });
+          }
+          this.toolIndex.set(tool.name, name);
+        }
+        registered++;
+      } catch (err: unknown) {
+        logger.warn("mcp_module_init_failed", "Failed to initialize module MCP server — skipping", {
+          metadata: { server: name, error: err instanceof Error ? err.message : String(err) },
+        });
+        // Continue with other modules
+      }
+    }
+
+    logger.info("mcp_modules_registered", "Module MCP servers registered", {
+      metadata: { registered, total: moduleConfigs.size },
+    });
+  }
 }
