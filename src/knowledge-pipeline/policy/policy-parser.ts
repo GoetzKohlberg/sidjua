@@ -9,7 +9,7 @@
 
 import OpenAI from "openai";
 import type { PolicyRuleInput, PolicyRuleType, PolicyEnforcementLevel } from "../types.js";
-import { logger as defaultLogger, type Logger } from "../../utils/logger.js";
+import { createLogger, type Logger } from "../../core/logger.js";
 
 export interface ParsedPolicyRule extends PolicyRuleInput {
   raw_input: string;
@@ -22,7 +22,7 @@ export class PolicyParser {
   constructor(
     apiKey?: string,
     private readonly model = "gpt-4o-mini",
-    private readonly logger: Logger = defaultLogger,
+    private readonly logger: Logger = createLogger("policy-parser"),
   ) {
     this.client = new OpenAI({ apiKey });
   }
@@ -79,8 +79,8 @@ Output ONLY valid JSON with these fields:
       if (parsed.escalate_to !== undefined) result.escalate_to = parsed.escalate_to;
       return result;
     } catch (err) {
-      this.logger.error("AGENT_LIFECYCLE", "PolicyParser LLM call failed", {
-        error: err instanceof Error ? err.message : String(err),
+      this.logger.error("policy_parser_llm_failed", "PolicyParser LLM call failed", {
+        metadata: { error: err instanceof Error ? err.message : String(err) },
       });
       // Fallback: create a basic custom rule
       return {

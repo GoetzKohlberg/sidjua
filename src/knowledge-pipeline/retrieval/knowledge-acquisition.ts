@@ -14,7 +14,7 @@ import type {
   RetrievalResult,
 } from "../types.js";
 import type { KnowledgeAction } from "./knowledge-action.js";
-import { logger as defaultLogger, type Logger } from "../../utils/logger.js";
+import { createLogger, type Logger } from "../../core/logger.js";
 
 export interface AcquisitionOptions {
   /** Minimum results from step 1 to skip step 2. Default: 1. */
@@ -27,7 +27,7 @@ export interface AcquisitionOptions {
 export class KnowledgeAcquisitionManager {
   constructor(
     private readonly knowledgeAction: KnowledgeAction,
-    private readonly logger: Logger = defaultLogger,
+    private readonly logger: Logger = createLogger("knowledge-acquisition"),
   ) {}
 
   async acquire(
@@ -43,9 +43,8 @@ export class KnowledgeAcquisitionManager {
     let finalResults: RetrievalResult[] = [];
 
     // Step 1: Local query
-    this.logger.debug("AGENT_LIFECYCLE", "KnowledgeAcquisition Step 1: local query", {
-      agent_id: agent.agent_id,
-      query,
+    this.logger.debug("knowledge_acquisition_step1", "KnowledgeAcquisition Step 1: local query", {
+      metadata: { agent_id: agent.agent_id, query },
     });
 
     const localResult = await this.knowledgeAction.query(agent, query, { top_k: topK });
@@ -71,9 +70,8 @@ export class KnowledgeAcquisitionManager {
 
     // Step 2: Web search (if available)
     if (webAvailable) {
-      this.logger.debug("AGENT_LIFECYCLE", "KnowledgeAcquisition Step 2: web search", {
-        agent_id: agent.agent_id,
-        query,
+      this.logger.debug("knowledge_acquisition_step2", "KnowledgeAcquisition Step 2: web search", {
+        metadata: { agent_id: agent.agent_id, query },
       });
 
       const step2: KnowledgeAcquisitionStep = {
@@ -90,11 +88,10 @@ export class KnowledgeAcquisitionManager {
 
     // Step 3: Escalate
     this.logger.info(
-      "AGENT_LIFECYCLE",
+      "knowledge_acquisition_step3",
       "KnowledgeAcquisition Step 3: escalating to supervisor",
       {
-        agent_id: agent.agent_id,
-        query,
+        metadata: { agent_id: agent.agent_id, query },
       },
     );
 

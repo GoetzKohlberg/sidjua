@@ -26,7 +26,9 @@ import type { ParsedConfig } from "../types/config.js";
 import type { RoutingTable, Route } from "../types/apply.js";
 import { ApplyError, type StepResult } from "../types/apply.js";
 import { getAgentTier } from "./rbac.js";
-import { logger } from "../utils/logger.js";
+import { createLogger } from "../core/logger.js";
+
+const logger = createLogger("apply-routing");
 
 
 export function generateRoutingTable(config: ParsedConfig): RoutingTable {
@@ -115,7 +117,7 @@ export function applyRouting(config: ParsedConfig, workDir: string): StepResult 
 
     writeFileSync(outPath, yaml, "utf-8");
 
-    logger.info("ROUTING", `Generated routing-table.yaml: ${table.routes.length} routes, default → ${table.default_route.agent}`);
+    logger.info("routing", `Generated routing-table.yaml: ${table.routes.length} routes, default → ${table.default_route.agent}`);
 
     return {
       step: "ROUTING",

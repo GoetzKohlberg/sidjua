@@ -12,7 +12,7 @@
 
 import { join } from "node:path";
 import { TaskStore } from "../../tasks/store.js";
-import { openCliDatabase } from "../utils/db-init.js";
+import { withCliDatabase } from "../utils/with-cli-database.js";
 import { formatAge } from "../utils/format.js";
 import { createLogger } from "../../core/logger.js";
 
@@ -45,12 +45,9 @@ interface AgentRow {
 
 
 export function runAgentsCommand(opts: AgentsCommandOptions): number {
-  const db = openCliDatabase({ workDir: opts.workDir, queryOnly: true });
-  if (!db) return 1;
+  return withCliDatabase({ workDir: opts.workDir, queryOnly: true }, (db) => {
+    const store = new TaskStore(db);
 
-  const store = new TaskStore(db);
-
-  try {
     let agentRows: AgentRow[] = [];
 
     try {
@@ -64,7 +61,6 @@ export function runAgentsCommand(opts: AgentsCommandOptions): number {
       } else {
         process.stdout.write("No agent instances found.\n");
       }
-      db.close();
       return 0;
     }
 
@@ -78,14 +74,12 @@ export function runAgentsCommand(opts: AgentsCommandOptions): number {
       const agent = agentRows.find((a) => a.agent_id === opts.agentId);
       if (agent === undefined) {
         process.stderr.write(`✗ Agent not found: ${opts.agentId}\n`);
-        db.close();
         return 1;
       }
 
       if (opts.json) {
         const activeTasks = store.getByAgent(agent.agent_id);
         process.stdout.write(formatJson({ agent, active_tasks: activeTasks }) + "\n");
-        db.close();
         return 0;
       }
 
@@ -95,13 +89,11 @@ export function runAgentsCommand(opts: AgentsCommandOptions): number {
     // List mode
     if (opts.json) {
       process.stdout.write(formatJson(agentRows) + "\n");
-      db.close();
       return 0;
     }
 
     if (agentRows.length === 0) {
       process.stdout.write("No agents found.\n");
-      db.close();
       return 0;
     }
 
@@ -136,13 +128,8 @@ export function runAgentsCommand(opts: AgentsCommandOptions): number {
       ` Total cost this session: $${totalCost.toFixed(2)}\n`,
     );
 
-    db.close();
     return 0;
-  } catch (err) {
-    process.stderr.write(`✗ Error: ${String(err)}\n`);
-    db.close();
-    return 1;
-  }
+  });
 }
 
 

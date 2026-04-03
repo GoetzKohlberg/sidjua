@@ -29,7 +29,9 @@ import type {
 } from "./types.js";
 import { WorkDistributor } from "./distributor.js";
 import type { TaskTreeManager } from "./tree-manager.js";
-import { logger } from "../utils/logger.js";
+import { createLogger } from "../core/logger.js";
+
+const logger = createLogger("escalation");
 
 
 interface EscalationLogRow {
@@ -100,12 +102,12 @@ export class EscalationManager {
     const fromAgent = task.assigned_agent ?? "unknown";
     const fromTier  = task.tier;
 
-    logger.info("ESCALATION", "Escalating task", {
-      task_id:   task.id,
+    logger.info("escalation", "Escalating task", { metadata: {
+      task_id:    task.id,
       from_agent: fromAgent,
-      from_tier: fromTier,
+      from_tier:  fromTier,
       reason,
-    });
+    } });
 
     const record: EscalationRecord = {
       task_id:    task.id,
@@ -131,10 +133,10 @@ export class EscalationManager {
         record.resolution = "reassigned";
         this.writeLog(record);
 
-        logger.info("ESCALATION", "Task reassigned to same-tier agent", {
-          task_id:    task.id,
-          new_agent:  assignment.agent_id,
-        });
+        logger.info("escalation", "Task reassigned to same-tier agent", { metadata: {
+          task_id:   task.id,
+          new_agent: assignment.agent_id,
+        } });
 
         return {
           action:       "reassigned",
@@ -186,7 +188,7 @@ export class EscalationManager {
   handleHumanDecision(taskId: string, decision: HumanDecision): void {
     const task = this.store.get(taskId);
     if (task === null) {
-      logger.warn("ESCALATION", "Human decision for unknown task", { taskId });
+      logger.warn("escalation", "Human decision for unknown task", { metadata: { taskId } });
       return;
     }
 
@@ -240,10 +242,10 @@ export class EscalationManager {
       }
     }
 
-    logger.info("ESCALATION", "Human decision applied", {
+    logger.info("escalation", "Human decision applied", { metadata: {
       task_id: taskId,
       action:  decision.action,
-    });
+    } });
   }
 
   // ---------------------------------------------------------------------------
@@ -305,12 +307,12 @@ export class EscalationManager {
 
     this.writeLog(record);
 
-    logger.info("ESCALATION", "Task escalated to parent tier", {
+    logger.info("escalation", "Task escalated to parent tier", { metadata: {
       task_id:   task.id,
       from_tier: task.tier,
       to_tier:   toTier,
       reason,
-    });
+    } });
 
     return {
       action:       "escalated_to_parent",
@@ -377,10 +379,10 @@ export class EscalationManager {
     record.resolution = null;
     this.writeLog(record);
 
-    logger.info("ESCALATION", "Timeout: task reset to PENDING", {
+    logger.info("escalation", "Timeout: task reset to PENDING", { metadata: {
       task_id:     task.id,
       retry_count: newRetry,
-    });
+    } });
 
     return {
       action:       "retrying",
@@ -423,10 +425,10 @@ export class EscalationManager {
     this.writeLog(record);
     this.writeHumanDecision(task.id, reason);
 
-    logger.warn("ESCALATION", "Task requires human intervention", {
+    logger.warn("escalation", "Task requires human intervention", { metadata: {
       task_id: task.id,
       reason,
-    });
+    } });
 
     return {
       action:       "human_required",

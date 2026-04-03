@@ -25,7 +25,9 @@ import type {
   TimedOutTask,
 } from "./types.js";
 import { PriorityQueue } from "./priority-queue.js";
-import { logger } from "../utils/logger.js";
+import { createLogger } from "../core/logger.js";
+
+const logger = createLogger("ack-tracker");
 
 
 interface AckHistoryRow {
@@ -68,7 +70,7 @@ export class AckTracker {
     const allowed = VALID_TRANSITIONS.get(from);
     if (allowed === undefined || !allowed.has(to)) {
       const reason = `Transition ${from} → ${to} is not allowed`;
-      logger.warn("ACK_TRACKER", "Invalid transition", { task_id, from, to });
+      logger.warn("ack_tracker", "Invalid transition", { metadata: { task_id, from, to } });
       return { valid: false, reason };
     }
 
@@ -112,12 +114,12 @@ export class AckTracker {
     // Notify producer
     this.notifyProducer(notification);
 
-    logger.debug("ACK_TRACKER", "State transition", {
+    logger.debug("ack_tracker", "State transition", { metadata: {
       task_id,
       from,
       to,
       agent_id,
-    });
+    } });
 
     return { valid: true, notification };
   }
@@ -145,7 +147,7 @@ export class AckTracker {
         details:           notification.details,
       },
     }).catch((err: unknown) => {
-      logger.warn("ACK_TRACKER", "Failed to emit PIPELINE_ACK_UPDATE", { error: err });
+      logger.warn("ack_tracker", "Failed to emit PIPELINE_ACK_UPDATE", { metadata: { error: err } });
     });
   }
 

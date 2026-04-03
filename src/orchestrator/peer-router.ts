@@ -21,7 +21,9 @@ import { TaskStore } from "../tasks/store.js";
 import { TaskEventBus } from "../tasks/event-bus.js";
 import type { AgentInstance, PeerRouteResult } from "./types.js";
 import { WorkDistributor } from "./distributor.js";
-import { logger } from "../utils/logger.js";
+import { createLogger } from "../core/logger.js";
+
+const logger = createLogger("peer-router");
 
 
 export class PeerRouter {
@@ -51,10 +53,10 @@ export class PeerRouter {
    */
   route(consultation: Task): PeerRouteResult {
     if (consultation.type !== "consultation") {
-      logger.warn("PEER_ROUTER", "Non-consultation task passed to route()", {
+      logger.warn("peer_router", "Non-consultation task passed to route()", { metadata: {
         task_id: consultation.id,
         type:    consultation.type,
-      });
+      } });
       return {
         routed:     false,
         peer_agent: null,
@@ -68,10 +70,10 @@ export class PeerRouter {
     const peer = this.distributor.findPeer(requestingAgentId, consultation, allAgents);
 
     if (peer === null) {
-      logger.info("PEER_ROUTER", "No peer available for consultation", {
+      logger.info("peer_router", "No peer available for consultation", { metadata: {
         task_id:          consultation.id,
         requesting_agent: requestingAgentId,
-      });
+      } });
       return {
         routed:     false,
         peer_agent: null,
@@ -102,11 +104,11 @@ export class PeerRouter {
       peerInstance.process.send({ type: "TASK_ASSIGNED", task_id: consultation.id });
     }
 
-    logger.info("PEER_ROUTER", "Consultation routed to peer", {
+    logger.info("peer_router", "Consultation routed to peer", { metadata: {
       task_id:          consultation.id,
       requesting_agent: requestingAgentId,
       peer_agent:       peer.definition.id,
-    });
+    } });
 
     return {
       routed:     true,

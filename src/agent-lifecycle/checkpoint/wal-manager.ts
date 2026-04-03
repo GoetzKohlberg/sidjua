@@ -11,7 +11,9 @@
 
 import { sha256hex } from "../../core/crypto-utils.js";
 import type { Database } from "../../utils/db.js";
-import { logger as defaultLogger } from "../../utils/logger.js";
+import { createLogger } from "../../core/logger.js";
+
+const _walLogger = createLogger("wal-manager");
 import { SidjuaError } from "../../core/error-codes.js";
 
 
@@ -107,9 +109,8 @@ export class WALManager {
 
     for (const entry of rows) {
       if (!this.verifyEntry(entry)) {
-        defaultLogger.error("AGENT_LIFECYCLE", "WAL checksum mismatch — halting agent execution", {
-          agent_id: agentId,
-          sequence: String(entry.sequence),
+        _walLogger.error("wal_checksum_mismatch", "WAL checksum mismatch — halting agent execution", {
+          metadata: { agent_id: agentId, sequence: String(entry.sequence) },
         });
         throw SidjuaError.from(
           "WAL-001",

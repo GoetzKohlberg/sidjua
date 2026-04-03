@@ -26,7 +26,7 @@ import type { AgentProcess } from "../../agents/process.js";
 import type { AgentIPCMessage } from "../../agents/types.js";
 import type { CommunicationChannel } from "./channel.js";
 import type { MessageEnvelope, MessageType, ConfigUpdatePayload } from "./types.js";
-import { logger as defaultLogger, type Logger } from "../../utils/logger.js";
+import { createLogger, type Logger } from "../../core/logger.js";
 
 
 export class LocalIPCChannel implements CommunicationChannel {
@@ -40,7 +40,7 @@ export class LocalIPCChannel implements CommunicationChannel {
     private readonly agentProcess: AgentProcess,
     private readonly localId: string,
     private readonly remoteId: string,
-    private readonly logger: Logger = defaultLogger,
+    private readonly logger: Logger = createLogger("local-ipc-channel"),
   ) {
     // Forward inbound AgentIPCMessages to envelope subscribers
     this.agentProcess.onMessage((msg) => {
@@ -154,8 +154,8 @@ export class LocalIPCChannel implements CommunicationChannel {
       case "task_assign": {
         const taskId = envelope.payload["task_id"];
         if (typeof taskId !== "string") {
-          this.logger.warn("AGENT_LIFECYCLE", "task_assign envelope missing task_id", {
-            envelope_id: envelope.id,
+          this.logger.warn("task_assign_missing_task_id", "task_assign envelope missing task_id", {
+            metadata: { envelope_id: envelope.id },
           });
           return null;
         }
@@ -173,18 +173,22 @@ export class LocalIPCChannel implements CommunicationChannel {
         const requiresRestart = payload.requires_restart ?? false;
 
         if (requiresRestart) {
-          this.logger.info("AGENT_LIFECYCLE", "config_update requires restart — checkpointing agent", {
-            envelope_id: envelope.id,
-            from: envelope.from,
-            config_hash: payload.config_hash ?? "unknown",
+          this.logger.info("config_update_restart_required", "config_update requires restart — checkpointing agent", {
+            metadata: {
+              envelope_id: envelope.id,
+              from: envelope.from,
+              config_hash: payload.config_hash ?? "unknown",
+            },
           });
           // Trigger graceful checkpoint + shutdown; orchestrator will restart with new config.
           void this._requestCheckpointAndRestart();
         } else {
-          this.logger.info("AGENT_LIFECYCLE", "config_update applied immediately (no restart)", {
-            envelope_id: envelope.id,
-            from: envelope.from,
-            config_hash: payload.config_hash ?? "unknown",
+          this.logger.info("config_update_applied", "config_update applied immediately (no restart)", {
+            metadata: {
+              envelope_id: envelope.id,
+              from: envelope.from,
+              config_hash: payload.config_hash ?? "unknown",
+            },
           });
           // Emit config_ack so the orchestrator knows the update was accepted.
           const ack: MessageEnvelope = {

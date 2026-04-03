@@ -28,7 +28,9 @@ import type { DiscordModuleConfig } from "../../modules/discord/discord-types.js
 import { DISCORD_SERVICE_FILE } from "../../modules/discord/templates.js";
 import { readPidFile }          from "../../modules/discord/gateway-daemon.js";
 import { isProcessAlive }       from "../utils/process.js";
+import { createLogger }         from "../../core/logger.js";
 
+const logger    = createLogger("discord");
 const MODULE_ID = "discord";
 
 
@@ -377,7 +379,8 @@ async function resolveConfig(workDir: string): Promise<DiscordModuleConfig | nul
     if (conf["announcements_channel"]) discordConfig.announcements_channel = conf["announcements_channel"];
     if (conf["default_channel_id"])    discordConfig.default_channel_id    = conf["default_channel_id"];
     return discordConfig;
-  } catch (e: unknown) { /* intentionally ignored: Discord config load failure — module may not be configured */ void e;
+  } catch (err: unknown) {
+    logger.warn("resolve_config", "Discord config load failed unexpectedly", { metadata: { error: String(err) } });
     return null;
   }
 }

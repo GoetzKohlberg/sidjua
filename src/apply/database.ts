@@ -24,8 +24,10 @@ import type { ParsedConfig } from "../types/config.js";
 import { ApplyError, type StepResult } from "../types/apply.js";
 import { openDatabase, runMigrations, type Database, type DbMigration } from "../utils/db.js";
 import { loadDefaultDivisions } from "../defaults/loader.js";
-import { logger } from "../utils/logger.js";
+import { createLogger } from "../core/logger.js";
 import { seedOrgChart, assignOrphanAgents } from "../org-chart/org-chart-seeder.js";
+
+const logger = createLogger("apply-database");
 
 
 const V1_INITIAL: DbMigration = {
@@ -260,7 +262,7 @@ export function applyDatabase(
 
   try {
     const dbPath = join(workDir, ".system", "sidjua.db");
-    logger.info("DATABASE", "Opening main database", { dbPath });
+    logger.info("database", "Opening main database", { metadata: { dbPath } });
 
     const db = openDatabase(dbPath);
 
@@ -270,7 +272,7 @@ export function applyDatabase(
 
     // Run pending migrations
     const migrationsApplied = runMigrations(db, MIGRATIONS);
-    logger.info("DATABASE", `Migrations applied: ${migrationsApplied}`);
+    logger.info("database", `Migrations applied: ${migrationsApplied}`);
 
     // Conditionally add cost_type column for databases created before v0.9.7.
     // V1_INITIAL already includes the column; this is only needed for older on-disk databases.
@@ -279,7 +281,7 @@ export function applyDatabase(
     if (!hasCostType) {
       db.exec("ALTER TABLE cost_ledger ADD COLUMN cost_type TEXT NOT NULL DEFAULT 'llm_call'");
       db.exec("CREATE INDEX IF NOT EXISTS idx_cost_type ON cost_ledger(cost_type)");
-      logger.info("DATABASE", "Added cost_type column to cost_ledger (pre-0.9.7 upgrade)");
+      logger.info("database", "Added cost_type column to cost_ledger (pre-0.9.7 upgrade)");
     }
 
     // V3: add org-chart columns to agents table for pre-v0.10.1 databases.
@@ -318,16 +320,16 @@ export function applyDatabase(
 
     // Sync divisions table
     const { inserted, updated, deactivated } = syncDivisions(db, config);
-    logger.info("DATABASE", "Divisions synced", { inserted, updated, deactivated });
+    logger.info("database", "Divisions synced", { metadata: { inserted, updated, deactivated } });
 
     // Ensure cost_budgets rows for all active divisions
     const budgetsInitialised = ensureBudgetRows(db, config);
-    logger.info("DATABASE", `Budget rows initialised: ${budgetsInitialised}`);
+    logger.info("database", `Budget rows initialised: ${budgetsInitialised}`);
 
     // Seed org chart hierarchy (C-level positions for core agents) — idempotent
     const orgSeeded       = seedOrgChart(db);
     const orphansAssigned = assignOrphanAgents(db);
-    logger.info("DATABASE", `Org chart: ${orgSeeded} agents positioned, ${orphansAssigned} orphans assigned`);
+    logger.info("database", `Org chart: ${orgSeeded} agents positioned, ${orphansAssigned} orphans assigned`);
 
     const summary =
       `${migrationsApplied} migrations applied, ` +
@@ -465,7 +467,7 @@ function syncDefaultDivisions(db: Database): void {
   try {
     divisions = loadDefaultDivisions();
   } catch (err) {
-    logger.warn("DATABASE", `Could not load default divisions (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
+    logger.warn("database", `Could not load default divisions (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
     return;
   }
 

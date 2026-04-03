@@ -589,7 +589,8 @@ export function listBackups(backupsRoot: string = defaultBackupsRoot()): BackupE
   let names: string[];
   try {
     names = readdirSync(backupsRoot);
-  } catch (_e) {
+  } catch (err) {
+    logger.warn("list_backups_read_dir", "Failed to read backups directory", { metadata: { error: String(err) } });
     return [];
   }
 

@@ -22,7 +22,9 @@ import type {
   TreeStatus,
   PartialFailureAction,
 } from "./types.js";
-import { logger } from "../utils/logger.js";
+import { createLogger } from "../core/logger.js";
+
+const logger = createLogger("synthesis");
 
 
 export class SynthesisCollector {
@@ -62,10 +64,10 @@ export class SynthesisCollector {
 
     const parent = this.store.get(completedTask.parent_id);
     if (parent === null) {
-      logger.warn("SYNTHESIS", "Parent task not found for completed child", {
+      logger.warn("synthesis", "Parent task not found for completed child", { metadata: {
         child_id:  completedTask.id,
         parent_id: completedTask.parent_id,
-      });
+      } });
       return {
         ready:             false,
         parent_task_id:    completedTask.parent_id,
@@ -84,12 +86,12 @@ export class SynthesisCollector {
     const completedChildren = newReceived;
     const remaining        = Math.max(0, totalChildren - completedChildren);
 
-    logger.debug("SYNTHESIS", "Sub-task result registered", {
+    logger.debug("synthesis", "Sub-task result registered", { metadata: {
       parent_id:  parent.id,
       completed:  completedChildren,
       total:      totalChildren,
       remaining,
-    });
+    } });
 
     if (completedChildren >= totalChildren && totalChildren > 0) {
       // All children done — collect summaries
@@ -139,7 +141,7 @@ export class SynthesisCollector {
   ): Promise<void> {
     const parent = this.store.get(parentTaskId);
     if (parent === null) {
-      logger.warn("SYNTHESIS", "Cannot trigger synthesis: parent not found", { parentTaskId });
+      logger.warn("synthesis", "Cannot trigger synthesis: parent not found", { metadata: { parentTaskId } });
       return;
     }
 
@@ -160,11 +162,11 @@ export class SynthesisCollector {
       },
     });
 
-    logger.info("SYNTHESIS", "Triggered parent synthesis", {
-      parent_id:     parentTaskId,
-      agent:         parent.assigned_agent,
-      child_count:   childSummaries.length,
-    });
+    logger.info("synthesis", "Triggered parent synthesis", { metadata: {
+      parent_id:   parentTaskId,
+      agent:       parent.assigned_agent,
+      child_count: childSummaries.length,
+    } });
   }
 
   // ---------------------------------------------------------------------------

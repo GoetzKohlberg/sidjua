@@ -14,7 +14,7 @@
  */
 
 import { join }            from "node:path";
-import { openCliDatabase } from "../utils/db-init.js";
+import { withCliDatabaseAsync } from "../utils/with-cli-database.js";
 import type Database       from "better-sqlite3";
 import { TaskStore }       from "../../tasks/store.js";
 import { TaskEventBus }    from "../../tasks/event-bus.js";
@@ -38,13 +38,10 @@ export interface TaskMonitorOptions {
 
 
 export async function runTaskMonitorCommand(opts: TaskMonitorOptions): Promise<number> {
-  const db = openCliDatabase({ workDir: opts.workDir });
-  if (db === null) return 1;
+  return withCliDatabaseAsync({ workDir: opts.workDir }, async (db) => {
+    const store  = new TaskStore(db);
+    const bridge = new ExecutionBridge(db);
 
-  const store  = new TaskStore(db);
-  const bridge = new ExecutionBridge(db);
-
-  try {
     if (opts.cancel) {
       return await handleCancel(opts.taskId, store, bridge, db, opts.json);
     }
@@ -63,10 +60,7 @@ export async function runTaskMonitorCommand(opts: TaskMonitorOptions): Promise<n
 
     // Default: show current status
     return handleStatus(opts.taskId, store, opts.json);
-
-  } finally {
-    db.close();
-  }
+  });
 }
 
 

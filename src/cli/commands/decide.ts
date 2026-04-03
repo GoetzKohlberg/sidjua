@@ -15,7 +15,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join }       from "node:path";
 import { openDatabase }    from "../../utils/db.js";
 import { validateWorkDir } from "../../utils/path-utils.js";
-import { openCliDatabase } from "../utils/db-init.js";
+import { withCliDatabaseAsync } from "../utils/with-cli-database.js";
 import { formatAge } from "../utils/format.js";
 import { sendIpc } from "../ipc-client.js";
 import { formatTable } from "../formatters/table.js";
@@ -62,10 +62,7 @@ interface EscalationLogRow {
 export async function runDecideCommand(opts: DecideCommandOptions): Promise<number> {
   const sockFile = join(opts.workDir, ".system", "orchestrator.sock");
 
-  const db = openCliDatabase({ workDir: opts.workDir });
-  if (!db) return 1;
-
-  try {
+  return withCliDatabaseAsync({ workDir: opts.workDir }, async (db) => {
     // ── List mode ──────────────────────────────────────────────────────────
 
     if (opts.taskId === undefined) {
@@ -81,9 +78,7 @@ export async function runDecideCommand(opts: DecideCommandOptions): Promise<numb
     // ── Detail view ────────────────────────────────────────────────────────
 
     return showDecisionDetail(opts, db);
-  } finally {
-    db.close();
-  }
+  });
 }
 
 

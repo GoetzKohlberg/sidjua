@@ -13,7 +13,7 @@
 import type { Database } from "../../utils/db.js";
 import type { CheckpointManager } from "../checkpoint/checkpoint-manager.js";
 import type { AgentRegistry } from "../agent-registry.js";
-import { logger as defaultLogger, type Logger } from "../../utils/logger.js";
+import { createLogger, type Logger } from "../../core/logger.js";
 import type { RecoveryResult } from "../checkpoint/checkpoint-manager.js";
 
 
@@ -30,7 +30,7 @@ export class StartupRecoveryManager {
     private readonly db: Database,
     private readonly checkpointManager: CheckpointManager,
     private readonly registry: AgentRegistry,
-    private readonly logger: Logger = defaultLogger,
+    private readonly logger: Logger = createLogger("startup-recovery"),
   ) {}
 
   /**
@@ -53,7 +53,7 @@ export class StartupRecoveryManager {
     const wasClean = shutdownClean === "true";
 
     if (wasClean) {
-      this.logger.info("RECOVERY", "Clean startup — no recovery needed");
+      this.logger.info("clean_startup", "Clean startup — no recovery needed");
       // Reset for current session (session is now running, mark unclean until shutdown)
       this._setSystemState("shutdown_clean", "false");
       return {
@@ -64,7 +64,7 @@ export class StartupRecoveryManager {
       };
     }
 
-    this.logger.warn("RECOVERY", "Unclean shutdown detected — running recovery");
+    this.logger.warn("unclean_shutdown_detected", "Unclean shutdown detected — running recovery");
 
     // Query agents that were not in a terminal state (stopped/error/deleted).
     // This catches 'active', 'processing', 'starting', 'idle', and 'stopping'
@@ -76,12 +76,12 @@ export class StartupRecoveryManager {
 
     const results: RecoveryResult[] = [];
     for (const row of rows) {
-      this.logger.info("RECOVERY", "Recovering agent", { agent_id: row.id });
+      this.logger.info("recovering_agent", "Recovering agent", { metadata: { agent_id: row.id } });
       const result = this.checkpointManager.recover(row.id);
       results.push(result);
     }
 
-    this.logger.info("RECOVERY", "Recovery complete", { agents_recovered: results.length });
+    this.logger.info("recovery_complete", "Recovery complete", { metadata: { agents_recovered: results.length } });
 
     // Mark current session as unclean until we get a clean shutdown
     this._setSystemState("shutdown_clean", "false");

@@ -66,17 +66,9 @@ function testClientKey(authHeader: string | undefined, ipHeader: string | undefi
 
 
 function isValidApiBase(url: string): boolean {
-  try {
-    const u = new URL(url);
-    if (u.protocol === "https:") return true;
-    if (
-      u.protocol === "http:" &&
-      (u.hostname === "localhost" || u.hostname === "127.0.0.1")
-    ) return true;
-    return false;
-  } catch (_urlErr: unknown) {
-    return false;
-  }
+  // Delegates to validateProviderUrl with allowCustom: true so non-standard
+  // endpoints are accepted, while private/reserved IP ranges are still blocked.
+  return validateProviderUrl(url, { allowCustom: true }).valid;
 }
 
 function maskApiKey(key: string): string {

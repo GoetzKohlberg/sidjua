@@ -9,7 +9,7 @@
  */
 
 import { join } from "node:path";
-import { openCliDatabase } from "../utils/db-init.js";
+import { withCliDatabase } from "../utils/with-cli-database.js";
 import { formatAge } from "../utils/format.js";
 import { formatTable } from "../formatters/table.js";
 import { formatJson } from "../formatters/json.js";
@@ -46,10 +46,7 @@ const PRIORITY_LABELS: Record<number, string> = {
 
 
 export function runQueueCommand(opts: QueueCommandOptions): number {
-  const db = openCliDatabase({ workDir: opts.workDir, queryOnly: true });
-  if (!db) return 1;
-
-  try {
+  return withCliDatabase({ workDir: opts.workDir, queryOnly: true }, (db) => {
     // ── Priority breakdown ─────────────────────────────────────────────────
 
     let priorityCounts: PriorityCount[] = [];
@@ -114,7 +111,6 @@ export function runQueueCommand(opts: QueueCommandOptions): number {
         by_priority:     priorityCounts,
         by_agent:        agentQueues,
       }) + "\n");
-      db.close();
       return 0;
     }
 
@@ -160,13 +156,8 @@ export function runQueueCommand(opts: QueueCommandOptions): number {
       process.stdout.write("No agent data available.\n");
     }
 
-    db.close();
     return 0;
-  } catch (err) {
-    process.stderr.write(`✗ Error: ${String(err)}\n`);
-    db.close();
-    return 1;
-  }
+  });
 }
 
 

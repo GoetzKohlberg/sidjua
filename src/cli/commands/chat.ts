@@ -503,25 +503,24 @@ Tip: You can always come back to me with:  sidjua chat guide
 
 
 async function launchAgentCreate(workDir: string): Promise<void> {
-  const { openCliDatabase }     = await import("../utils/db-init.js");
+  const { withCliDatabaseAsync } = await import("../utils/with-cli-database.js");
   const { runMigrations105 }    = await import("../../agent-lifecycle/migration.js");
   const { AgentTemplateLoader } = await import("../../agent-lifecycle/agent-template.js");
   const { AgentRegistry }       = await import("../../agent-lifecycle/agent-registry.js");
   const { interactiveCreate }   = await import("../../agent-lifecycle/cli-agent.js");
 
-  const db = openCliDatabase({ workDir });
-  if (db === null) return;
-  runMigrations105(db);
-  const templateLoader = new AgentTemplateLoader(join(workDir, "agents", "templates"));
-  const registry = new AgentRegistry(db);
+  await withCliDatabaseAsync({ workDir }, async (db) => {
+    runMigrations105(db);
+    const templateLoader = new AgentTemplateLoader(join(workDir, "agents", "templates"));
+    const registry = new AgentRegistry(db);
 
-  try {
-    const definition = await interactiveCreate(false, undefined, { workDir }, templateLoader);
-    registry.create(definition, "user");
-    stdout.write(`\n✓ Agent "${definition.id}" created!\n`);
-  } catch (err) {
-    stdout.write(`\n(Agent creation cancelled: ${String(err)})\n`);
-  } finally {
-    db.close();
-  }
+    try {
+      const definition = await interactiveCreate(false, undefined, { workDir }, templateLoader);
+      registry.create(definition, "user");
+      stdout.write(`\n✓ Agent "${definition.id}" created!\n`);
+    } catch (err) {
+      stdout.write(`\n(Agent creation cancelled: ${String(err)})\n`);
+    }
+    return 0;
+  });
 }

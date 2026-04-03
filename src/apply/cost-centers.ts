@@ -25,10 +25,9 @@ import type { ParsedConfig } from "../types/config.js";
 import type { CostCentersConfig, DivisionBudget } from "../types/apply.js";
 import { ApplyError, type StepResult } from "../types/apply.js";
 import type { Database } from "../utils/db.js";
-import { logger } from "../utils/logger.js";
 import { createLogger } from "../core/logger.js";
 
-const _logger = createLogger("cost-centers");
+const logger = createLogger("apply-cost-centers");
 
 
 const DEFAULT_GLOBAL_BUDGET: CostCentersConfig["global"] = {
@@ -54,7 +53,7 @@ function loadExistingCostCenters(filePath: string): CostCentersConfig | null {
     if (typeof raw !== "object" || raw === null) return null;
     return raw as CostCentersConfig;
   } catch (e: unknown) {
-    _logger.debug("cost-centers", "Cost centers config not found or malformed — using defaults", { metadata: { error: e instanceof Error ? e.message : String(e) } });
+    logger.debug("cost-centers", "Cost centers config not found or malformed — using defaults", { metadata: { error: e instanceof Error ? e.message : String(e) } });
     return null;
   }
 }
@@ -133,7 +132,7 @@ export function applyCostCenters(
     syncCostBudgetsToDb(db, merged);
 
     logger.info(
-      "COST_CENTERS",
+      "cost_centers",
       `Cost centers: ${activeCodes.length} budgets configured (${added} new, ${preserved} preserved)`,
     );
 

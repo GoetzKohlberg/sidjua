@@ -23,10 +23,9 @@ import { join } from "node:path";
 import type { ParsedConfig } from "../types/config.js";
 import type { ApplyHistoryEntry, LastApplyState, StateFile } from "../types/apply.js";
 import { ApplyError, type StepResult } from "../types/apply.js";
-import { logger } from "../utils/logger.js";
 import { createLogger } from "../core/logger.js";
 
-const _logger = createLogger("finalize");
+const logger = createLogger("apply-finalize");
 
 
 /**
@@ -57,7 +56,7 @@ function loadExistingState(statePath: string): StateFile | null {
     if (typeof raw !== "object" || raw === null) return null;
     return raw as StateFile;
   } catch (e: unknown) {
-    _logger.debug("finalize", "State file not found or malformed — starting fresh", { metadata: { error: e instanceof Error ? e.message : String(e) } });
+    logger.debug("finalize", "State file not found or malformed — starting fresh", { metadata: { error: e instanceof Error ? e.message : String(e) } });
     return null;
   }
 }
@@ -219,14 +218,14 @@ export function applyFinalize(
     };
 
     writeFileSync(statePath, JSON.stringify(state, null, 2), "utf-8");
-    logger.debug("FINALIZE", `Written state.json (history length: ${history.length})`);
+    logger.debug("finalize", `Written state.json (history length: ${history.length})`);
 
     // Generate README.md (always overwrite)
     const readme = generateReadme(config);
     writeFileSync(readmePath, readme, "utf-8");
-    logger.debug("FINALIZE", "Written README.md");
+    logger.debug("finalize", "Written README.md");
 
-    logger.info("FINALIZE", `State file + README written (history entries: ${history.length})`);
+    logger.info("finalize", `State file + README written (history entries: ${history.length})`);
 
     return {
       step: "FINALIZE",

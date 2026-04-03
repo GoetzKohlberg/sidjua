@@ -12,7 +12,7 @@ import { dirname, join } from "node:path";
 import { stringify as stringifyYaml } from "yaml";
 import type { Database } from "../../utils/db.js";
 import type { PolicyRuleInput } from "../types.js";
-import { logger as defaultLogger, type Logger } from "../../utils/logger.js";
+import { createLogger, type Logger } from "../../core/logger.js";
 
 export interface DeployResult {
   file_written: string;
@@ -23,7 +23,7 @@ export class PolicyDeployer {
   constructor(
     private readonly db: Database,
     private readonly governanceDir: string,
-    private readonly logger: Logger = defaultLogger,
+    private readonly logger: Logger = createLogger("policy-deployer"),
   ) {}
 
   async deploy(rule: PolicyRuleInput): Promise<DeployResult> {
@@ -84,9 +84,8 @@ export class PolicyDeployer {
     const separator = fileExists ? "\n---\n" : "";
     await writeFile(filePath, separator + ruleYaml, { flag: "a" });
 
-    this.logger.info("AGENT_LIFECYCLE", "Policy rule deployed", {
-      rule_id: ruleId,
-      source_file: rule.source_file,
+    this.logger.info("policy_rule_deployed", "Policy rule deployed", {
+      metadata: { rule_id: ruleId, source_file: rule.source_file },
     });
 
     return { file_written: filePath, rule_id: ruleId };

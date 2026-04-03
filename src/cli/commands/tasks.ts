@@ -19,7 +19,7 @@ import { join, resolve, sep } from "node:path";
 import { TaskStore } from "../../tasks/store.js";
 import { TaskTreeManager } from "../../orchestrator/tree-manager.js";
 import { TaskEventBus } from "../../tasks/event-bus.js";
-import { openCliDatabase } from "../utils/db-init.js";
+import { withCliDatabaseAsync } from "../utils/with-cli-database.js";
 import { formatAge } from "../utils/format.js";
 import { formatTable } from "../formatters/table.js";
 import { formatTree } from "../formatters/tree.js";
@@ -49,21 +49,16 @@ const TERMINAL_STATUSES = new Set(["DONE", "FAILED", "CANCELLED"]);
 
 
 export async function runTasksCommand(opts: TasksCommandOptions): Promise<number> {
-  const db = openCliDatabase({ workDir: opts.workDir });
-  if (!db) return 1;
+  return withCliDatabaseAsync({ workDir: opts.workDir }, async (db) => {
+    const store       = new TaskStore(db);
+    const eventBus    = new TaskEventBus(db);
+    const treeManager = new TaskTreeManager(db, eventBus);
 
-  const store       = new TaskStore(db);
-  const eventBus    = new TaskEventBus(db);
-  const treeManager = new TaskTreeManager(db, eventBus);
-
-  try {
     if (opts.taskId !== undefined) {
       return await runTaskDetail(opts, store, treeManager);
     }
     return runTaskList(opts, store);
-  } finally {
-    db.close();
-  }
+  });
 }
 
 

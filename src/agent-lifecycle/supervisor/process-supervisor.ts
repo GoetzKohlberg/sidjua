@@ -14,7 +14,7 @@
  *   - notifyCrash() from agentProcess.onExit()
  */
 
-import { logger as defaultLogger, type Logger } from "../../utils/logger.js";
+import { createLogger, type Logger } from "../../core/logger.js";
 
 
 export interface SupervisorAgentConfig {
@@ -72,7 +72,7 @@ export class ProcessSupervisor {
   private readonly crashHandlers: CrashHandler[] = [];
   private readonly circuitHandlers: CircuitHandler[] = [];
 
-  constructor(private readonly logger: Logger = defaultLogger) {}
+  constructor(private readonly logger: Logger = createLogger("process-supervisor")) {}
 
   // ---------------------------------------------------------------------------
   // Registration
@@ -80,7 +80,7 @@ export class ProcessSupervisor {
 
   registerAgent(id: string, config: SupervisorAgentConfig = {}): void {
     if (this.agents.has(id)) {
-      this.logger.warn("SUPERVISOR", "Agent already registered", { agent_id: id });
+      this.logger.warn("agent_already_registered", "Agent already registered", { metadata: { agent_id: id } });
       return;
     }
     const resolved: Required<SupervisorAgentConfig> = {
@@ -101,12 +101,12 @@ export class ProcessSupervisor {
       circuit_open: false,
       circuit_opened_at: null,
     });
-    this.logger.debug("SUPERVISOR", "Agent registered", { agent_id: id });
+    this.logger.debug("agent_registered", "Agent registered", { metadata: { agent_id: id } });
   }
 
   unregisterAgent(id: string): void {
     this.agents.delete(id);
-    this.logger.debug("SUPERVISOR", "Agent unregistered", { agent_id: id });
+    this.logger.debug("agent_unregistered", "Agent unregistered", { metadata: { agent_id: id } });
   }
 
   // ---------------------------------------------------------------------------
@@ -123,7 +123,7 @@ export class ProcessSupervisor {
       // Auto-recover circuit if agent is responding
       state.circuit_open = false;
       state.circuit_opened_at = null;
-      this.logger.info("SUPERVISOR", "Circuit auto-closed (heartbeat received)", { agent_id: agentId });
+      this.logger.info("circuit_auto_closed", "Circuit auto-closed (heartbeat received)", { metadata: { agent_id: agentId } });
     }
   }
 
@@ -136,9 +136,8 @@ export class ProcessSupervisor {
       if (state.circuit_open) continue;
       state.consecutive_missed++;
       if (state.consecutive_missed >= state.config.max_missed_heartbeats) {
-        this.logger.warn("SUPERVISOR", "Agent heartbeat timeout", {
-          agent_id: state.agent_id,
-          consecutive_missed: state.consecutive_missed,
+        this.logger.warn("agent_heartbeat_timeout", "Agent heartbeat timeout", {
+          metadata: { agent_id: state.agent_id, consecutive_missed: state.consecutive_missed },
         });
       }
     }
@@ -155,7 +154,7 @@ export class ProcessSupervisor {
   notifyCrash(agentId: string, exitCode: number | null, signal: string | null): void {
     const state = this.agents.get(agentId);
     if (state === undefined) {
-      this.logger.warn("SUPERVISOR", "notifyCrash called for unknown agent", { agent_id: agentId });
+      this.logger.warn("notify_crash_unknown_agent", "notifyCrash called for unknown agent", { metadata: { agent_id: agentId } });
       return;
     }
 
@@ -169,11 +168,13 @@ export class ProcessSupervisor {
     state.crash_times.push(now);
     if (state.crash_times.length > 100) { state.crash_times.splice(0, state.crash_times.length - 100); }
 
-    this.logger.warn("SUPERVISOR", "Agent crash recorded", {
-      agent_id: agentId,
-      exit_code: exitCode,
-      signal,
-      crashes_in_window: state.crash_times.length,
+    this.logger.warn("agent_crash_recorded", "Agent crash recorded", {
+      metadata: {
+        agent_id: agentId,
+        exit_code: exitCode,
+        signal,
+        crashes_in_window: state.crash_times.length,
+      },
     });
 
     // Notify crash handlers
@@ -185,9 +186,8 @@ export class ProcessSupervisor {
     if (!state.circuit_open && state.crash_times.length > state.config.max_crashes_in_window) {
       state.circuit_open = true;
       state.circuit_opened_at = new Date().toISOString();
-      this.logger.error("SUPERVISOR", "Circuit breaker opened", {
-        agent_id: agentId,
-        crashes_in_window: state.crash_times.length,
+      this.logger.error("circuit_breaker_opened", "Circuit breaker opened", {
+        metadata: { agent_id: agentId, crashes_in_window: state.crash_times.length },
       });
       for (const handler of this.circuitHandlers) {
         handler(agentId);
@@ -231,7 +231,7 @@ export class ProcessSupervisor {
     state.circuit_opened_at = null;
     state.crash_times = [];
     state.restart_attempts = 0;
-    this.logger.info("SUPERVISOR", "Circuit breaker manually reset", { agent_id: agentId });
+    this.logger.info("circuit_breaker_reset", "Circuit breaker manually reset", { metadata: { agent_id: agentId } });
   }
 
   // ---------------------------------------------------------------------------
@@ -296,8 +296,8 @@ export class ProcessSupervisor {
       });
       run();
     } catch (e: unknown) {
-      this.logger.warn("SUPERVISOR", "persistState failed — non-fatal", {
-        error: e instanceof Error ? e.message : String(e),
+      this.logger.warn("persist_state_failed", "persistState failed — non-fatal", {
+        metadata: { error: e instanceof Error ? e.message : String(e) },
       });
     }
   }
@@ -347,8 +347,8 @@ export class ProcessSupervisor {
       }
       return rows.length;
     } catch (e: unknown) {
-      this.logger.warn("SUPERVISOR", "restoreState failed — starting fresh", {
-        error: e instanceof Error ? e.message : String(e),
+      this.logger.warn("restore_state_failed", "restoreState failed — starting fresh", {
+        metadata: { error: e instanceof Error ? e.message : String(e) },
       });
       return 0;
     }

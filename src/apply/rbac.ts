@@ -26,7 +26,9 @@ import type { ParsedConfig } from "../types/config.js";
 import type { RBACConfig, AgentAssignment, RoleDefinition, RoleAssignment } from "../types/apply.js";
 import { ApplyError, type StepResult } from "../types/apply.js";
 import type { Database } from "../utils/db.js";
-import { logger } from "../utils/logger.js";
+import { createLogger } from "../core/logger.js";
+
+const logger = createLogger("apply-rbac");
 
 
 const DEFAULT_ROLES: RoleDefinition[] = [
@@ -194,7 +196,7 @@ export function applyRBAC(config: ParsedConfig, workDir: string, db: Database | 
     const agentCount = rbac.assignments.length;
     const roleCount = rbac.assignments.reduce((n, a) => n + a.roles.length, 0);
 
-    logger.info("RBAC", `Generated rbac.yaml: ${agentCount} agents, ${roleCount} role assignments`);
+    logger.info("rbac", `Generated rbac.yaml: ${agentCount} agents, ${roleCount} role assignments`);
 
     return {
       step: "RBAC",

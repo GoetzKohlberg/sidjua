@@ -16,8 +16,10 @@ import type {
   AgentLoad,
   RebalanceResult,
 } from "./types.js";
-import { logger } from "../utils/logger.js";
+import { createLogger } from "../core/logger.js";
 import type { DivisionPolicy } from "../core/governance/division-policy.js";
+
+const logger = createLogger("distributor");
 
 
 export class WorkDistributor {
@@ -42,12 +44,12 @@ export class WorkDistributor {
     let candidates = agents.filter((a) => this.isEligible(a, task));
 
     if (candidates.length === 0) {
-      logger.debug("DISTRIBUTOR", "No eligible agents for task", {
+      logger.debug("distributor", "No eligible agents for task", { metadata: {
         task_id:  task.id,
         tier:     task.tier,
         division: task.division,
         total:    agents.length,
-      });
+      } });
       return null;
     }
 
@@ -154,7 +156,7 @@ export class WorkDistributor {
     }
 
     if (recommendations.length > 0) {
-      logger.info("DISTRIBUTOR", "Load rebalance recommendations", { count: recommendations.length });
+      logger.info("distributor", "Load rebalance recommendations", { metadata: { count: recommendations.length } });
     }
 
     return {
@@ -176,12 +178,12 @@ export class WorkDistributor {
     if (agent.definition.division !== task.division) {
       const policy = this.getCrossDivisionPolicy(agent.definition.division, task.division);
       if (policy === null || !policy.allowed) {
-        logger.debug("DISTRIBUTOR", "DIVISION_BLOCK: agent division mismatch", {
-          agent_id:   agent.definition.id,
-          agent_div:  agent.definition.division,
-          task_div:   task.division,
-          task_id:    task.id,
-        });
+        logger.debug("distributor", "DIVISION_BLOCK: agent division mismatch", { metadata: {
+          agent_id:  agent.definition.id,
+          agent_div: agent.definition.division,
+          task_div:  task.division,
+          task_id:   task.id,
+        } });
         return false;
       }
     }

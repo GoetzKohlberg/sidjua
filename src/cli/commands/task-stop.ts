@@ -9,7 +9,7 @@
  */
 
 import { join } from "node:path";
-import { openCliDatabase } from "../utils/db-init.js";
+import { withCliDatabaseAsync } from "../utils/with-cli-database.js";
 import { TaskStore } from "../../tasks/store.js";
 import { TaskEventBus } from "../../tasks/event-bus.js";
 import { TaskTreeManager } from "../../orchestrator/tree-manager.js";
@@ -27,19 +27,15 @@ export interface TaskStopCommandOptions {
 
 
 export async function runTaskStopCommand(opts: TaskStopCommandOptions): Promise<number> {
-  const db = openCliDatabase({ workDir: opts.workDir });
-  if (db === null) return 1;
+  return withCliDatabaseAsync({ workDir: opts.workDir }, async (db) => {
+    const store      = new TaskStore(db);
+    const eventBus   = new TaskEventBus(db);
+    const treeManager = new TaskTreeManager(db, eventBus);
 
-  const store      = new TaskStore(db);
-  const eventBus   = new TaskEventBus(db);
-  const treeManager = new TaskTreeManager(db, eventBus);
-
-  try {
     const task = store.get(opts.taskId);
 
     if (task === null) {
       process.stderr.write(`✗ Task not found: ${opts.taskId}\n`);
-      db.close();
       return 1;
     }
 
@@ -49,7 +45,6 @@ export async function runTaskStopCommand(opts: TaskStopCommandOptions): Promise<
 
     // Confirmation prompt (unless --force)
     if (!opts.force) {
-      const total = subCount + 1;
       process.stdout.write(
         `Cancel task ${opts.taskId}${subCount > 0 ? ` and all ${subCount} sub-tasks` : ""}? (y/N) `,
       );
@@ -57,7 +52,6 @@ export async function runTaskStopCommand(opts: TaskStopCommandOptions): Promise<
       const answer = await readLine();
       if (answer.trim().toLowerCase() !== "y") {
         process.stdout.write("Cancelled.\n");
-        db.close();
         return 0;
       }
     }
@@ -71,7 +65,6 @@ export async function runTaskStopCommand(opts: TaskStopCommandOptions): Promise<
 
     if (opts.json) {
       process.stdout.write(formatJson(results) + "\n");
-      db.close();
       return 0;
     }
 
@@ -90,13 +83,8 @@ export async function runTaskStopCommand(opts: TaskStopCommandOptions): Promise<
       );
     }
 
-    db.close();
     return 0;
-  } catch (err) {
-    process.stderr.write(`✗ Error: ${String(err)}\n`);
-    db.close();
-    return 1;
-  }
+  });
 }
 
 

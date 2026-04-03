@@ -17,7 +17,9 @@ import { join, dirname } from "node:path";
 import { stringify } from "yaml";
 import type { ParsedConfig } from "../types/config.js";
 import { ApplyError, type StepResult } from "../types/apply.js";
-import { logger } from "../utils/logger.js";
+import { createLogger } from "../core/logger.js";
+
+const logger = createLogger("apply-skills");
 
 
 const DIVISION_SKILL_TEMPLATES: Record<string, string[]> = {
@@ -84,7 +86,7 @@ export function applySkills(config: ParsedConfig, workDir: string): StepResult {
 
       if (existsSync(outPath)) {
         preserved++;
-        logger.debug("SKILLS", `Preserved existing skills.yaml for "${div.code}"`);
+        logger.debug("skills", `Preserved existing skills.yaml for "${div.code}"`);
         continue;
       }
 
@@ -102,10 +104,10 @@ export function applySkills(config: ParsedConfig, workDir: string): StepResult {
 
       writeFileSync(outPath, yaml, "utf-8");
       newFiles++;
-      logger.debug("SKILLS", `Created skills.yaml for "${div.code}"`);
+      logger.debug("skills", `Created skills.yaml for "${div.code}"`);
     }
 
-    logger.info("SKILLS", `Skills: ${newFiles} created, ${preserved} preserved`);
+    logger.info("skills", `Skills: ${newFiles} created, ${preserved} preserved`);
 
     return {
       step: "SKILLS",

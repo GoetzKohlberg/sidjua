@@ -15,7 +15,9 @@ import { TaskStore } from "../tasks/store.js";
 import { TaskTree } from "../tasks/tree.js";
 import { TaskEventBus } from "../tasks/event-bus.js";
 import type { TaskTreeNode, CancelResult } from "./types.js";
-import { logger } from "../utils/logger.js";
+import { createLogger } from "../core/logger.js";
+
+const logger = createLogger("tree-manager");
 
 /** Terminal task states that cannot be changed by cancellation. */
 const TERMINAL_STATUSES = new Set<TaskStatus>(["DONE", "FAILED", "CANCELLED"]);
@@ -175,13 +177,13 @@ export class TaskTreeManager {
           division:       current.division,
           data:           { reason, cancelled_by: "orchestrator" },
         }).catch((err: unknown) => {
-          logger.warn("ORCHESTRATOR", "Failed to emit TASK_CANCELLED event", { error: err });
+          logger.warn("orchestrator", "Failed to emit TASK_CANCELLED event", { metadata: { error: err } });
         });
 
-        logger.info("ORCHESTRATOR", "Task cancelled in cascade", {
+        logger.info("orchestrator", "Task cancelled in cascade", { metadata: {
           task_id: current.id,
           reason,
-        });
+        } });
       }
 
       // Add children to process

@@ -151,15 +151,15 @@ export function createErrorHandler(isDevelopment = false): ErrorHandler {
         metadata: { status, path: c.req.path },
       });
 
-      const safeMessage = isDevelopment ? err.message : sanitizePath(err.message);
+      const safeMessage = sanitizePath(err.message);
       const body: Record<string, unknown> = {
         code:        err.code,
         message:     safeMessage,
         recoverable: err.recoverable,
         request_id:  requestId,
       };
-      if (err.suggestion !== undefined) body["suggestion"] = err.suggestion;
-      if (isDevelopment && err.detail !== undefined) body["detail"] = err.detail;
+      if (err.suggestion !== undefined) body["suggestion"] = sanitizePath(err.suggestion);
+      if (isDevelopment && err.detail !== undefined) body["detail"] = sanitizePath(err.detail);
 
       return c.json({ error: body }, status as Parameters<typeof c.json>[1]);
     }
@@ -211,7 +211,7 @@ export function createErrorHandler(isDevelopment = false): ErrorHandler {
       request_id:  requestId,
     };
     if (isDevelopment) {
-      body["detail"] = err.message;
+      body["detail"] = sanitizePath(err.message);
     }
 
     return c.json({ error: body }, 500);

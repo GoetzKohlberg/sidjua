@@ -20,7 +20,9 @@
  */
 
 import type { PipelineConfig, BackpressureStatus, BackpressureRecommendation } from "./types.js";
-import { logger } from "../utils/logger.js";
+import { createLogger } from "../core/logger.js";
+
+const logger = createLogger("pipeline-backpressure");
 
 
 interface AgentCapacity {
@@ -118,11 +120,11 @@ export class BackpressureMonitor {
     cap.active = Math.min(cap.active + 1, cap.capacity);
     // Decrement queued count since the task moved from queued → active
     cap.queued = Math.max(0, cap.queued - 1);
-    logger.debug("BACKPRESSURE", "Task accepted", {
+    logger.debug("backpressure", "Task accepted", { metadata: {
       agent_id,
       active: cap.active,
       capacity: cap.capacity,
-    });
+    } });
   }
 
   /** Called when a task is added to an agent's queue (not yet active). */
@@ -137,10 +139,10 @@ export class BackpressureMonitor {
     const cap = this.agents.get(agent_id);
     if (cap === undefined) return;
     cap.active = Math.max(0, cap.active - 1);
-    logger.debug("BACKPRESSURE", "Task completed", {
+    logger.debug("backpressure", "Task completed", { metadata: {
       agent_id,
       active: cap.active,
-    });
+    } });
   }
 
   /** Called when a task fails. Decrements active count. */

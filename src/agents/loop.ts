@@ -36,8 +36,7 @@ import type { TaskRouter } from "../tasks/router.js";
 import type { Task, ManagementSummary, TaskEvent } from "../tasks/types.js";
 import { DecompositionValidator } from "../tasks/decomposition.js";
 import { parseAgentResponse } from "./response-parser.js";
-import { logger as defaultLogger, type Logger } from "../utils/logger.js";
-import { createLogger } from "../core/logger.js";
+import { createLogger, type Logger } from "../core/logger.js";
 
 const _logger = createLogger("agent-loop");
 
@@ -75,7 +74,7 @@ export class AgentLoop {
   constructor(
     private readonly definition: AgentDefinition,
     private readonly providers: AgentLoopProviders,
-    private readonly logger: Logger = defaultLogger,
+    private readonly logger: Logger = createLogger("agent-loop"),
     options: { sleepMs?: number; memoryCheckIntervalMs?: number } = {},
   ) {
     this._sleepMs = options.sleepMs ?? 100;
@@ -93,7 +92,7 @@ export class AgentLoop {
     this._state.started_at = new Date().toISOString();
     this._state.status = "IDLE";
 
-    this.logger.info("AGENT", "AgentLoop started", { agent_id: this.definition.id });
+    this.logger.info("agent_loop_started", "AgentLoop started", { metadata: { agent_id: this.definition.id } });
 
     while (this._running) {
       if (this._paused) {
@@ -109,9 +108,8 @@ export class AgentLoop {
         this._checkCostLimit();
         await this._maybeCheckMemoryHealth();
       } catch (err) {
-        this.logger.error("AGENT", "Loop iteration error", {
-          agent_id: this.definition.id,
-          error: err instanceof Error ? err.message : String(err),
+        this.logger.error("loop_iteration_error", "Loop iteration error", {
+          metadata: { agent_id: this.definition.id, error: err instanceof Error ? err.message : String(err) },
         });
         // Continue loop — don't crash on a single iteration error
       }
@@ -119,15 +117,14 @@ export class AgentLoop {
       await sleep(this._sleepMs);
     }
 
-    this.logger.info("AGENT", "AgentLoop stopped", { agent_id: this.definition.id });
+    this.logger.info("agent_loop_stopped", "AgentLoop stopped", { metadata: { agent_id: this.definition.id } });
   }
 
   /** Stop the loop. If graceful, waits for active tasks to finish. */
   async stop(graceful: boolean): Promise<void> {
     if (graceful && this._activeTaskIds.size > 0) {
-      this.logger.info("AGENT", "Graceful stop: waiting for active tasks", {
-        agent_id: this.definition.id,
-        active_count: this._activeTaskIds.size,
+      this.logger.info("graceful_stop_waiting", "Graceful stop: waiting for active tasks", {
+        metadata: { agent_id: this.definition.id, active_count: this._activeTaskIds.size },
       });
       // Wait up to 30s for active tasks
       const deadline = Date.now() + 30_000;
@@ -141,13 +138,13 @@ export class AgentLoop {
   pause(): void {
     this._paused = true;
     this._state.status = "PAUSED";
-    this.logger.info("AGENT", "AgentLoop paused", { agent_id: this.definition.id });
+    this.logger.info("agent_loop_paused", "AgentLoop paused", { metadata: { agent_id: this.definition.id } });
   }
 
   resume(): void {
     this._paused = false;
     this._state.status = this._activeTaskIds.size > 0 ? "WORKING" : "IDLE";
-    this.logger.info("AGENT", "AgentLoop resumed", { agent_id: this.definition.id });
+    this.logger.info("agent_loop_resumed", "AgentLoop resumed", { metadata: { agent_id: this.definition.id } });
   }
 
   isPaused(): boolean {
@@ -186,9 +183,8 @@ export class AgentLoop {
         if (parentId !== null && this._waitingTaskIds.has(parentId)) {
           const completion = await this.providers.taskRouter.checkParentCompletion(parentId);
           if (completion.complete) {
-            this.logger.debug("AGENT", "Waiting task ready for synthesis", {
-              agent_id: this.definition.id,
-              task_id: parentId,
+            this.logger.debug("waiting_task_ready", "Waiting task ready for synthesis", {
+              metadata: { agent_id: this.definition.id, task_id: parentId },
             });
             // Mark as ready for synthesis — it will be picked up in _checkWaitingTasks
           }
@@ -231,10 +227,8 @@ export class AgentLoop {
         this._waitingTaskIds.delete(taskId);
         // Begin synthesis asynchronously
         this._runSynthesis(task).catch((err) => {
-          this.logger.error("AGENT", "Synthesis error", {
-            agent_id: this.definition.id,
-            task_id: taskId,
-            error: String(err),
+          this.logger.error("synthesis_error", "Synthesis error", {
+            metadata: { agent_id: this.definition.id, task_id: taskId, error: String(err) },
           });
           this._activeTaskIds.delete(taskId);
         });
@@ -260,10 +254,8 @@ export class AgentLoop {
     this._state.status = "WORKING";
     // Fire-and-forget: tasks run concurrently
     this._executeTask(task).catch((err) => {
-      this.logger.error("AGENT", "Task execution error", {
-        agent_id: this.definition.id,
-        task_id: task.id,
-        error: String(err),
+      this.logger.error("task_execution_error", "Task execution error", {
+        metadata: { agent_id: this.definition.id, task_id: task.id, error: String(err) },
       });
       this._activeTaskIds.delete(task.id);
       this._updateStatus();
@@ -289,11 +281,8 @@ export class AgentLoop {
     this._activeTaskIds.add(task.id);
     this._updateStatus();
 
-    this.logger.debug("AGENT", "Executing task", {
-      agent_id: this.definition.id,
-      task_id: task.id,
-      task_type: task.type,
-      task_title: task.title,
+    this.logger.debug("executing_task", "Executing task", {
+      metadata: { agent_id: this.definition.id, task_id: task.id, task_type: task.type, task_title: task.title },
     });
 
     try {
@@ -316,10 +305,8 @@ export class AgentLoop {
 
     if (!result.success || result.response === undefined) {
       const reason = result.block_reason ?? "LLM call failed";
-      this.logger.warn("AGENT", "LLM call failed/blocked", {
-        agent_id: this.definition.id,
-        task_id: task.id,
-        reason,
+      this.logger.warn("llm_call_failed", "LLM call failed/blocked", {
+        metadata: { agent_id: this.definition.id, task_id: task.id, reason },
       });
       await this._failTask(task, reason);
       return;
@@ -419,10 +406,8 @@ export class AgentLoop {
     this._state.total_tokens_used += response.usage.totalTokens;
     this._state.current_hour_cost += response.costUsd;
 
-    this.logger.info("AGENT", "Task executed and completed", {
-      agent_id: this.definition.id,
-      task_id: task.id,
-      confidence: parsed.confidence,
+    this.logger.info("task_executed_completed", "Task executed and completed", {
+      metadata: { agent_id: this.definition.id, task_id: task.id, confidence: parsed.confidence },
     });
   }
 
@@ -472,10 +457,8 @@ export class AgentLoop {
       `Decomposed task "${task.title}" into ${children.length} sub-tasks.`,
     );
 
-    this.logger.info("AGENT", "Task decomposed into sub-tasks", {
-      agent_id: this.definition.id,
-      task_id: task.id,
-      child_count: children.length,
+    this.logger.info("task_decomposed", "Task decomposed into sub-tasks", {
+      metadata: { agent_id: this.definition.id, task_id: task.id, child_count: children.length },
     });
   }
 
@@ -577,10 +560,8 @@ export class AgentLoop {
       this._state.total_tokens_used += result.response.usage.totalTokens;
       this._state.current_hour_cost += result.response.costUsd;
 
-      this.logger.info("AGENT", "Synthesis complete", {
-        agent_id: this.definition.id,
-        task_id: task.id,
-        child_count: children.length,
+      this.logger.info("synthesis_complete", "Synthesis complete", {
+        metadata: { agent_id: this.definition.id, task_id: task.id, child_count: children.length },
       });
     } finally {
       this._activeTaskIds.delete(waitingTask.id);
@@ -596,9 +577,8 @@ export class AgentLoop {
     task: Task,
     originalResponse: string,
   ): Promise<AgentDecision | null> {
-    this.logger.warn("AGENT", "Malformed response — retrying with clarification", {
-      agent_id: this.definition.id,
-      task_id: task.id,
+    this.logger.warn("malformed_response_retry", "Malformed response — retrying with clarification", {
+      metadata: { agent_id: this.definition.id, task_id: task.id },
     });
 
     const clarification = `Your previous response was not in the required format. Please try again.
@@ -624,10 +604,8 @@ Then the appropriate RESULT/SUMMARY/CONFIDENCE or PLAN section.`;
   // ---------------------------------------------------------------------------
 
   private async _failTask(task: Task, reason: string): Promise<void> {
-    this.logger.warn("AGENT", "Task failed", {
-      agent_id: this.definition.id,
-      task_id: task.id,
-      reason,
+    this.logger.warn("task_failed", "Task failed", {
+      metadata: { agent_id: this.definition.id, task_id: task.id, reason },
     });
 
     try {
@@ -638,9 +616,8 @@ Then the appropriate RESULT/SUMMARY/CONFIDENCE or PLAN section.`;
         });
       }
     } catch (err) {
-      this.logger.error("AGENT", "Failed to transition task to FAILED", {
-        task_id: task.id,
-        error: String(err),
+      this.logger.error("task_transition_failed", "Failed to transition task to FAILED", {
+        metadata: { task_id: task.id, error: String(err) },
       });
     }
 
@@ -670,9 +647,8 @@ Then the appropriate RESULT/SUMMARY/CONFIDENCE or PLAN section.`;
       // Backoff: 2s, 4s, 8s, 16s, 32s, cap at 60s
       const backoffMs = Math.min(2000 * Math.pow(2, this._checkpointFailCount - 1), 60_000);
       this._checkpointBackoffUntil = now + backoffMs;
-      this.logger.warn("AGENT", `Checkpoint save failed (attempt ${this._checkpointFailCount}, next retry in ${backoffMs}ms)`, {
-        agent_id: this.definition.id,
-        error:    err instanceof Error ? err.message : String(err),
+      this.logger.warn("checkpoint_save_failed", `Checkpoint save failed (attempt ${this._checkpointFailCount}, next retry in ${backoffMs}ms)`, {
+        metadata: { agent_id: this.definition.id, error: err instanceof Error ? err.message : String(err) },
       });
     }
   }
@@ -704,9 +680,8 @@ Then the appropriate RESULT/SUMMARY/CONFIDENCE or PLAN section.`;
 
     this._state.last_checkpoint = new Date().toISOString();
 
-    this.logger.debug("AGENT", "Checkpoint saved", {
-      agent_id: this.definition.id,
-      version,
+    this.logger.debug("checkpoint_saved", "Checkpoint saved", {
+      metadata: { agent_id: this.definition.id, version },
     });
 
     // Keep only last 5
@@ -727,10 +702,12 @@ Then the appropriate RESULT/SUMMARY/CONFIDENCE or PLAN section.`;
     }
 
     if (this._state.current_hour_cost >= this.definition.cost_limit_per_hour) {
-      this.logger.warn("AGENT", "Hourly cost limit reached — pausing", {
-        agent_id: this.definition.id,
-        current_hour_cost: this._state.current_hour_cost,
-        limit: this.definition.cost_limit_per_hour,
+      this.logger.warn("hourly_cost_limit_reached", "Hourly cost limit reached — pausing", {
+        metadata: {
+          agent_id: this.definition.id,
+          current_hour_cost: this._state.current_hour_cost,
+          limit: this.definition.cost_limit_per_hour,
+        },
       });
       this.pause();
     }
@@ -750,29 +727,28 @@ Then the appropriate RESULT/SUMMARY/CONFIDENCE or PLAN section.`;
 
       const status = health.short_term.status;
       if (status === "warning" || status === "critical") {
-        this.logger.warn("AGENT", "Short-term memory health degraded", {
-          agent_id: this.definition.id,
-          status,
-          size_kb: health.short_term.size_kb,
+        this.logger.warn("memory_health_degraded", "Short-term memory health degraded", {
+          metadata: { agent_id: this.definition.id, status, size_kb: health.short_term.size_kb },
         });
 
         // Auto-compact on warning/critical
         try {
           await this.providers.memoryManager.compactShortTerm("smart");
-          this.logger.info("AGENT", "Auto-compacted short-term memory", {
-            agent_id: this.definition.id,
+          this.logger.info("memory_auto_compacted", "Auto-compacted short-term memory", {
+            metadata: { agent_id: this.definition.id },
           });
         } catch (compactErr) {
-          this.logger.warn("AGENT", "Auto-compaction failed", {
-            agent_id: this.definition.id,
-            error: compactErr instanceof Error ? compactErr.message : String(compactErr),
+          this.logger.warn("memory_compaction_failed", "Auto-compaction failed", {
+            metadata: {
+              agent_id: this.definition.id,
+              error: compactErr instanceof Error ? compactErr.message : String(compactErr),
+            },
           });
         }
       }
     } catch (err) {
-      this.logger.error("AGENT", "Memory health check error", {
-        agent_id: this.definition.id,
-        error: err instanceof Error ? err.message : String(err),
+      this.logger.error("memory_health_check_error", "Memory health check error", {
+        metadata: { agent_id: this.definition.id, error: err instanceof Error ? err.message : String(err) },
       });
     }
   }
@@ -782,8 +758,8 @@ Then the appropriate RESULT/SUMMARY/CONFIDENCE or PLAN section.`;
    * Runs a full hygiene cycle and returns the result.
    */
   async handleHygieneRequest(config: MemoryHygieneConfig): Promise<HygieneCycleResult> {
-    this.logger.info("AGENT", "Running hygiene cycle (requested by Bootstrap)", {
-      agent_id: this.definition.id,
+    this.logger.info("hygiene_cycle_requested", "Running hygiene cycle (requested by Bootstrap)", {
+      metadata: { agent_id: this.definition.id },
     });
     return this.providers.memoryManager.runHygieneCycle(config);
   }

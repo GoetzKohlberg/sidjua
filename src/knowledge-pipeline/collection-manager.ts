@@ -15,8 +15,7 @@ import type {
   CollectionConfig,
   CollectionStatus,
 } from "./types.js";
-import { logger as defaultLogger, type Logger } from "../utils/logger.js";
-import { createLogger } from "../core/logger.js";
+import { createLogger, type Logger } from "../core/logger.js";
 
 const _logger = createLogger("collection-manager");
 
@@ -37,7 +36,7 @@ interface CollectionRow {
 export class CollectionManager {
   constructor(
     private readonly db: Database,
-    private readonly logger: Logger = defaultLogger,
+    private readonly logger: Logger = createLogger("collection-manager"),
   ) {}
 
   create(input: CreateCollectionInput): KnowledgeCollection {
@@ -84,7 +83,7 @@ export class CollectionManager {
         now,
       );
 
-    this.logger.info("AGENT_LIFECYCLE", "Knowledge collection created", { id: input.id });
+    this.logger.info("knowledge_collection_created", "Knowledge collection created", { metadata: { id: input.id } });
     return this.getById(input.id)!;
   }
 
@@ -148,7 +147,7 @@ export class CollectionManager {
       _logger.debug("collection-manager", "FTS index rebuild failed — index may be stale", { metadata: { error: e instanceof Error ? e.message : String(e) } });
     }
 
-    this.logger.info("AGENT_LIFECYCLE", "Knowledge collection deleted", { id });
+    this.logger.info("knowledge_collection_deleted", "Knowledge collection deleted", { metadata: { id } });
   }
 
   private _rowToCollection(row: CollectionRow): KnowledgeCollection {

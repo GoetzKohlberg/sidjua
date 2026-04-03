@@ -9,7 +9,7 @@
  */
 
 import { join } from "node:path";
-import { openCliDatabase } from "../utils/db-init.js";
+import { withCliDatabaseAsync } from "../utils/with-cli-database.js";
 import { TaskStore } from "../../tasks/store.js";
 import { TaskEventBus } from "../../tasks/event-bus.js";
 import { TaskTreeManager } from "../../orchestrator/tree-manager.js";
@@ -50,10 +50,7 @@ const TYPE_GROUPS: Record<string, string[]> = {
 
 
 export async function runLogsCommand(opts: LogsCommandOptions): Promise<number> {
-  const db = openCliDatabase({ workDir: opts.workDir });
-  if (db === null) return 1;
-
-  try {
+  return withCliDatabaseAsync({ workDir: opts.workDir }, async (db) => {
     const store   = new TaskStore(db);
     const eventBus = new TaskEventBus(db);
     const treeManager = new TaskTreeManager(db, eventBus);
@@ -74,9 +71,7 @@ export async function runLogsCommand(opts: LogsCommandOptions): Promise<number> 
     }
 
     return printLogs(opts, db, taskIds);
-  } finally {
-    db.close();
-  }
+  });
 }
 
 

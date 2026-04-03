@@ -13,12 +13,12 @@
  * Admin-level: CLI operates directly on the database via TokenStore.
  */
 
-import { join }            from "node:path";
-import type { Command }    from "commander";
-import { openCliDatabase } from "../utils/db-init.js";
-import { TokenStore }      from "../../api/token-store.js";
-import type { TokenScope } from "../../api/token-store.js";
-import { auditCliCommand } from "../cli-audit.js";
+import { join }                                        from "node:path";
+import type { Command }                                from "commander";
+import { withCliDatabase, withCliDatabaseAsync }       from "../utils/with-cli-database.js";
+import { TokenStore }                                  from "../../api/token-store.js";
+import type { TokenScope }                             from "../../api/token-store.js";
+import { auditCliCommand }                             from "../cli-audit.js";
 
 const VALID_SCOPES: TokenScope[] = ["admin", "operator", "agent", "readonly"];
 
@@ -68,14 +68,9 @@ export function registerTokenCommands(program: Command): void {
         }
       }
 
-      const db = openCliDatabase({ workDir: opts.workDir });
-      if (db === null) {
-        process.exit(1);
-      }
+      const code = withCliDatabase({ workDir: opts.workDir }, (db) => {
+        auditCliCommand("token", "create", db);
 
-      auditCliCommand("token", "create", db);
-
-      try {
         const store = new TokenStore(db);
         const { id, rawToken } = store.createToken({
           scope:    opts.scope as TokenScope,
@@ -108,9 +103,9 @@ export function registerTokenCommands(program: Command): void {
           if (opts.agentId  !== undefined) out(`  Agent ID: ${opts.agentId}\n`);
           if (expiresAt     !== undefined) out(`  Expires:  ${expiresAt.toISOString()}\n`);
         }
-      } finally {
-        db.close();
-      }
+        return 0;
+      });
+      process.exit(code);
     });
 
   // ── sidjua token list ───────────────────────────────────────────────────
@@ -119,20 +114,15 @@ export function registerTokenCommands(program: Command): void {
     .description("List all API tokens (no raw token values shown)")
     .option("--work-dir <path>", "Working directory", process.cwd())
     .action((opts: { workDir: string }) => {
-      const db = openCliDatabase({ workDir: opts.workDir, queryOnly: true });
-      if (db === null) {
-        process.exit(1);
-      }
+      const code = withCliDatabase({ workDir: opts.workDir, queryOnly: true }, (db) => {
+        auditCliCommand("token", "list", db);
 
-      auditCliCommand("token", "list", db);
-
-      try {
         const store  = new TokenStore(db);
         const tokens = store.listTokens();
 
         if (tokens.length === 0) {
           out("No tokens found.\n");
-          return;
+          return 0;
         }
 
         out(`${"ID".padEnd(36)}  ${"SCOPE".padEnd(10)}  ${"LABEL".padEnd(30)}  DIVISION         REVOKED  LAST USED\n`);
@@ -145,9 +135,9 @@ export function registerTokenCommands(program: Command): void {
           out(`${t.id.padEnd(36)}  ${t.scope.padEnd(10)}  ${t.label.padEnd(30)}  ${division}  ${revoked}      ${lastUsed}\n`);
         }
         out(`\n${tokens.length} token(s) total.\n`);
-      } finally {
-        db.close();
-      }
+        return 0;
+      });
+      process.exit(code);
     });
 
   // ── sidjua token revoke ─────────────────────────────────────────────────
@@ -156,24 +146,18 @@ export function registerTokenCommands(program: Command): void {
     .description("Revoke a token by ID (soft-delete — kept for audit trail)")
     .option("--work-dir <path>", "Working directory", process.cwd())
     .action((id: string, opts: { workDir: string }) => {
-      const db = openCliDatabase({ workDir: opts.workDir });
-      if (db === null) {
-        process.exit(1);
-      }
+      const code = withCliDatabase({ workDir: opts.workDir }, (db) => {
+        auditCliCommand("token", "revoke", db);
 
-      auditCliCommand("token", "revoke", db);
-
-      try {
         const store   = new TokenStore(db);
         const revoked = store.revokeToken(id);
         if (!revoked) {
           err(`Token not found or already revoked: ${id}`);
-          db.close();
-          process.exit(1);
+          return 1;
         }
         out(`Token ${id} revoked.\n`);
-      } finally {
-        db.close();
-      }
+        return 0;
+      });
+      process.exit(code);
     });
 }

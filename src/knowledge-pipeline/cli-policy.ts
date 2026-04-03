@@ -12,7 +12,9 @@ import type { Command } from "commander";
 import { parse } from "yaml";
 import { openDatabase } from "../utils/db.js";
 import type { Database } from "../utils/db.js";
-import { logger } from "../utils/logger.js";
+import { createLogger } from "../core/logger.js";
+
+const logger = createLogger("cli-policy");
 import { runKnowledgeMigrations } from "./migration.js";
 import { PolicyParser } from "./policy/policy-parser.js";
 import { PolicyValidator } from "./policy/policy-validator.js";

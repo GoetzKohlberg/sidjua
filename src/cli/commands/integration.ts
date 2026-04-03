@@ -17,7 +17,7 @@ import { join }        from "node:path";
 import { existsSync }  from "node:fs";
 import { formatTable } from "../formatters/table.js";
 import { formatJson }  from "../formatters/json.js";
-import { openCliDatabase }    from "../utils/db-init.js";
+import { withCliDatabase }    from "../utils/with-cli-database.js";
 import { AdapterRegistry }    from "../../integration-gateway/adapter-registry.js";
 import { SchemaStore }        from "../../integration-gateway/schema-store.js";
 import { parseOpenApiSpec }   from "../../integration-gateway/openapi-parser.js";
@@ -426,10 +426,7 @@ interface AuditRow {
 }
 
 export function runIntegrationAuditCommand(opts: IntegrationAuditOptions): number {
-  const db = openCliDatabase({ workDir: opts.workDir, queryOnly: true });
-  if (!db) return 1;
-
-  try {
+  return withCliDatabase({ workDir: opts.workDir, queryOnly: true }, (db) => {
     const conditions: string[] = ["1=1"];
     const params: (string | number)[] = [];
 
@@ -457,7 +454,6 @@ export function runIntegrationAuditCommand(opts: IntegrationAuditOptions): numbe
 
     if (opts.json) {
       process.stdout.write(formatJson({ events: rows }) + "\n");
-      db.close();
       return 0;
     }
 
@@ -466,7 +462,6 @@ export function runIntegrationAuditCommand(opts: IntegrationAuditOptions): numbe
 
     if (rows.length === 0) {
       process.stdout.write("  No events found.\n");
-      db.close();
       return 0;
     }
 
@@ -493,13 +488,8 @@ export function runIntegrationAuditCommand(opts: IntegrationAuditOptions): numbe
       }) + "\n",
     );
 
-    db.close();
     return 0;
-  } catch (err) {
-    process.stderr.write(`✗ Error: ${String(err)}\n`);
-    db.close();
-    return 1;
-  }
+  });
 }
 
 

@@ -12,11 +12,10 @@ import { randomUUID } from "node:crypto";
 import type { Database } from "../../utils/db.js";
 import type { Embedder, Chunker, Parser, EmbedProgress, Chunk } from "../types.js";
 import { countTokens } from "../types.js";
-import { logger as defaultLogger, type Logger } from "../../utils/logger.js";
+import { createLogger, type Logger } from "../../core/logger.js";
 import { chunkLimit, splitText } from "./chunk-splitter.js";
 import type { MemoryWal } from "../wal/memory-wal.js";
 import { checkDimensionCompatibility } from "../dimension-check.js";
-import { createLogger } from "../../core/logger.js";
 import type { VectorStore, VectorPoint } from "../vector-store/vector-store.js";
 import { SqliteVectorStore } from "../vector-store/sqlite-vector-store.js";
 
@@ -41,7 +40,7 @@ export class EmbeddingPipeline {
     private readonly parser: Parser,
     private readonly chunker: Chunker,
     private readonly embedder: Embedder,
-    private readonly logger: Logger = defaultLogger,
+    private readonly logger: Logger = createLogger("embedding-pipeline"),
     vectorStore?: VectorStore,
   ) {
     this.vectorStore = vectorStore ?? new SqliteVectorStore(db);
@@ -51,9 +50,8 @@ export class EmbeddingPipeline {
     content: Buffer | string,
     options: EmbeddingPipelineOptions,
   ): Promise<{ chunks_written: number; tokens_total: number; chunks_failed: number }> {
-    this.logger.info("AGENT_LIFECYCLE", "Starting ingestion", {
-      collection_id: options.collection_id,
-      source_file: options.source_file,
+    this.logger.info("ingestion_started", "Starting ingestion", {
+      metadata: { collection_id: options.collection_id, source_file: options.source_file },
     });
 
     // Guard against dimension mismatch before any work is done
@@ -75,8 +73,8 @@ export class EmbeddingPipeline {
     });
 
     if (chunks.length === 0) {
-      this.logger.warn("AGENT_LIFECYCLE", "No chunks produced", {
-        source_file: options.source_file,
+      this.logger.warn("no_chunks_produced", "No chunks produced", {
+        metadata: { source_file: options.source_file },
       });
       return { chunks_written: 0, tokens_total: 0, chunks_failed: 0 };
     }
@@ -114,10 +112,12 @@ export class EmbeddingPipeline {
         embeddings = await this.embedder.embed(batch.map((c) => c.content));
       } catch (err) {
         // Batch failed — retry each chunk individually, splitting further if needed
-        this.logger.warn("AGENT_LIFECYCLE", "Batch failed, retrying chunk-by-chunk", {
-          error: err instanceof Error ? err.message : String(err),
-          batch_start: i,
-          batch_size: batch.length,
+        this.logger.warn("batch_failed_retrying", "Batch failed, retrying chunk-by-chunk", {
+          metadata: {
+            error: err instanceof Error ? err.message : String(err),
+            batch_start: i,
+            batch_size: batch.length,
+          },
         });
         for (const chunk of batch) {
           const r = await this._embedWithFallbackSplit(chunk, Math.floor(limit / 2), options.wal);
@@ -195,10 +195,12 @@ export class EmbeddingPipeline {
       WHERE id = ?
     `).run(expandedChunks.length, tokensTotal, new Date().toISOString(), options.collection_id);
 
-    this.logger.info("AGENT_LIFECYCLE", "Ingestion complete", {
-      collection_id: options.collection_id,
-      chunks_written: expandedChunks.length - progress.failed,
-      tokens_total: tokensTotal,
+    this.logger.info("ingestion_complete", "Ingestion complete", {
+      metadata: {
+        collection_id: options.collection_id,
+        chunks_written: expandedChunks.length - progress.failed,
+        tokens_total: tokensTotal,
+      },
     });
 
     return { chunks_written: expandedChunks.length - progress.failed, tokens_total: tokensTotal, chunks_failed: progress.failed };
@@ -223,9 +225,8 @@ export class EmbeddingPipeline {
     } catch (e: unknown) {
       // Single chunk failed — split further and retry each part
       const errMsg = e instanceof Error ? e.message : String(e);
-      this.logger.warn("AGENT_LIFECYCLE", `Single chunk failed (${errMsg}), splitting further`, {
-        chunk_id: chunk.id,
-        fallback_limit: fallbackLimit,
+      this.logger.warn("chunk_failed_splitting", `Single chunk failed (${errMsg}), splitting further`, {
+        metadata: { chunk_id: chunk.id, fallback_limit: fallbackLimit },
       });
       const parts = splitText(chunk.content, fallbackLimit);
       let written = 0;
@@ -252,9 +253,11 @@ export class EmbeddingPipeline {
           written++;
           tokensAdded += sub.token_count;
         } catch (finalErr) {
-          this.logger.error("AGENT_LIFECYCLE", "Chunk failed even after emergency split", {
-            chunk_id: sub.id,
-            error: finalErr instanceof Error ? finalErr.message : String(finalErr),
+          this.logger.error("chunk_emergency_split_failed", "Chunk failed even after emergency split", {
+            metadata: {
+              chunk_id: sub.id,
+              error: finalErr instanceof Error ? finalErr.message : String(finalErr),
+            },
           });
           failed++;
         }
@@ -325,10 +328,8 @@ export class EmbeddingPipeline {
         continue;
       }
       const parts = splitText(chunk.content, limit);
-      this.logger.info("AGENT_LIFECYCLE", "Chunk split for token limit", {
-        original_id: chunk.id,
-        parts: parts.length,
-        limit,
+      this.logger.info("chunk_split_for_token_limit", "Chunk split for token limit", {
+        metadata: { original_id: chunk.id, parts: parts.length, limit },
       });
       parts.forEach((part, idx) => {
         result.push({

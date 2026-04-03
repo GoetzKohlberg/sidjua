@@ -20,7 +20,7 @@
  *   and provider-agnostic — it operates on any async operation.
  */
 
-import type { Logger } from "../utils/logger.js";
+import type { Logger } from "../core/logger.js";
 import type { RetryConfig } from "../types/provider.js";
 import { ProviderError } from "../types/provider.js";
 
@@ -81,35 +81,41 @@ export class RetryHandler {
 
         // Non-retryable provider error (4xx, bad key, etc.) — fail immediately
         if (!err.isRetryable) {
-          this.logger.warn("PROVIDER", "Non-retryable provider error — aborting", {
-            callId:   context.callId,
-            provider: context.provider,
-            code:     err.code,
-            message:  err.message,
+          this.logger.warn("non_retryable_provider_error", "Non-retryable provider error — aborting", {
+            metadata: {
+              callId:   context.callId,
+              provider: context.provider,
+              code:     err.code,
+              message:  err.message,
+            },
           });
           throw err;
         }
 
         // Last attempt — throw without scheduling another delay
         if (attempt === effectiveMax) {
-          this.logger.warn("PROVIDER", "All retry attempts exhausted", {
-            callId:   context.callId,
-            provider: context.provider,
-            attempts: effectiveMax,
-            code:     err.code,
+          this.logger.warn("retry_attempts_exhausted", "All retry attempts exhausted", {
+            metadata: {
+              callId:   context.callId,
+              provider: context.provider,
+              attempts: effectiveMax,
+              code:     err.code,
+            },
           });
           break;
         }
 
         // Retryable error — log and wait
         const jitteredDelay = applyJitter(delayMs);
-        this.logger.warn("PROVIDER", `Retryable error — retrying in ${jitteredDelay}ms`, {
-          callId:     context.callId,
-          provider:   context.provider,
-          attempt,
-          maxAttempts: this.config.maxAttempts,
-          code:        err.code,
-          nextDelayMs: jitteredDelay,
+        this.logger.warn("retryable_error", `Retryable error — retrying in ${jitteredDelay}ms`, {
+          metadata: {
+            callId:     context.callId,
+            provider:   context.provider,
+            attempt,
+            maxAttempts: this.config.maxAttempts,
+            code:        err.code,
+            nextDelayMs: jitteredDelay,
+          },
         });
 
         await sleep(jitteredDelay);

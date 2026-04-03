@@ -44,7 +44,8 @@ function searchSeedCatalog(query: string): Array<Record<string, unknown>> {
   let catalog: SeedCatalog;
   try {
     catalog = loadSeedCatalog();
-  } catch (_e) {
+  } catch (err) {
+    logger.warn("load_seed_catalog", "Failed to load MCP seed catalog", { metadata: { error: String(err) } });
     return [];
   }
 

@@ -12,7 +12,7 @@ import type { EmbeddingPipeline } from "./embedding/embedding-pipeline.js";
 import type { CollectionManager } from "./collection-manager.js";
 import { MarkdownParser } from "./parsers/markdown-parser.js";
 import { SemanticChunker } from "./chunkers/semantic-chunker.js";
-import { logger as defaultLogger, type Logger } from "../utils/logger.js";
+import { createLogger, type Logger } from "../core/logger.js";
 
 export interface AutoCollectorConfig {
   enabled: boolean;
@@ -35,7 +35,7 @@ export class AutoCollector {
     private readonly pipeline: EmbeddingPipeline,
     private readonly collectionManager: CollectionManager,
     private readonly config: AutoCollectorConfig = { enabled: true },
-    private readonly logger: Logger = defaultLogger,
+    private readonly logger: Logger = createLogger("auto-collector"),
   ) {}
 
   async onTaskCompleted(event: TaskResultEvent): Promise<void> {
@@ -62,14 +62,12 @@ export class AutoCollector {
         source_file: `task-result-${event.task_id}.md`,
       });
 
-      this.logger.info("AGENT_LIFECYCLE", "Task result ingested into auto-collection", {
-        task_id: event.task_id,
-        collection_id: collectionId,
+      this.logger.info("task_result_ingested", "Task result ingested into auto-collection", {
+        metadata: { task_id: event.task_id, collection_id: collectionId },
       });
     } catch (err) {
-      this.logger.error("AGENT_LIFECYCLE", "Failed to ingest task result", {
-        task_id: event.task_id,
-        error: err instanceof Error ? err.message : String(err),
+      this.logger.error("task_result_ingest_failed", "Failed to ingest task result", {
+        metadata: { task_id: event.task_id, error: err instanceof Error ? err.message : String(err) },
       });
     }
   }

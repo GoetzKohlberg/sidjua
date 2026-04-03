@@ -41,7 +41,9 @@ import type { ParsedConfig } from "../types/config.js";
 import { ApplyError, type StepResult } from "../types/apply.js";
 import type { SecretsProvider, SecretMetadata } from "../types/apply.js";
 import { openDatabase, type Database } from "../utils/db.js";
-import { logger } from "../utils/logger.js";
+import { createLogger } from "../core/logger.js";
+
+const logger = createLogger("apply-secrets");
 
 
 const MASTER_KEY_NAME = "secrets_master_key";
@@ -115,7 +117,7 @@ export class SqliteSecretsProvider implements SecretsProvider {
     this.db.exec(SECRETS_SCHEMA);
 
     this.encKey = await this.resolveEncryptionKey();
-    logger.info("SECRETS", "Secrets provider initialised", { dbPath });
+    logger.info("secrets", "Secrets provider initialised", { metadata: { dbPath } });
   }
 
   async get(namespace: string, key: string): Promise<string | null> {
@@ -281,7 +283,7 @@ export class SqliteSecretsProvider implements SecretsProvider {
     if (existingMaster !== undefined && existingSalt !== undefined) {
       masterKeyHex = existingMaster.key_value;
       saltHex = existingSalt.key_value;
-      logger.debug("SECRETS", "Loaded existing master key from sidjua.db");
+      logger.debug("secrets", "Loaded existing master key from sidjua.db");
     } else {
       // First time: generate master key + salt
       masterKeyHex = generateSecret();
@@ -290,7 +292,7 @@ export class SqliteSecretsProvider implements SecretsProvider {
         setKey.run(MASTER_KEY_NAME, masterKeyHex);
         setKey.run(KDF_SALT_NAME, saltHex);
       })();
-      logger.info("SECRETS", "Generated new master key for secrets encryption");
+      logger.info("secrets", "Generated new master key for secrets encryption");
     }
 
     const masterKey = Buffer.from(masterKeyHex, "hex");

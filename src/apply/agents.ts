@@ -23,8 +23,10 @@ import { loadDefaultRoles }  from "../defaults/loader.js";
 import { ApplyError, type StepResult } from "../types/apply.js";
 import type { Database }     from "../utils/db.js";
 import type { ParsedConfig } from "../types/config.js";
-import { logger }            from "../utils/logger.js";
+import { createLogger }      from "../core/logger.js";
 import { MAX_AGENTS_FREE }   from "../core/constants.js";
+
+const logger = createLogger("apply-agents");
 
 
 // ---------------------------------------------------------------------------
@@ -212,7 +214,7 @@ export function applyAgents(
 
     if (existingTotal >= MAX_AGENTS_FREE) {
       logger.warn(
-        "AGENTS",
+        "agents",
         `Agent limit reached (${existingTotal}/${MAX_AGENTS_FREE} non-deleted). ` +
         `No new agents will be registered. Remove unused agents or upgrade to Enterprise.`,
       );
@@ -238,7 +240,7 @@ export function applyAgents(
       })();
     } catch (err) {
       starterError = err instanceof Error ? err.message : String(err);
-      logger.warn("AGENTS", `Starter agents load failed (non-fatal): ${starterError}`);
+      logger.warn("agents", `Starter agents load failed (non-fatal): ${starterError}`);
     }
 
     // 2. User-defined agents from {workDir}/agents/definitions/
@@ -252,7 +254,7 @@ export function applyAgents(
           const entry = parseUserAgentFile(join(definitionsDir, file));
           if (entry === null) {
             userSkipped++;
-            logger.warn("AGENTS", `Skipped malformed agent YAML: ${file}`);
+            logger.warn("agents", `Skipped malformed agent YAML: ${file}`);
             continue;
           }
           upsertAgentRow(db, entry, now);
@@ -269,7 +271,7 @@ export function applyAgents(
     if (starterError !== null) parts.push(`starter load warning: ${starterError}`);
     const summary = parts.join(", ");
 
-    logger.info("AGENTS", summary);
+    logger.info("agents", summary);
 
     return {
       step:        "AGENTS",

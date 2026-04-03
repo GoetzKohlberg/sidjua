@@ -28,7 +28,9 @@
  */
 
 import type { ActionRequest, ConditionOperator, ParsedCondition } from "../types/pipeline.js";
-import { logger } from "../utils/logger.js";
+import { createLogger } from "../core/logger.js";
+
+const logger = createLogger("condition-parser");
 
 
 /**
@@ -115,12 +117,12 @@ export function evaluateCondition(condition: string, request: ActionRequest): bo
   } catch (err) {
     // Fail-closed: malformed governance condition triggers the rule (deny/block)
     // Log error with full context so governance config authors can fix it
-    logger.warn("SYSTEM", "Governance condition parse error (fail-closed — action blocked)", {
+    logger.warn("system", "Governance condition parse error (fail-closed — action blocked)", { metadata: {
       condition,
       error: err instanceof Error ? err.message : String(err),
       agent_id: request.agent_id,
       action_type: request.action.type,
-    });
+    } });
     return true;
   }
 }

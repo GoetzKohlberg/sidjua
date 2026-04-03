@@ -51,8 +51,10 @@ import type {
 } from "../types/apply.js";
 import type { ParsedConfig } from "../types/config.js";
 import type { Database } from "../utils/db.js";
-import { logger } from "../utils/logger.js";
+import { createLogger } from "../core/logger.js";
 import { createSnapshot } from "../governance/rollback.js";
+
+const logger = createLogger("apply");
 
 
 /**
@@ -153,7 +155,7 @@ export async function apply(options: ApplyOptions): Promise<ApplyResult> {
       steps.push(stepResult);
 
       if (!stepResult.success || !config) {
-        logger.error("VALIDATE", "Validation failed — aborting apply");
+        logger.error("validate", "Validation failed — aborting apply");
         return buildResult(false, steps, config ?? ({} as ParsedConfig), overallStart);
       }
 
@@ -168,9 +170,9 @@ export async function apply(options: ApplyOptions): Promise<ApplyResult> {
         createSnapshot(options.workDir, snapConfigPath, null, "apply");
       } catch (snapErr) {
         logger.warn(
-          "SYSTEM",
+          "system",
           "Governance snapshot failed (non-fatal); apply continues",
-          { error: snapErr instanceof Error ? snapErr.message : String(snapErr) },
+          { metadata: { error: snapErr instanceof Error ? snapErr.message : String(snapErr) } },
         );
       }
 
@@ -453,13 +455,13 @@ export async function apply(options: ApplyOptions): Promise<ApplyResult> {
     }
 
     const totalMs = Date.now() - overallStart;
-    logger.info("SYSTEM", `Apply completed in ${totalMs}ms (${steps.length} steps)`);
+    logger.info("system", `Apply completed in ${totalMs}ms (${steps.length} steps)`);
 
     return buildResult(true, steps, config, overallStart);
   } catch (err) {
     // Unhandled error (e.g. ApplyError thrown for missing DB prerequisite)
     const message = err instanceof Error ? err.message : String(err);
-    logger.error("SYSTEM", `Apply aborted: ${message}`);
+    logger.error("system", `Apply aborted: ${message}`);
     return {
       success: false,
       steps,

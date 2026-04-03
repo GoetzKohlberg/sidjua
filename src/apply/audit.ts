@@ -27,7 +27,9 @@ import type { AuditConfig } from "../types/apply.js";
 import { ApplyError, type StepResult } from "../types/apply.js";
 import type { Database } from "../utils/db.js";
 import { viewExists } from "../utils/db.js";
-import { logger } from "../utils/logger.js";
+import { createLogger } from "../core/logger.js";
+
+const logger = createLogger("apply-audit");
 
 
 const DEFAULT_AUDIT_CONFIG: AuditConfig = {
@@ -86,7 +88,7 @@ export function applyAudit(
             `SELECT * FROM audit_trail WHERE division_code = '${div.code}'`,
         );
         viewsCreated++;
-        logger.debug("AUDIT", `Created audit view "${viewName}" for division "${div.code}"`);
+        logger.debug("audit", `Created audit view "${viewName}" for division "${div.code}"`);
       }
     }
 
@@ -108,12 +110,12 @@ export function applyAudit(
 
       writeFileSync(auditConfigPath, yaml, "utf-8");
       configCreated = true;
-      logger.debug("AUDIT", `Created default audit-config.yaml`);
+      logger.debug("audit", `Created default audit-config.yaml`);
     }
 
     const totalViews = config.activeDivisions.length;
     logger.info(
-      "AUDIT",
+      "audit",
       `Audit: ${viewsCreated} views created, ${totalViews - viewsCreated} existing, export dir verified`,
     );
 

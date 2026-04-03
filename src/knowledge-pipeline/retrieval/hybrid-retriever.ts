@@ -9,8 +9,7 @@
 
 import type { Database } from "../../utils/db.js";
 import type { Embedder, RetrievalResult, RetrievalOptions, Chunk } from "../types.js";
-import { logger as defaultLogger, type Logger } from "../../utils/logger.js";
-import { createLogger } from "../../core/logger.js";
+import { createLogger, type Logger } from "../../core/logger.js";
 import type { VectorStore } from "../vector-store/vector-store.js";
 import { SqliteVectorStore } from "../vector-store/sqlite-vector-store.js";
 
@@ -44,7 +43,7 @@ export class HybridRetriever {
   constructor(
     private readonly db: Database,
     private readonly embedder: Embedder,
-    private readonly logger: Logger = defaultLogger,
+    private readonly logger: Logger = createLogger("hybrid-retriever"),
     vectorStore?: VectorStore,
   ) {
     this.vectorStore = vectorStore ?? new SqliteVectorStore(db);
@@ -66,7 +65,7 @@ export class HybridRetriever {
       }
     } catch (err) {
       this.logger.warn(
-        "SYSTEM",
+        "vector_search_unavailable",
         `Vector search unavailable (${err instanceof Error ? err.message : String(err)}); falling back to BM25-only search.`,
       );
     }

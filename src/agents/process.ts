@@ -23,7 +23,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import type { AgentDefinition, AgentState, AgentIPCMessage, ProcessOptions, Checkpoint } from "./types.js";
 import type { HeartbeatMonitor } from "./heartbeat.js";
-import { logger as defaultLogger, type Logger } from "../utils/logger.js";
+import { createLogger, type Logger } from "../core/logger.js";
 
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -40,7 +40,7 @@ export class AgentProcess {
     private readonly definition: AgentDefinition,
     private readonly options: ProcessOptions,
     private readonly heartbeatMonitor?: HeartbeatMonitor,
-    private readonly logger: Logger = defaultLogger,
+    private readonly logger: Logger = createLogger("agent-process"),
   ) {
     this._state = buildInitialAgentState(definition);
   }
@@ -87,11 +87,8 @@ export class AgentProcess {
 
     // Handle process exit
     this.child.on("exit", (code, signal) => {
-      this.logger.warn("AGENT", "Agent subprocess exited", {
-        agent_id: this.definition.id,
-        pid: this._state.pid,
-        code,
-        signal,
+      this.logger.warn("agent_subprocess_exited", "Agent subprocess exited", {
+        metadata: { agent_id: this.definition.id, pid: this._state.pid, code, signal },
       });
 
       if (this._state.status !== "STOPPED") {
@@ -111,9 +108,8 @@ export class AgentProcess {
 
     // Handle errors
     this.child.on("error", (err) => {
-      this.logger.error("AGENT", "Agent subprocess error", {
-        agent_id: this.definition.id,
-        error: err.message,
+      this.logger.error("agent_subprocess_error", "Agent subprocess error", {
+        metadata: { agent_id: this.definition.id, error: err.message },
       });
       this._state.status = "CRASHED";
     });
@@ -125,10 +121,8 @@ export class AgentProcess {
 
     this.send(initMsg);
 
-    this.logger.info("AGENT", "Agent subprocess spawned", {
-      agent_id: this.definition.id,
-      pid: this._state.pid,
-      worker_path: workerPath,
+    this.logger.info("agent_subprocess_spawned", "Agent subprocess spawned", {
+      metadata: { agent_id: this.definition.id, pid: this._state.pid, worker_path: workerPath },
     });
   }
 
@@ -157,9 +151,8 @@ export class AgentProcess {
       this.child.kill("SIGKILL");
     }
 
-    this.logger.info("AGENT", "Agent subprocess shut down", {
-      agent_id: this.definition.id,
-      graceful,
+    this.logger.info("agent_subprocess_shutdown", "Agent subprocess shut down", {
+      metadata: { agent_id: this.definition.id, graceful },
     });
   }
 
@@ -187,9 +180,8 @@ export class AgentProcess {
   /** Send a message to the child process via IPC. */
   send(message: AgentIPCMessage): void {
     if (this.child === null || !this.isAlive()) {
-      this.logger.warn("AGENT", "Cannot send message — subprocess not alive", {
-        agent_id: this.definition.id,
-        msg_type: message.type,
+      this.logger.warn("send_message_not_alive", "Cannot send message — subprocess not alive", {
+        metadata: { agent_id: this.definition.id, msg_type: message.type },
       });
       return;
     }

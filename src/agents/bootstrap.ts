@@ -29,8 +29,7 @@ import type {
   AgentStatus,
 } from "./types.js";
 import type { EventBus } from "../types/provider.js";
-import { logger as defaultLogger, type Logger } from "../utils/logger.js";
-import { createLogger } from "../core/logger.js";
+import { createLogger, type Logger } from "../core/logger.js";
 
 const _logger = createLogger("agent-bootstrap");
 
@@ -58,7 +57,7 @@ export class ITBootstrapAgent {
     private readonly checkpointManager: CheckpointManager,
     private readonly eventBus: EventBus,
     private readonly config: BootstrapConfig,
-    private readonly logger: Logger = defaultLogger,
+    private readonly logger: Logger = createLogger("agent-bootstrap"),
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -70,15 +69,14 @@ export class ITBootstrapAgent {
     if (this._running) return;
     this._running = true;
 
-    this.logger.info("AGENT", "ITBootstrapAgent started", {
-      agent_count: this.processes.size,
-      check_interval_ms: this.config.check_interval_ms,
+    this.logger.info("bootstrap_started", "ITBootstrapAgent started", {
+      metadata: { agent_count: this.processes.size, check_interval_ms: this.config.check_interval_ms },
     });
 
     this._checkTimer = setInterval(() => {
       this._runHealthCheck().catch((err) => {
-        this.logger.error("AGENT", "Bootstrap health check error", {
-          error: String(err),
+        this.logger.error("bootstrap_health_check_error", "Bootstrap health check error", {
+          metadata: { error: String(err) },
         });
       });
     }, this.config.check_interval_ms);
@@ -90,8 +88,8 @@ export class ITBootstrapAgent {
     const memCheckIntervalMs = this.config.memory_check_interval_ms ?? 300_000;
     this._memoryCheckTimer = setInterval(() => {
       this._runMemoryHealthCheck().catch((err) => {
-        this.logger.error("AGENT", "Bootstrap memory health check error", {
-          error: String(err),
+        this.logger.error("bootstrap_memory_health_error", "Bootstrap memory health check error", {
+          metadata: { error: String(err) },
         });
       });
     }, memCheckIntervalMs);
@@ -116,7 +114,7 @@ export class ITBootstrapAgent {
       this._memoryCheckTimer = null;
     }
 
-    this.logger.info("AGENT", "ITBootstrapAgent stopped");
+    this.logger.info("bootstrap_stopped", "ITBootstrapAgent stopped");
   }
 
   // ---------------------------------------------------------------------------
@@ -132,9 +130,8 @@ export class ITBootstrapAgent {
     const checkpoint = await this.checkpointManager.loadLatest(agentId);
     await proc.restart(checkpoint ?? undefined);
 
-    this.logger.info("AGENT", "Agent manually restarted", {
-      agent_id: agentId,
-      from_checkpoint: checkpoint !== null,
+    this.logger.info("agent_manually_restarted", "Agent manually restarted", {
+      metadata: { agent_id: agentId, from_checkpoint: checkpoint !== null },
     });
   }
 
@@ -142,14 +139,14 @@ export class ITBootstrapAgent {
     const proc = this.processes.get(agentId);
     if (proc === undefined) throw new Error(`Agent ${agentId} not found`);
     proc.send({ type: "PAUSE" });
-    this.logger.info("AGENT", "Agent paused by bootstrap", { agent_id: agentId });
+    this.logger.info("agent_paused", "Agent paused by bootstrap", { metadata: { agent_id: agentId } });
   }
 
   async resumeAgent(agentId: string): Promise<void> {
     const proc = this.processes.get(agentId);
     if (proc === undefined) throw new Error(`Agent ${agentId} not found`);
     proc.send({ type: "RESUME" });
-    this.logger.info("AGENT", "Agent resumed by bootstrap", { agent_id: agentId });
+    this.logger.info("agent_resumed", "Agent resumed by bootstrap", { metadata: { agent_id: agentId } });
   }
 
   // ---------------------------------------------------------------------------
@@ -229,8 +226,8 @@ export class ITBootstrapAgent {
       // Check if process is alive
       if (!proc.isAlive()) {
         if (state.status !== "CRASHED" && state.status !== "RESTARTING") {
-          this.logger.warn("AGENT", "Agent process died — attempting restart", {
-            agent_id: agentId,
+          this.logger.warn("agent_process_died", "Agent process died — attempting restart", {
+            metadata: { agent_id: agentId },
           });
           await this._attemptRestart(agentId, proc, state.restart_count);
         }
@@ -243,10 +240,8 @@ export class ITBootstrapAgent {
 
       const timeSince = now - new Date(lastHb).getTime();
       if (timeSince > this.config.heartbeat_timeout_ms) {
-        this.logger.warn("AGENT", "Agent heartbeat timeout", {
-          agent_id: agentId,
-          ms_since_last: timeSince,
-          timeout_ms: this.config.heartbeat_timeout_ms,
+        this.logger.warn("agent_heartbeat_timeout", "Agent heartbeat timeout", {
+          metadata: { agent_id: agentId, ms_since_last: timeSince, timeout_ms: this.config.heartbeat_timeout_ms },
         });
 
         // Send STATUS_REQUEST to probe the agent
@@ -273,9 +268,8 @@ export class ITBootstrapAgent {
     if (currentRestartCount >= this.config.max_restart_attempts) {
       this._addAlert("CRITICAL", agentId, "repeated_crashes",
         `Agent exceeded max restart attempts (${this.config.max_restart_attempts})`);
-      this.logger.error("AGENT", "Agent exceeded max restart attempts — stopping", {
-        agent_id: agentId,
-        restart_count: currentRestartCount,
+      this.logger.error("agent_max_restarts_exceeded", "Agent exceeded max restart attempts — stopping", {
+        metadata: { agent_id: agentId, restart_count: currentRestartCount },
       });
       this.eventBus.emit("agent.stopped", {
         agent_id: agentId,
@@ -287,10 +281,12 @@ export class ITBootstrapAgent {
     const checkpoint = await this.checkpointManager.loadLatest(agentId);
     try {
       await proc.restart(checkpoint ?? undefined);
-      this.logger.info("AGENT", "Agent restarted from checkpoint", {
-        agent_id: agentId,
-        restart_count: proc.getState().restart_count,
-        from_checkpoint: checkpoint !== null,
+      this.logger.info("agent_restarted", "Agent restarted from checkpoint", {
+        metadata: {
+          agent_id: agentId,
+          restart_count: proc.getState().restart_count,
+          from_checkpoint: checkpoint !== null,
+        },
       });
       this.eventBus.emit("agent.restarted", {
         agent_id: agentId,
@@ -298,9 +294,8 @@ export class ITBootstrapAgent {
         restart_count: proc.getState().restart_count,
       });
     } catch (err) {
-      this.logger.error("AGENT", "Failed to restart agent", {
-        agent_id: agentId,
-        error: String(err),
+      this.logger.error("agent_restart_failed", "Failed to restart agent", {
+        metadata: { agent_id: agentId, error: String(err) },
       });
     }
   }
@@ -337,10 +332,12 @@ export class ITBootstrapAgent {
       const tokensPerMin = tokensPerMs * 60_000;
 
       if (tokensPerMin > this.config.token_burn_rate_limit) {
-        this.logger.warn("AGENT", "High token burn rate detected (rabbithole)", {
-          agent_id: agentId,
-          tokens_per_min: Math.round(tokensPerMin),
-          limit: this.config.token_burn_rate_limit,
+        this.logger.warn("high_burn_rate", "High token burn rate detected (rabbithole)", {
+          metadata: {
+            agent_id: agentId,
+            tokens_per_min: Math.round(tokensPerMin),
+            limit: this.config.token_burn_rate_limit,
+          },
         });
         this._addAlert("WARNING", agentId, "high_burn_rate",
           `Token burn rate ${Math.round(tokensPerMin)}/min exceeds limit ${this.config.token_burn_rate_limit}/min`);
@@ -369,9 +366,8 @@ export class ITBootstrapAgent {
       // Bootstrap emits a warning at 80% and critical at 100%.
       const costHour = state.current_hour_cost;
       if (costHour > 0) {
-        this.logger.debug("AGENT", "Agent hourly cost check", {
-          agent_id: agentId,
-          current_hour_cost: costHour,
+        this.logger.debug("agent_hourly_cost_check", "Agent hourly cost check", {
+          metadata: { agent_id: agentId, current_hour_cost: costHour },
         });
       }
     }
@@ -441,9 +437,8 @@ export class ITBootstrapAgent {
           type: "HYGIENE_REQUEST",
           config: buildDefaultHygieneConfig(),
         });
-        this.logger.info("AGENT", "Triggered hygiene cycle for agent", {
-          agent_id: agentId,
-          short_term_kb: shortTermKb,
+        this.logger.info("hygiene_cycle_triggered", "Triggered hygiene cycle for agent", {
+          metadata: { agent_id: agentId, short_term_kb: shortTermKb },
         });
       }
     }
@@ -459,10 +454,8 @@ export class ITBootstrapAgent {
       if (state.restart_count >= this.config.max_restart_attempts) {
         // Already handled in _attemptRestart; just ensure status is accurate
         if (state.status === "CRASHED" || state.status === "RESTARTING") {
-          this.logger.error("AGENT", "Agent in critical state — operator intervention required", {
-            agent_id: agentId,
-            restart_count: state.restart_count,
-            status: state.status,
+          this.logger.error("agent_critical_state", "Agent in critical state — operator intervention required", {
+            metadata: { agent_id: agentId, restart_count: state.restart_count, status: state.status },
           });
         }
       }

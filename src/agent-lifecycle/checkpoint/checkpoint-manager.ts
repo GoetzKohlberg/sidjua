@@ -13,7 +13,7 @@
 import { randomUUID } from "node:crypto";
 import type { Database } from "../../utils/db.js";
 import { WALManager, type WALEntry, type AppendWALInput } from "./wal-manager.js";
-import { logger as defaultLogger, type Logger } from "../../utils/logger.js";
+import { createLogger, type Logger } from "../../core/logger.js";
 
 
 export type CheckpointType = "periodic" | "shutdown" | "manual" | "pre_task" | "post_task";
@@ -51,7 +51,7 @@ export class CheckpointManager {
   constructor(
     private readonly db: Database,
     walManager?: WALManager,
-    private readonly logger: Logger = defaultLogger,
+    private readonly logger: Logger = createLogger("checkpoint-manager"),
   ) {
     this.walManager = walManager ?? new WALManager(db);
   }
@@ -87,11 +87,13 @@ export class CheckpointManager {
     // Pass walSequence + 1 so DELETE WHERE sequence < (walSequence+1) = sequence <= walSequence.
     this.walManager.truncateWAL(input.agent_id, walSequence + 1);
 
-    this.logger.debug("CHECKPOINT", "Checkpoint created", {
-      checkpoint_id: id,
-      agent_id: input.agent_id,
-      type: input.type,
-      wal_sequence: walSequence,
+    this.logger.debug("checkpoint_created", "Checkpoint created", {
+      metadata: {
+        checkpoint_id: id,
+        agent_id: input.agent_id,
+        type: input.type,
+        wal_sequence: walSequence,
+      },
     });
 
     return {
@@ -170,10 +172,8 @@ export class CheckpointManager {
 
     if (checkpoint !== undefined) {
       const walEntries = this.walManager.getWALSince(agentId, checkpoint.wal_sequence);
-      this.logger.info("RECOVERY", "Full recovery path", {
-        agent_id: agentId,
-        checkpoint_id: checkpoint.id,
-        wal_entries: walEntries.length,
+      this.logger.info("full_recovery_path", "Full recovery path", {
+        metadata: { agent_id: agentId, checkpoint_id: checkpoint.id, wal_entries: walEntries.length },
       });
       return { mode: "full_recovery", agent_id: agentId, checkpoint, wal_entries: walEntries };
     }
@@ -181,15 +181,14 @@ export class CheckpointManager {
     // No checkpoint — check for any WAL entries.
     const walEntries = this.walManager.getWALSince(agentId, 0);
     if (walEntries.length > 0) {
-      this.logger.info("RECOVERY", "Partial recovery path (WAL only)", {
-        agent_id: agentId,
-        wal_entries: walEntries.length,
+      this.logger.info("partial_recovery_path", "Partial recovery path (WAL only)", {
+        metadata: { agent_id: agentId, wal_entries: walEntries.length },
       });
       return { mode: "partial_recovery", agent_id: agentId, wal_entries: walEntries };
     }
 
-    this.logger.info("RECOVERY", "Clean start (no checkpoint or WAL)", {
-      agent_id: agentId,
+    this.logger.info("clean_start", "Clean start (no checkpoint or WAL)", {
+      metadata: { agent_id: agentId },
     });
     return { mode: "clean_start", agent_id: agentId, wal_entries: [] };
   }

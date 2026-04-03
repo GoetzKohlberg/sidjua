@@ -59,6 +59,8 @@ function safeStringify(value: unknown, maxBytes = JSON_MAX_BYTES): string {
 export class ActivityEmitter {
   private db: InstanceType<typeof Database> | null = null;
   private readonly listeners = new Map<string, Array<(event: ActivityRecord) => void>>();
+  /** Tracks callbacks registered per agent for cleanup via removeListenersForAgent(). */
+  private readonly agentCallbacks = new Map<string, Array<{ key: string; cb: (event: ActivityRecord) => void }>>();
 
   /** Initialise with an open SQLite database. Must be called once at startup. */
   init(db: InstanceType<typeof Database>): void {
@@ -224,6 +226,39 @@ export class ActivityEmitter {
   }
 
   /**
+   * Explicit alias for `off()`. Removes a single registered callback.
+   * Prefer this name in cleanup paths for clarity.
+   */
+  removeCallback(key: string, callback: (event: ActivityRecord) => void): void {
+    this.off(key, callback);
+  }
+
+  /**
+   * Register a callback and associate it with an agent so it can be bulk-removed
+   * when the agent stops via `removeListenersForAgent()`.
+   *
+   * Use this instead of `on()` whenever the callback lifetime should be tied to an agent.
+   */
+  registerForAgent(agentId: string, key: string, callback: (event: ActivityRecord) => void): void {
+    this.on(key, callback);
+    if (!this.agentCallbacks.has(agentId)) this.agentCallbacks.set(agentId, []);
+    this.agentCallbacks.get(agentId)!.push({ key, cb: callback });
+  }
+
+  /**
+   * Remove all callbacks registered via `registerForAgent()` for the given agent.
+   * Call this when an agent is stopped or destroyed to prevent listener leaks.
+   */
+  removeListenersForAgent(agentId: string): void {
+    const entries = this.agentCallbacks.get(agentId);
+    if (!entries) return;
+    for (const { key, cb } of entries) {
+      this.off(key, cb);
+    }
+    this.agentCallbacks.delete(agentId);
+  }
+
+  /**
    * Query stored activity events with optional filters.
    * Returns [] when DB is not initialised or on error.
    */
@@ -323,7 +358,8 @@ export class ActivityEmitter {
         entry.categories[row.category as ActivityCategory] = row.cnt;
       }
       return Array.from(map.values());
-    } catch (_e) {
+    } catch (err) {
+      logger.warn("timeline_query", "Failed to query activity timeline", { metadata: { error: String(err) } });
       return [];
     }
   }

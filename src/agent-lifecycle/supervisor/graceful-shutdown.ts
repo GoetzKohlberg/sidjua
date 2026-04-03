@@ -21,7 +21,7 @@
 import { createSocket } from "node:dgram";
 import type { Database } from "../../utils/db.js";
 import type { CheckpointManager } from "../checkpoint/checkpoint-manager.js";
-import { logger as defaultLogger, type Logger } from "../../utils/logger.js";
+import { createLogger, type Logger } from "../../core/logger.js";
 
 
 export interface GracefulShutdownConfig {
@@ -73,7 +73,7 @@ export class GracefulShutdownHandler {
     config: GracefulShutdownConfig,
     private readonly db: Database,
     private readonly checkpointManager: CheckpointManager,
-    private readonly logger: Logger = defaultLogger,
+    private readonly logger: Logger = createLogger("graceful-shutdown"),
   ) {
     this.config = {
       agent_drain_timeout_ms: config.agent_drain_timeout_ms ?? 10_000,
@@ -96,7 +96,7 @@ export class GracefulShutdownHandler {
         void this.initiateShutdown(sig as ShutdownReason);
       });
     }
-    this.logger.info("SUPERVISOR", "Graceful shutdown handlers registered");
+    this.logger.info("shutdown_handlers_registered", "Graceful shutdown handlers registered");
   }
 
   // ---------------------------------------------------------------------------
@@ -124,7 +124,7 @@ export class GracefulShutdownHandler {
 
   async initiateShutdown(reason: ShutdownReason): Promise<void> {
     if (this._status.initiated) {
-      this.logger.warn("SUPERVISOR", "Shutdown already in progress", { reason });
+      this.logger.warn("shutdown_already_in_progress", "Shutdown already in progress", { metadata: { reason } });
       return;
     }
 
@@ -132,15 +132,15 @@ export class GracefulShutdownHandler {
     this._status.reason = reason;
     this._status.started_at = new Date().toISOString();
 
-    this.logger.info("SUPERVISOR", "Graceful shutdown initiated", { reason });
+    this.logger.info("shutdown_initiated", "Graceful shutdown initiated", { metadata: { reason } });
 
     try {
       // Step 1: Drain — stop accepting new work
       this._draining = true;
-      this.logger.info("SUPERVISOR", "Step 1/7: Drain flag set");
+      this.logger.info("shutdown_step1_drain", "Step 1/7: Drain flag set");
 
       // Step 2: Notify agents
-      this.logger.info("SUPERVISOR", "Step 2/7: Notifying agents");
+      this.logger.info("shutdown_step2_notify", "Step 2/7: Notifying agents");
       if (this._notifyAgentsFn !== null) {
         await this._withTimeout(
           this._notifyAgentsFn(reason),
@@ -150,7 +150,7 @@ export class GracefulShutdownHandler {
       }
 
       // Step 3: Checkpoint all agents
-      this.logger.info("SUPERVISOR", "Step 3/7: Checkpointing agents");
+      this.logger.info("shutdown_step3_checkpoint", "Step 3/7: Checkpointing agents");
       if (this._checkpointAgentsFn !== null) {
         await this._withTimeout(
           this._checkpointAgentsFn(),
@@ -168,28 +168,26 @@ export class GracefulShutdownHandler {
       }
 
       // Step 4: Confirm (best-effort — already done via _checkpointAgentsFn)
-      this.logger.info("SUPERVISOR", "Step 4/7: Shutdown confirmed");
+      this.logger.info("shutdown_step4_confirmed", "Step 4/7: Shutdown confirmed");
 
       // Step 5: Persist system_state shutdown_clean=true
-      this.logger.info("SUPERVISOR", "Step 5/7: Persisting shutdown_clean=true");
+      this.logger.info("shutdown_step5_persist", "Step 5/7: Persisting shutdown_clean=true");
       this._persistSystemState("shutdown_clean", "true");
       this._persistSystemState("last_shutdown", new Date().toISOString());
 
       // Step 6: Audit log
-      this.logger.info("SUPERVISOR", "Step 6/7: Audit log entry written", {
-        reason,
-        started_at: this._status.started_at,
+      this.logger.info("shutdown_step6_audit", "Step 6/7: Audit log entry written", {
+        metadata: { reason, started_at: this._status.started_at },
       });
 
       // Step 7: Exit
-      this.logger.info("SUPERVISOR", "Step 7/7: Exiting");
+      this.logger.info("shutdown_step7_exit", "Step 7/7: Exiting");
       this._status.completed = true;
       petWatchdog();
       this.shutdownCallback(0);
     } catch (err) {
-      this.logger.error("SUPERVISOR", "Error during shutdown sequence", {
-        reason,
-        error: err instanceof Error ? err.message : String(err),
+      this.logger.error("shutdown_sequence_error", "Error during shutdown sequence", {
+        metadata: { reason, error: err instanceof Error ? err.message : String(err) },
       });
       this.shutdownCallback(1);
     }
@@ -219,9 +217,8 @@ export class GracefulShutdownHandler {
         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
       `).run(key, value, now);
     } catch (err) {
-      this.logger.warn("SUPERVISOR", "Failed to persist system_state", {
-        key,
-        error: err instanceof Error ? err.message : String(err),
+      this.logger.warn("system_state_persist_failed", "Failed to persist system_state", {
+        metadata: { key, error: err instanceof Error ? err.message : String(err) },
       });
     }
   }
@@ -233,7 +230,7 @@ export class GracefulShutdownHandler {
   ): Promise<T | void> {
     const timeout = new Promise<void>((resolve) => {
       setTimeout(() => {
-        this.logger.warn("SUPERVISOR", `Timeout waiting for ${label}`, { timeout_ms: timeoutMs });
+        this.logger.warn("shutdown_timeout", `Timeout waiting for ${label}`, { metadata: { timeout_ms: timeoutMs } });
         resolve();
       }, timeoutMs);
     });

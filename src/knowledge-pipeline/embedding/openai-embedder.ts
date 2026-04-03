@@ -9,7 +9,7 @@
 
 import OpenAI from "openai";
 import type { Embedder, EmbedderOptions } from "../types.js";
-import { logger as defaultLogger, type Logger } from "../../utils/logger.js";
+import { createLogger, type Logger } from "../../core/logger.js";
 import { isHttpError } from "../../core/error-codes.js";
 
 const DEFAULT_MODEL = "text-embedding-3-large";
@@ -36,7 +36,7 @@ export class OpenAIEmbedder implements Embedder {
   constructor(
     apiKey?: string,
     model = DEFAULT_MODEL,
-    private readonly logger: Logger = defaultLogger,
+    private readonly logger: Logger = createLogger("openai-embedder"),
     maxTokensOverride?: number,
   ) {
     this.client = new OpenAI({ apiKey });
@@ -75,9 +75,8 @@ export class OpenAIEmbedder implements Embedder {
         lastError = err instanceof Error ? err : new Error(String(err));
         if (!isHttpError(err, 429)) throw lastError;
         const backoff = BASE_BACKOFF_MS * Math.pow(2, attempt);
-        this.logger.warn("AGENT_LIFECYCLE", `Embedding rate limit — retrying in ${backoff}ms`, {
-          attempt,
-          backoff_ms: backoff,
+        this.logger.warn("embedding_rate_limit", `Embedding rate limit — retrying in ${backoff}ms`, {
+          metadata: { attempt, backoff_ms: backoff },
         });
         await new Promise<void>((resolve) => setTimeout(resolve, backoff));
       }

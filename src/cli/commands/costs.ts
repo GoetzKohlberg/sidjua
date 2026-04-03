@@ -10,7 +10,7 @@
  */
 
 import { join } from "node:path";
-import { openCliDatabase } from "../utils/db-init.js";
+import { withCliDatabase } from "../utils/with-cli-database.js";
 import { formatTable } from "../formatters/table.js";
 import { formatJson } from "../formatters/json.js";
 import { createLogger } from "../../core/logger.js";
@@ -49,10 +49,7 @@ function periodToSql(period: string): string | null {
 
 
 export function runCostsCommand(opts: CostsCommandOptions): number {
-  const db = openCliDatabase({ workDir: opts.workDir, queryOnly: true });
-  if (!db) return 1;
-
-  try {
+  return withCliDatabase({ workDir: opts.workDir, queryOnly: true }, (db) => {
     // Build dynamic SQL with period + optional filters
     const conditions: string[] = ["1=1"];
     const params: string[] = [];
@@ -155,10 +152,5 @@ export function runCostsCommand(opts: CostsCommandOptions): number {
     );
 
     return 0;
-  } catch (err) {
-    process.stderr.write(`✗ Error: ${String(err)}\n`);
-    return 1;
-  } finally {
-    db.close();
-  }
+  });
 }

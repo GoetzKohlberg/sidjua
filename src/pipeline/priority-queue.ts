@@ -21,7 +21,9 @@ import {
   PIPELINE_SCHEMA_SQL,
 } from "./types.js";
 import type { QueueEntry, ExpiredTask } from "./types.js";
-import { logger } from "../utils/logger.js";
+import { createLogger } from "../core/logger.js";
+
+const logger = createLogger("pipeline-queue");
 
 
 interface QueueRow {
@@ -106,11 +108,11 @@ export class PriorityQueue {
       Object.keys(entry.metadata).length > 0 ? JSON.stringify(entry.metadata) : null,
     );
 
-    logger.debug("PIPELINE_QUEUE", "Task enqueued", {
+    logger.debug("pipeline_queue", "Task enqueued", { metadata: {
       task_id:  entry.task_id,
       priority: entry.priority,
       consumer: entry.consumer_agent_id ?? "unassigned",
-    });
+    } });
   }
 
   // ---------------------------------------------------------------------------
@@ -206,7 +208,7 @@ export class PriorityQueue {
     ).get(task_id);
 
     if (current === undefined) {
-      logger.warn("PIPELINE_QUEUE", "requeue: task not found", { task_id });
+      logger.warn("pipeline_queue", "requeue: task not found", { metadata: { task_id } });
       return;
     }
 
@@ -237,11 +239,11 @@ export class PriorityQueue {
       task_id,
     );
 
-    logger.debug("PIPELINE_QUEUE", "Task requeued", {
+    logger.debug("pipeline_queue", "Task requeued", { metadata: {
       task_id,
       priority,
       excluded_count: excluded.length,
-    });
+    } });
   }
 
   // ---------------------------------------------------------------------------
@@ -280,7 +282,7 @@ export class PriorityQueue {
     }
 
     if (boosted > 0) {
-      logger.info("PIPELINE_QUEUE", "Starvation boost applied", { count: boosted });
+      logger.info("pipeline_queue", "Starvation boost applied", { metadata: { count: boosted } });
     }
 
     return boosted;
@@ -313,7 +315,7 @@ export class PriorityQueue {
       stmt.run(row.task_id);
     }
 
-    logger.info("PIPELINE_QUEUE", "Expired stale tasks", { count: expired.length });
+    logger.info("pipeline_queue", "Expired stale tasks", { metadata: { count: expired.length } });
 
     return expired.map((row) => ({
       task_id:           row.task_id,

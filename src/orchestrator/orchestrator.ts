@@ -50,7 +50,6 @@ import type {
   PHASE9_SCHEMA_SQL as _Schema,
 } from "./types.js";
 import { PHASE9_SCHEMA_SQL } from "./types.js";
-import { logger } from "../utils/logger.js";
 import { createLogger } from "../core/logger.js";
 import type { AgentDaemonManager } from "../agent-lifecycle/daemon-manager.js";
 import type { InboundMessageGateway } from "../messaging/inbound-gateway.js";
@@ -180,7 +179,7 @@ export class OrchestratorProcess {
     this._startedAt = new Date();
     this.persistState();
 
-    logger.info("ORCHESTRATOR", "Starting", { agents: this.agents.size });
+    _coreLogger.info("orchestrator_starting", "Starting", { metadata: { agents: this.agents.size } });
 
     // Phase 19: Initialize sandbox provider if configured
     if (this.config.sandbox !== undefined) {
@@ -195,7 +194,7 @@ export class OrchestratorProcess {
       } else {
         this._violationLoggerStop = startViolationLogger(this._sandboxProvider);
       }
-      logger.info("ORCHESTRATOR", "Sandbox initialized", { provider: this._sandboxProvider.name });
+      _coreLogger.info("sandbox_initialized", "Sandbox initialized", { metadata: { provider: this._sandboxProvider.name } });
     }
 
     // Recover any in-flight tasks from previous crash/restart
@@ -205,7 +204,7 @@ export class OrchestratorProcess {
     try {
       await this._processPendingDecisions();
     } catch (e: unknown) {
-      logger.warn("ORCHESTRATOR", "Pending decisions replay failed (non-fatal)", {
+      _coreLogger.warn("pending_decisions_replay_failed", "Pending decisions replay failed (non-fatal)", {
         metadata: { error: e instanceof Error ? e.message : String(e) },
       });
     }
@@ -229,18 +228,18 @@ export class OrchestratorProcess {
         agentDivision:    this.config.default_division,
       });
       const started = this._daemonManager.startAll();
-      logger.info("ORCHESTRATOR", "Daemon loops started", { count: started });
+      _coreLogger.info("daemon_loops_started", "Daemon loops started", { metadata: { count: started } });
     }
 
     // V1.1: Start messaging gateway (best-effort — failure does not block orchestrator)
     if (this._messagingGateway !== null && this._messagingConfigs !== null) {
       this._messagingGateway.start(this._messagingConfigs).catch((e: unknown) => {
-        logger.warn("ORCHESTRATOR", "Messaging gateway start error", { error: String(e) });
+        _coreLogger.warn("messaging_gateway_start_error", "Messaging gateway start error", { metadata: { error: String(e) } });
       });
-      logger.info("ORCHESTRATOR", "Messaging gateway starting", { instances: this._messagingConfigs.length });
+      _coreLogger.info("messaging_gateway_starting", "Messaging gateway starting", { metadata: { instances: this._messagingConfigs.length } });
     }
 
-    logger.info("ORCHESTRATOR", "Running", { agents: this.agents.size });
+    _coreLogger.info("orchestrator_running", "Running", { metadata: { agents: this.agents.size } });
   }
 
   /** Graceful shutdown: stop accepting events, shut down all agents. */
@@ -286,7 +285,7 @@ export class OrchestratorProcess {
     this._state = "STOPPED";
     this.persistState();
 
-    logger.info("ORCHESTRATOR", "Stopped");
+    _coreLogger.info("orchestrator_stopped", "Stopped");
   }
 
   /**
@@ -326,14 +325,14 @@ export class OrchestratorProcess {
           });
           interrupted++;
         } catch (e: unknown) {
-          logger.warn("ORCHESTRATOR", "Could not mark task as failed during shutdown", {
+          _coreLogger.warn("shutdown_task_fail_error", "Could not mark task as failed during shutdown", {
             metadata: { task_id: task.id, error: e instanceof Error ? e.message : String(e) },
           });
         }
       }
     }
     if (interrupted > 0) {
-      logger.info("ORCHESTRATOR", `Shutdown interrupted ${interrupted} in-flight task(s)`, {
+      _coreLogger.info("shutdown_interrupted_tasks", `Shutdown interrupted ${interrupted} in-flight task(s)`, {
         metadata: { interrupted },
       });
     }
@@ -359,7 +358,7 @@ export class OrchestratorProcess {
     this._state = "PAUSED";
     this.persistState();
 
-    logger.info("ORCHESTRATOR", "Paused");
+    _coreLogger.info("orchestrator_paused", "Paused");
   }
 
   /** Resume from paused state. */
@@ -373,7 +372,7 @@ export class OrchestratorProcess {
 
     this._loopPromise = this.eventLoop();
 
-    logger.info("ORCHESTRATOR", "Resumed");
+    _coreLogger.info("orchestrator_resumed", "Resumed");
   }
 
   // ---------------------------------------------------------------------------
@@ -420,10 +419,8 @@ export class OrchestratorProcess {
         try {
           await this.routeEvent(event);
         } catch (err) {
-          logger.error("ORCHESTRATOR", "Event handler error", {
-            event_type: event.event_type,
-            task_id:    event.task_id,
-            error:      String(err),
+          _coreLogger.error("event_handler_error", "Event handler error", {
+            metadata: { event_type: event.event_type, task_id: event.task_id, error: String(err) },
           });
         }
       }
@@ -483,9 +480,8 @@ export class OrchestratorProcess {
     if (assignment === null) {
       // No agent available — stay PENDING, retry on next loop
       this.store.update(task.id, { status: "PENDING" });
-      logger.debug("ORCHESTRATOR", "Task queued: no agent available", {
-        task_id: task.id,
-        tier:    task.tier,
+      _coreLogger.debug("task_queued_no_agent", "Task queued: no agent available", {
+        metadata: { task_id: task.id, tier: task.tier },
       });
       return;
     }
@@ -508,10 +504,8 @@ export class OrchestratorProcess {
       inst.process.send({ type: "TASK_ASSIGNED", task_id: task.id });
     }
 
-    logger.info("ORCHESTRATOR", "Task assigned", {
-      task_id:  task.id,
-      agent_id: assignment.agent_id,
-      reason:   assignment.reason,
+    _coreLogger.info("task_assigned", "Task assigned", {
+      metadata: { task_id: task.id, agent_id: assignment.agent_id, reason: assignment.reason },
     });
   }
 
@@ -547,7 +541,7 @@ export class OrchestratorProcess {
 
     if (task.parent_id === null) {
       // Root task complete — user will be notified by Phase 10/11
-      logger.info("ORCHESTRATOR", "Root task complete", { task_id: task.id });
+      _coreLogger.info("root_task_complete", "Root task complete", { metadata: { task_id: task.id } });
       return;
     }
 
@@ -592,10 +586,8 @@ export class OrchestratorProcess {
         retry_count:   task.retry_count + 1,
         assigned_agent: null,
       });
-      logger.info("ORCHESTRATOR", "Task queued for retry", {
-        task_id: task.id,
-        retry:   task.retry_count + 1,
-        max:     task.max_retries,
+      _coreLogger.info("task_queued_for_retry", "Task queued for retry", {
+        metadata: { task_id: task.id, retry: task.retry_count + 1, max: task.max_retries },
       });
     } else {
       // Retries exhausted → escalate
@@ -644,9 +636,8 @@ export class OrchestratorProcess {
       }
     }
 
-    logger.warn("ORCHESTRATOR", "Agent crashed", {
-      agent_id:     agentId,
-      tasks_affected: activeTasks.length,
+    _coreLogger.warn("agent_crashed", "Agent crashed", {
+      metadata: { agent_id: agentId, tasks_affected: activeTasks.length },
     });
   }
 
@@ -659,7 +650,7 @@ export class OrchestratorProcess {
       inst.status = inst.active_task_count > 0 ? "busy" : "idle";
     }
 
-    logger.info("ORCHESTRATOR", "Agent recovered", { agent_id: agentId });
+    _coreLogger.info("agent_recovered", "Agent recovered", { metadata: { agent_id: agentId } });
   }
 
   private async handleBudgetExceeded(event: TaskEvent): Promise<void> {
@@ -674,9 +665,8 @@ export class OrchestratorProcess {
     // Orchestrator just logs and marks the agent as potentially unhealthy.
     const agentId = (event.data["agent_id"] as string | undefined) ?? event.agent_to;
 
-    logger.warn("ORCHESTRATOR", "Heartbeat timeout — delegating to ITBootstrapAgent", {
-      agent_id: agentId,
-      task_id:  event.task_id,
+    _coreLogger.warn("heartbeat_timeout", "Heartbeat timeout — delegating to ITBootstrapAgent", {
+      metadata: { agent_id: agentId, task_id: event.task_id },
     });
 
     if (agentId !== null) {
@@ -761,10 +751,8 @@ export class OrchestratorProcess {
       }
     }
 
-    logger.info("ORCHESTRATOR", "Recovery complete", {
-      running:  runningTasks.length,
-      waiting:  waitingTasks.length,
-      assigned: assignedTasks.length,
+    _coreLogger.info("recovery_complete", "Recovery complete", {
+      metadata: { running: runningTasks.length, waiting: waitingTasks.length, assigned: assignedTasks.length },
     });
   }
 
@@ -883,10 +871,8 @@ export class OrchestratorProcess {
       const agentId = instance.definition.id;
       if (this.agents.has(agentId)) {
         this.agents.delete(agentId);
-        logger.info("ORCHESTRATOR", "Agent process exited — removed from registry", {
-          agent_id: agentId,
-          exit_code: code,
-          signal,
+        _coreLogger.info("agent_process_exited", "Agent process exited — removed from registry", {
+          metadata: { agent_id: agentId, exit_code: code, signal },
         });
       }
     });
@@ -935,7 +921,7 @@ export class OrchestratorProcess {
       writeFileSync(tokenFilePath, secretHex, { encoding: "utf-8", mode: 0o600 });
       try { chmodSync(tokenFilePath, 0o600); } catch (_e) { /* best-effort */ }
     } catch (e: unknown) {
-      logger.warn("ORCHESTRATOR", "Failed to write IPC secret file — IPC auth disabled", {
+      _coreLogger.warn("ipc_secret_write_failed", "Failed to write IPC secret file — IPC auth disabled", {
         metadata: { error: e instanceof Error ? e.message : String(e) },
       });
       this._ipcSecret = null; // disable auth if secret write failed
@@ -956,7 +942,7 @@ export class OrchestratorProcess {
 
       // Log each new connection to the audit trail so unexpected
       // connections from other local processes are visible in logs.
-      logger.info("ORCHESTRATOR", "ipc_connection", { socketPath });
+      _coreLogger.info("ipc_connection", "ipc_connection", { metadata: { socketPath } });
 
       socket.on("data", (chunk: Buffer) => {
         buf += chunk.toString("utf8");
@@ -1005,7 +991,7 @@ export class OrchestratorProcess {
 
         // Validate command type against whitelist before processing.
         if (!ALLOWED_IPC_COMMANDS.has(req.command)) {
-          logger.warn("ORCHESTRATOR", "ipc_unknown_command", { command: req.command });
+          _coreLogger.warn("ipc_unknown_command", "ipc_unknown_command", { metadata: { command: req.command } });
           const errResp: CLIResponse = {
             request_id: req.request_id ?? "unknown",
             success:    false,
@@ -1042,7 +1028,7 @@ export class OrchestratorProcess {
       process.umask(prevUmask); // restore immediately after socket is created
       // Belt-and-suspenders: chmod in case the OS ignored umask
       try { chmodSync(socketPath, 0o600); } catch (_e) { /* best-effort on platforms without chmod */ }
-      logger.info("ORCHESTRATOR", "IPC socket listening", { path: socketPath });
+      _coreLogger.info("ipc_socket_listening", "IPC socket listening", { metadata: { path: socketPath } });
     });
   }
 

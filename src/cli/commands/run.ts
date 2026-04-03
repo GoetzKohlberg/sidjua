@@ -22,7 +22,7 @@ import { TaskStore } from "../../tasks/store.js";
 import { TaskEventBus } from "../../tasks/event-bus.js";
 import { TaskManager } from "../../tasks/task-manager.js";
 import { getSanitizer } from "../../core/input-sanitizer.js";
-import { openCliDatabase } from "../utils/db-init.js";
+import { withCliDatabaseAsync } from "../utils/with-cli-database.js";
 import { isProcessAlive } from "../utils/process.js";
 import { TaskPriority } from "../../pipeline/types.js";
 import { formatJson } from "../formatters/json.js";
@@ -177,10 +177,7 @@ export async function runRunCommand(opts: RunCommandOptions): Promise<number> {
 
   // ── Create task ───────────────────────────────────────────────────────────
 
-  const db = openCliDatabase({ workDir: opts.workDir });
-  if (!db) return 1;
-
-  try {
+  return withCliDatabaseAsync({ workDir: opts.workDir }, async (db) => {
     // Run agent-lifecycle migrations so agent_definitions table exists
     try { runMigrations105(db); } catch (e: unknown) {
       logger.debug("run-cmd", "runMigrations105 failed — may already be applied", {
@@ -245,8 +242,7 @@ export async function runRunCommand(opts: RunCommandOptions): Promise<number> {
     });
 
     // Keep DB open through the entire pollTaskCompletion lifecycle.
-    // exitCode is assigned before the finally-block runs — db.close() only
-    // executes after the await fully resolves (not while polling is in flight).
+    // withCliDatabaseAsync closes the DB only after this callback fully resolves.
     let exitCode = 0;
     if (opts.wait) {
       exitCode = await pollTaskCompletion(task.id, opts, store);
@@ -256,9 +252,7 @@ export async function runRunCommand(opts: RunCommandOptions): Promise<number> {
       }
     }
     return exitCode;
-  } finally {
-    db.close();
-  }
+  });
 }
 
 

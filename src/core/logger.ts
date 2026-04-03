@@ -470,3 +470,36 @@ class LoggerImpl implements Logger {
 export function createLogger(component: string): Logger {
   return new LoggerImpl({ component });
 }
+
+/**
+ * Create a no-op logger that discards all output.
+ * Intended for use in unit tests where log noise should be suppressed.
+ *
+ * @example
+ * const logger = createSilentLogger();
+ * new MyService(logger); // logs suppressed in test
+ */
+/** No-op Logger implementation used in tests to suppress output. */
+class SilentLogger implements Logger {
+  debug(): void   { /* no-op */ }
+  info(): void    { /* no-op */ }
+  warn(): void    { /* no-op */ }
+  error(): void   { /* no-op */ }
+  fatal(): void   { /* no-op */ }
+  child(): Logger { return _silentInstance; }
+  startTimer(): number { return 0; }
+}
+
+const _silentInstance: Logger = new SilentLogger();
+
+/**
+ * Create a no-op logger that discards all output.
+ * Intended for use in unit tests where log noise should be suppressed.
+ *
+ * @example
+ * const logger = createSilentLogger();
+ * new MyService(logger); // logs suppressed in test
+ */
+export function createSilentLogger(): Logger {
+  return _silentInstance;
+}

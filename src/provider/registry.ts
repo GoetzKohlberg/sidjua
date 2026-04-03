@@ -26,7 +26,7 @@
 
 import { randomUUID } from "node:crypto";
 import type { Database } from "../utils/db.js";
-import { logger as defaultLogger, type Logger } from "../utils/logger.js";
+import { createLogger, type Logger } from "../core/logger.js";
 import { reportError } from "../core/telemetry/telemetry-reporter.js";
 import { MAX_TOTAL_PROVIDER_RETRIES } from "../core/constants.js";
 import type {
@@ -68,7 +68,7 @@ export class ProviderRegistry {
     private readonly config: RegistryConfig,
     providers: LLMProvider[],
     db: Database,
-    private readonly logger: Logger = defaultLogger,
+    private readonly logger: Logger = createLogger("provider-registry"),
     private readonly eventBus: EventBus = new NoOpEventBus(),
   ) {
     if (providers.length === 0) {
@@ -170,9 +170,8 @@ export class ProviderRegistry {
           request.taskId,
         );
         const errMsg = finalizeErr instanceof Error ? finalizeErr.message : String(finalizeErr);
-        this.logger.warn("PROVIDER", "finalizeReservation failed — cost recorded via fallback", {
-          callId,
-          error: errMsg,
+        this.logger.warn("finalize_reservation_failed", "finalizeReservation failed — cost recorded via fallback", {
+          metadata: { callId, error: errMsg },
         });
       }
     } else {
@@ -200,12 +199,14 @@ export class ProviderRegistry {
       latencyMs:    response.latencyMs,
     });
 
-    this.logger.info("PROVIDER", "Provider call complete", {
-      callId,
-      provider: response.provider,
-      model:    response.model,
-      tokens:   response.usage.totalTokens,
-      costUsd:  response.costUsd,
+    this.logger.info("provider_call_complete", "Provider call complete", {
+      metadata: {
+        callId,
+        provider: response.provider,
+        model:    response.model,
+        tokens:   response.usage.totalTokens,
+        costUsd:  response.costUsd,
+      },
     });
 
     return response;
@@ -268,10 +269,12 @@ export class ProviderRegistry {
     );
 
     if (!budgetResult.allowed) {
-      this.logger.warn("PROVIDER", "Call blocked by budget enforcement", {
-        callId:       request.callId,
-        divisionCode: request.divisionCode,
-        reason:       budgetResult.reason,
+      this.logger.warn("call_blocked_budget", "Call blocked by budget enforcement", {
+        metadata: {
+          callId:       request.callId,
+          divisionCode: request.divisionCode,
+          reason:       budgetResult.reason,
+        },
       });
 
       // Determine which period was exceeded for the error
@@ -294,14 +297,16 @@ export class ProviderRegistry {
     }
 
     if (budgetResult.nearLimit) {
-      this.logger.warn("PROVIDER", "Budget near limit", {
-        callId:            request.callId,
-        divisionCode:      request.divisionCode,
-        currentDailyUsd:   budgetResult.currentDailyUsd,
-        currentMonthlyUsd: budgetResult.currentMonthlyUsd,
-        dailyLimitUsd:     budgetResult.dailyLimitUsd,
-        monthlyLimitUsd:   budgetResult.monthlyLimitUsd,
-        threshold:         budgetResult.alertThresholdPercent,
+      this.logger.warn("budget_near_limit", "Budget near limit", {
+        metadata: {
+          callId:            request.callId,
+          divisionCode:      request.divisionCode,
+          currentDailyUsd:   budgetResult.currentDailyUsd,
+          currentMonthlyUsd: budgetResult.currentMonthlyUsd,
+          dailyLimitUsd:     budgetResult.dailyLimitUsd,
+          monthlyLimitUsd:   budgetResult.monthlyLimitUsd,
+          threshold:         budgetResult.alertThresholdPercent,
+        },
       });
 
       this.eventBus.emit("budget.near_limit", {
@@ -326,12 +331,14 @@ export class ProviderRegistry {
     startTime: number,
     maxAttempts?: number,  // xAI-ARCH-H3: capped remaining attempts
   ): Promise<ProviderCallResponse> {
-    this.logger.warn("PROVIDER", "Primary provider failed — attempting failover", {
-      callId:           request.callId,
-      primaryProvider:  request.provider,
-      fallbackProvider: fallbackName,
-      primaryError:     primaryErr instanceof Error ? primaryErr.message : String(primaryErr),
-      maxAttempts,
+    this.logger.warn("provider_failover", "Primary provider failed — attempting failover", {
+      metadata: {
+        callId:           request.callId,
+        primaryProvider:  request.provider,
+        fallbackProvider: fallbackName,
+        primaryError:     primaryErr instanceof Error ? primaryErr.message : String(primaryErr),
+        maxAttempts,
+      },
     });
 
     this.eventBus.emit("provider.failover", {

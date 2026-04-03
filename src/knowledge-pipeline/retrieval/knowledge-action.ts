@@ -15,7 +15,7 @@ import { HybridRetriever } from "./hybrid-retriever.js";
 import { Reranker } from "./reranker.js";
 import { MMRDiversifier } from "./mmr-diversifier.js";
 import { CollectionManager } from "../collection-manager.js";
-import { logger as defaultLogger, type Logger } from "../../utils/logger.js";
+import { createLogger, type Logger } from "../../core/logger.js";
 
 export interface KnowledgeQueryOptions extends RetrievalOptions {
   /** Target collection IDs (if specified). Otherwise query all accessible collections. */
@@ -40,7 +40,7 @@ export class KnowledgeAction {
     private readonly db: Database,
     private readonly retriever: HybridRetriever,
     private readonly collectionManager: CollectionManager,
-    private readonly logger: Logger = defaultLogger,
+    private readonly logger: Logger = createLogger("knowledge-action"),
   ) {}
 
   async query(
@@ -63,8 +63,8 @@ export class KnowledgeAction {
       .map((c) => c.id);
 
     if (accessible.length === 0) {
-      this.logger.warn("AGENT_LIFECYCLE", "No accessible collections for agent", {
-        agent_id: agent.agent_id,
+      this.logger.warn("no_accessible_collections", "No accessible collections for agent", {
+        metadata: { agent_id: agent.agent_id },
       });
       return {
         results: [],
@@ -114,7 +114,7 @@ export class KnowledgeAction {
       } catch (e: unknown) {
         // Access log write is non-fatal — pipeline continues — but log for diagnosis
         const errMsg = e instanceof Error ? e.message : String(e);
-        this.logger.warn("AGENT_LIFECYCLE", `Access log write failed: ${errMsg}`, { collection_id: cid });
+        this.logger.warn("access_log_write_failed", `Access log write failed: ${errMsg}`, { metadata: { collection_id: cid } });
       }
     }
 

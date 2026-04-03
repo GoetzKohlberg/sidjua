@@ -34,7 +34,9 @@ import type {
   TaskPosition,
   ExpiredTask,
 } from "./types.js";
-import { logger } from "../utils/logger.js";
+import { createLogger } from "../core/logger.js";
+
+const logger = createLogger("task-pipeline");
 
 
 export class TaskPipeline {
@@ -89,11 +91,11 @@ export class TaskPipeline {
     // 1. Global queue limit check
     const currentTotal = this.queue.totalQueued();
     if (currentTotal >= this.config.max_queue_size_global) {
-      logger.warn("PIPELINE", "Pipeline full — task rejected", {
+      logger.warn("pipeline", "Pipeline full — task rejected", { metadata: {
         task_id: task.id,
         total:   currentTotal,
         limit:   this.config.max_queue_size_global,
-      });
+      } });
       return {
         accepted:          false,
         task_id:           task.id,
@@ -155,12 +157,12 @@ export class TaskPipeline {
     // 6. Compute position
     const position = this.queue.getPositionInLane(task.id);
 
-    logger.info("PIPELINE", "Task submitted", {
+    logger.info("pipeline", "Task submitted", { metadata: {
       task_id:  task.id,
       priority,
       consumer: consumerId ?? "unassigned",
       recommendation,
-    });
+    } });
 
     return {
       accepted:          true,
@@ -218,7 +220,7 @@ export class TaskPipeline {
     }
 
     if (dispatched > 0) {
-      logger.debug("PIPELINE", "Dispatched pending tasks", { count: dispatched });
+      logger.debug("pipeline", "Dispatched pending tasks", { metadata: { count: dispatched } });
     }
 
     return dispatched;
@@ -241,7 +243,7 @@ export class TaskPipeline {
   handleAck(task_id: string, ack: AckState, agent_id: string): void {
     const entry = this.queue.getEntry(task_id);
     if (entry === null) {
-      logger.warn("PIPELINE", "handleAck: task not found", { task_id, ack });
+      logger.warn("pipeline", "handleAck: task not found", { metadata: { task_id, ack } });
       return;
     }
 
@@ -278,7 +280,7 @@ export class TaskPipeline {
         // After REJECTED → QUEUED (valid transition)
         this.queue.requeue(task_id, undefined, agent_id);
         this.ackTracker.transition(task_id, AckState.REJECTED, AckState.QUEUED, agent_id, "Requeued after rejection");
-        logger.info("PIPELINE", "Task requeued after rejection", { task_id, excluded: agent_id });
+        logger.info("pipeline", "Task requeued after rejection", { metadata: { task_id, excluded: agent_id } });
         break;
       }
 
@@ -291,7 +293,7 @@ export class TaskPipeline {
       }
 
       default:
-        logger.warn("PIPELINE", "Unexpected ACK state", { task_id, ack });
+        logger.warn("pipeline", "Unexpected ACK state", { metadata: { task_id, ack } });
     }
   }
 
@@ -375,7 +377,7 @@ export class TaskPipeline {
       }
     }
 
-    logger.info("PIPELINE", "Recovery complete", { recovered: entries.length });
+    logger.info("pipeline", "Recovery complete", { metadata: { recovered: entries.length } });
     return entries.length;
   }
 
@@ -397,7 +399,7 @@ export class TaskPipeline {
       await sleep(POLL_INTERVAL_MS);
     }
 
-    logger.info("PIPELINE", "Drain complete");
+    logger.info("pipeline", "Drain complete");
   }
 
   /**
@@ -428,7 +430,7 @@ export class TaskPipeline {
 
     this.backpressure.onTaskAccepted(agent_id);
 
-    logger.info("PIPELINE", "Task delivered to agent", { task_id, agent_id });
+    logger.info("pipeline", "Task delivered to agent", { metadata: { task_id, agent_id } });
   }
 
   /** Notify producer of TTL expiry. */

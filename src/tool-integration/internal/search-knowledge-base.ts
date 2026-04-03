@@ -14,6 +14,9 @@
 
 import type { InternalToolDef } from "../adapters/internal-adapter.js";
 import type { Database }        from "../../utils/db.js";
+import { createLogger }         from "../../core/logger.js";
+
+const logger = createLogger("search-knowledge-base");
 
 export interface KnowledgeSearchResult {
   chunk_id:      string;
@@ -60,7 +63,8 @@ async function ftsFallback(
       )
       .all(...values) as KnowledgeSearchResult[];
     return rows;
-  } catch (_e) {
+  } catch (err) {
+    logger.warn("knowledge_search", "Failed to query knowledge base", { metadata: { error: String(err) } });
     return [];
   }
 }

@@ -27,7 +27,9 @@ import type {
   Warning,
 } from "../types/pipeline.js";
 import type { Database } from "../utils/db.js";
-import { logger } from "../utils/logger.js";
+import { createLogger } from "../core/logger.js";
+
+const logger = createLogger("pre-action-pipeline");
 import { checkForbidden }       from "./forbidden.js";
 import { checkApproval }        from "./approval.js";
 import { checkBudget }          from "./budget.js";
@@ -71,10 +73,10 @@ export function evaluateAction(
     return runPipeline(request, governance, db);
   } catch (err) {
     // Fail-closed: pipeline error = action blocked
-    logger.error("SYSTEM", "Pipeline execution failed (fail-closed BLOCK)", {
+    logger.error("system", "Pipeline execution failed (fail-closed BLOCK)", { metadata: {
       request_id: request.request_id,
       error:      err instanceof Error ? err.message : String(err),
-    });
+    } });
 
     // Best-effort audit write — if this also fails, return synthetic BLOCK
     // (never throw: fail-closed means BLOCK, not exception)
@@ -101,9 +103,9 @@ export function evaluateAction(
     } catch (e: unknown) {
       // Audit write failed too (e.g. DB tables missing) — proceed with -1
       void e; // cleanup-ignore: already has logger.error call immediately after
-      logger.error("SYSTEM", "Audit write failed during fail-closed BLOCK", {
+      logger.error("system", "Audit write failed during fail-closed BLOCK", { metadata: {
         request_id: request.request_id,
-      });
+      } });
     }
 
     return {
@@ -128,11 +130,11 @@ function runPipeline(
   const stageResults: StageResult[] = [];
   const warnings: Warning[] = [];
 
-  logger.debug("SYSTEM", "Pipeline start", {
+  logger.debug("system", "Pipeline start", { metadata: {
     request_id:  request.request_id,
     action_type: request.action.type,
     agent_id:    request.agent_id,
-  });
+  } });
 
   // Stage 0: Tool RBAC (skipped when request.tools or action.tool_name is absent)
   if (request.tools !== undefined && request.action.tool_name !== undefined) {
@@ -265,11 +267,11 @@ export function finalize(
     resumeToken = generateResumeToken(request.request_id, approvalId, secret);
   }
 
-  logger.info("SYSTEM", `Pipeline verdict: ${verdict}`, {
+  logger.info("system", `Pipeline verdict: ${verdict}`, { metadata: {
     request_id:     request.request_id,
     action_type:    request.action.type,
     blocking_stage: blockingStage ?? undefined,
-  });
+  } });
 
   return {
     request_id:     request.request_id,
