@@ -36,6 +36,7 @@ import { runSelftest }           from "./update.js";
 import { join }                  from "node:path";
 import * as readline             from "node:readline";
 import { createLogger }          from "../../core/logger.js";
+import { auditCliCommand }       from "../cli-audit.js";
 
 const logger = createLogger("rollback-cmd");
 
@@ -68,6 +69,9 @@ async function runRollback(
   listOnly:      boolean,
   workDir:       string,
 ): Promise<void> {
+  if (!listOnly) {
+    auditCliCommand("rollback", undefined);
+  }
   validateWorkDir(workDir);
   const paths   = resolvePaths(workDir);
   const archive = new VersionArchiveManager(join(paths.system.root, ".."), paths.system.root);

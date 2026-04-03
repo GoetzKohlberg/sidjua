@@ -13,17 +13,22 @@
  * localhost page (e.g. compromised npm package with a dev server) could read
  * the key from localStorage. Origin validation adds an extra layer.
  *
- * BYPASS RULE:
- *   Requests carrying an Authorization header use custom-header auth (API key).
- *   Browsers cannot send custom headers cross-origin without a CORS pre-flight
- *   that this server would reject — so CSRF is not a viable attack vector when
- *   Authorization is present.  We skip the check to preserve CLI compatibility.
+ * ORIGIN VALIDATION (highest priority):
+ *   When an Origin header IS present it is ALWAYS validated against the allowlist.
+ *   No bypass (Content-Type, Authorization, X-Requested-With) can override this.
+ *   A browser extension that injects an Authorization header cross-origin cannot
+ *   forge a request from an evil origin past this check.
  *
- * MISSING ORIGIN RULE (updated):
- *   The previous implementation allowed requests with NO Origin header, which
- *   means form-POST CSRF attacks (which may omit Origin in some configs) could
- *   bypass the check.  Fixed: no-Origin requests are now blocked for mutating
- *   methods UNLESS the Authorization header is present (see bypass rule above).
+ * NO-ORIGIN BYPASS RULE (applies only when Origin is absent):
+ *   Programmatic clients (CLI tools, curl, server-to-server calls) typically
+ *   don't send an Origin header. They can bypass CSRF validation if they present:
+ *     - Authorization: <token>          — API-key auth (not a browser form)
+ *     - Content-Type: application/json  — browsers can't set this on form posts
+ *     - X-Requested-With: <any>         — non-CORS-safelisted header; needs pre-flight
+ *
+ * MISSING ORIGIN RULE:
+ *   No-Origin requests with none of the above bypass markers are blocked.
+ *   Form-POST CSRF attacks may omit Origin in some browser/proxy configurations.
  *
  * Allowed origins (when Origin IS present):
  *   - tauri://localhost* — Tauri 2.x WebView
@@ -66,29 +71,11 @@ export const csrfMiddleware: MiddlewareHandler = async (c, next) => {
     return next();
   }
 
-  // Custom-header auth (Authorization / Bearer) is CSRF-safe.
-  // Browsers cannot send Authorization cross-origin without CORS pre-flight,
-  // which this server would refuse for disallowed origins.
-  const authHeader = c.req.header("authorization") ?? c.req.header("Authorization");
-  if (authHeader !== undefined) {
-    return next();
-  }
-
   const origin  = c.req.header("origin");
-  const referer = c.req.header("referer");
 
-  // If neither Origin nor Referer is present, block the request.
-  // A legitimate browser making a cross-origin form POST would include at
-  // least one of these headers.  CLI / programmatic clients should send
-  // Authorization (see bypass above) or include Origin.
-  if (origin === undefined && referer === undefined) {
-    logger.warn("csrf_missing_origin", "CSRF: state-changing request missing both Origin and Referer", {
-      metadata: { method: c.req.method, path: c.req.path },
-    });
-    return c.json({ error: "CSRF validation failed: missing Origin header" }, 403);
-  }
-
-  // Validate Origin header if present
+  // ── Origin present: ALWAYS validate — no bypass can override this ──────────
+  // Browser extensions can inject Authorization headers cross-origin, so checking
+  // Authorization/Content-Type before Origin validation would be exploitable.
   if (origin !== undefined) {
     if (!ALLOWED_ORIGIN_RE.test(origin)) {
       logger.warn("csrf_origin_rejected", "CSRF: request from disallowed origin blocked", {
@@ -99,8 +86,24 @@ export const csrfMiddleware: MiddlewareHandler = async (c, next) => {
     return next();
   }
 
-  // Fallback: validate Referer when Origin is absent
-  // (some browsers and HTTP/1.0 clients send Referer without Origin)
+  // ── No Origin header — programmatic client (CLI, curl, server-to-server) ───
+  // Bypass CSRF if the request carries markers that browsers cannot forge
+  // cross-origin without a CORS pre-flight:
+  //   - Authorization: <token>         — API-key / Bearer auth
+  //   - Content-Type: application/json — browsers use urlencoded/multipart for forms
+  //   - X-Requested-With: <any>        — non-safelisted header; requires pre-flight
+  const hasAuth       = c.req.header("authorization") !== undefined;
+  const contentType   = c.req.header("content-type") ?? "";
+  const isJson        = contentType.includes("application/json");
+  const hasXRW        = c.req.header("x-requested-with") !== undefined;
+
+  if (hasAuth || isJson || hasXRW) {
+    return next();
+  }
+
+  // ── No Origin + no bypass markers — fall back to Referer validation ─────────
+  const referer = c.req.header("referer");
+
   if (referer !== undefined) {
     let refererOrigin: string;
     try {
@@ -121,6 +124,9 @@ export const csrfMiddleware: MiddlewareHandler = async (c, next) => {
     return next();
   }
 
-  // Unreachable — both origin and referer checked above — but TypeScript safety
-  return next();
+  // Neither Origin, nor bypass markers, nor valid Referer — block.
+  logger.warn("csrf_missing_origin", "CSRF: state-changing request missing both Origin and Referer", {
+    metadata: { method: c.req.method, path: c.req.path },
+  });
+  return c.json({ error: "CSRF validation failed: missing Origin header" }, 403);
 };

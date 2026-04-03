@@ -184,6 +184,26 @@ export const authenticate = (
     }
     const ctx: CallerContext = { role: "bootstrap" };
     c.set(CALLER_CONTEXT_KEY, ctx);
+
+    // Once ANY scoped token exists, restrict bootstrap key to token-management
+    // routes only. All other routes return 403 with migration instructions.
+    // FAIL-OPEN: if we cannot query tokens, allow bootstrap (avoid lockout).
+    if (tokenStore !== null && tokenStore !== undefined && tokenStore.hasAnyToken()) {
+      if (!path.startsWith("/api/v1/tokens")) {
+        logger.warn("bootstrap_migration_required", "Bootstrap key blocked — scoped tokens exist. Use a scoped token.", {
+          correlationId: requestId,
+          metadata: { path },
+        });
+        return c.json({
+          error: {
+            code:        "AUTH-010",
+            message:     "Bootstrap key restricted. Create a scoped API token via POST /api/v1/tokens, then use that token.",
+            recoverable: true,
+          },
+        }, 403);
+      }
+    }
+
     return next();
   }
 

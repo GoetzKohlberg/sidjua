@@ -25,6 +25,7 @@ import { AdapterPromoter }    from "../../integration-gateway/adapter-promoter.j
 import { createLogger }       from "../../core/logger.js";
 import { SidjuaError }        from "../../core/error-codes.js";
 import type { AdapterDefinition } from "../../integration-gateway/types.js";
+import { auditCliCommand }    from "../cli-audit.js";
 
 
 /** Allowed characters for service/adapter names. */
@@ -236,6 +237,7 @@ export interface IntegrationAddOptions {
 export async function runIntegrationAddCommand(
   opts: IntegrationAddOptions,
 ): Promise<number> {
+  auditCliCommand("integration", "add");
   // Validate inputs before any network I/O
   try {
     validateServiceName(opts.service);

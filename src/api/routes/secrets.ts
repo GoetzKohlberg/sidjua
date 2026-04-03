@@ -160,24 +160,58 @@ const KEY_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/;
 export function registerSecretRoutes(app: Hono, services: SecretRouteServices): void {
   const { provider, secretsDb } = services;
 
-  // Ensure the reveal audit table exists (created lazily on first registerSecretRoutes call).
-  // Writes to this table are fail-closed for secret reveal operations.
+  // Ensure the secret audit table exists and has the operation column.
+  // Writes to this table are fail-closed for reveal, best-effort for other ops.
   try {
     secretsDb.exec(`
       CREATE TABLE IF NOT EXISTS secret_reveal_audit (
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        operation   TEXT NOT NULL DEFAULT 'reveal',
         ns          TEXT NOT NULL,
-        key         TEXT NOT NULL,
+        key         TEXT NOT NULL DEFAULT '',
         agent_id    TEXT,
         division    TEXT,
         role        TEXT,
         revealed_at TEXT NOT NULL
       )
     `);
+    // Migrate existing installations: add operation column if missing
+    try {
+      secretsDb.exec("ALTER TABLE secret_reveal_audit ADD COLUMN operation TEXT NOT NULL DEFAULT 'reveal'");
+    } catch (_migErr) {
+      // Column already exists — ignore
+    }
   } catch (tableErr) {
     logger.warn("secrets_audit_init", "Could not create secret_reveal_audit table", {
       metadata: { error: tableErr instanceof Error ? tableErr.message : String(tableErr) },
     });
+  }
+
+  /**
+   * Write one record to the DB audit table.
+   * - failClosed=true  → throws on error (for reveals: deny if audit fails)
+   * - failClosed=false → best-effort (for list/write/delete: log warning only)
+   */
+  function writeDbAuditRecord(
+    operation: string,
+    ns:        string,
+    key:       string,
+    ctx:       CallerContext,
+    failClosed: boolean,
+  ): void {
+    try {
+      secretsDb.prepare(
+        `INSERT INTO secret_reveal_audit (operation, ns, key, agent_id, division, role, revealed_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      ).run(operation, ns, key, ctx.agentId ?? null, ctx.division ?? null, ctx.role ?? null, new Date().toISOString());
+    } catch (auditErr: unknown) {
+      if (failClosed) {
+        throw auditErr;
+      }
+      logger.warn("secret_audit_write_failed", `Best-effort secret audit write failed for ${operation}`, {
+        metadata: { operation, ns, key, error: auditErr instanceof Error ? auditErr.message : String(auditErr) },
+      });
+    }
   }
 
   // FAIL CLOSED: all secrets routes require a per-request CallerContext set by
@@ -240,6 +274,7 @@ export function registerSecretRoutes(app: Hono, services: SecretRouteServices): 
       return c.json({ error: { code: "SEC-403", message: `Access denied to namespace: ${ns}` } }, 403);
     }
     auditSecretOperation("list", ns, undefined, getCtx(c), "allowed");
+    writeDbAuditRecord("list", ns, "", getCtx(c), false);
     const keys = await provider.list(ns);
     return c.json({ namespace: ns, keys });
   });
@@ -272,11 +307,8 @@ export function registerSecretRoutes(app: Hono, services: SecretRouteServices): 
     // If the audit write fails, deny the reveal rather than leak without a trace.
     const ctx = getCtx(c);
     try {
-      secretsDb.prepare(
-        `INSERT INTO secret_reveal_audit (ns, key, agent_id, division, role, revealed_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-      ).run(ns, key, ctx.agentId ?? null, ctx.division ?? null, ctx.role ?? null, new Date().toISOString());
-    } catch (auditErr) {
+      writeDbAuditRecord("reveal", ns, key, ctx, true);
+    } catch (auditErr: unknown) {
       logger.error("secret_reveal_audit_failed", "Cannot write reveal audit — denying secret reveal (fail-closed)", {
         metadata: { ns, key, error: auditErr instanceof Error ? auditErr.message : String(auditErr) },
       });
@@ -311,6 +343,7 @@ export function registerSecretRoutes(app: Hono, services: SecretRouteServices): 
     }
     await provider.set(ns, key, value);
     auditSecretOperation("write", ns, key, getCtx(c), "allowed");
+    writeDbAuditRecord("write", ns, key, getCtx(c), false);
     return c.json({ ok: true, namespace: ns, key });
   });
 
@@ -330,6 +363,7 @@ export function registerSecretRoutes(app: Hono, services: SecretRouteServices): 
     }
     await provider.delete(ns, key);
     auditSecretOperation("delete", ns, key, getCtx(c), "allowed");
+    writeDbAuditRecord("delete", ns, key, getCtx(c), false);
     return c.json({ ok: true, namespace: ns, key });
   });
 

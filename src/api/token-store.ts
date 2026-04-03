@@ -213,6 +213,24 @@ export class TokenStore {
   }
 
   /**
+   * Check whether any active scoped token exists (any scope, not revoked).
+   * Used to enforce bootstrap key migration: once tokens exist, the bootstrap
+   * key should only be used for token management routes.
+   */
+  hasAnyToken(): boolean {
+    try {
+      const row = this.db
+        .prepare<[], { n: number }>(
+          "SELECT COUNT(*) as n FROM api_tokens WHERE revoked = 0",
+        )
+        .get() as { n: number } | undefined;
+      return (row?.n ?? 0) > 0;
+    } catch (_err) {
+      return false; // fail-open: if table missing, allow bootstrap (avoid lockout)
+    }
+  }
+
+  /**
    * Get a token by ID (without hash), for admin management UI.
    */
   getToken(id: string): Omit<ApiToken, "hash"> | null {

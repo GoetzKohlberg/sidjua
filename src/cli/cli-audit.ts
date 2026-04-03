@@ -39,6 +39,16 @@ export const SENSITIVE_CLI_COMMANDS = new Set([
   "api-key:disable-bootstrap",
   "apply",
   "start-over",
+  "rollback",
+  "module:install",
+  "module:uninstall",
+  "integration:add",
+  "schedule:create",
+  "schedule:enable",
+  "schedule:disable",
+  "schedule:delete",
+  "decide:action",
+  "embedding-config",
 ]);
 
 /** Stderr warning printed before sensitive CLI operations. */

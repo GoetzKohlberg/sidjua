@@ -21,6 +21,7 @@ import { sendIpc } from "../ipc-client.js";
 import { formatTable } from "../formatters/table.js";
 import { formatJson } from "../formatters/json.js";
 import { createLogger } from "../../core/logger.js";
+import { auditCliCommand } from "../cli-audit.js";
 
 const logger = createLogger("decide-cmd");
 
@@ -225,6 +226,7 @@ async function respondToDecision(
     process.stderr.write(`✗ Invalid action: ${action}. Choose from: ${validActions.join(", ")}\n`);
     return 1;
   }
+  auditCliCommand("decide", "action");
 
   // Read result from file if --result-file
   let result = opts.result;

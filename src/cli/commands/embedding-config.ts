@@ -40,6 +40,7 @@ import { GoogleEmbedder }      from "../../knowledge-pipeline/embedding/google-e
 import { OpenAIEmbedder }      from "../../knowledge-pipeline/embedding/openai-embedder.js";
 import type { Embedder }       from "../../knowledge-pipeline/types.js";
 import { createLogger }        from "../../core/logger.js";
+import { auditCliCommand }     from "../cli-audit.js";
 
 const logger = createLogger("embedding-config");
 
@@ -157,6 +158,7 @@ export async function runEmbeddingConfigCommand(
   provider: string,
   opts:     EmbeddingConfigOptions,
 ): Promise<number> {
+  auditCliCommand("embedding-config", undefined);
 
   // ── Validate provider ──────────────────────────────────────────────────────
   if (!SUPPORTED_PROVIDERS.includes(provider as EmbeddingProvider)) {

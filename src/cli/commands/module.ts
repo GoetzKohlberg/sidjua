@@ -14,6 +14,7 @@
 
 import { resolve }     from "node:path";
 import type { Command } from "commander";
+import { auditCliCommand } from "../cli-audit.js";
 import {
   listAvailableModules,
   listInstalledModules,
@@ -155,6 +156,7 @@ export async function runModuleStatus(opts: { id: string; workDir: string }): Pr
 export async function runModuleInstall(
   opts: { id: string; workDir: string; nonInteractive?: boolean },
 ): Promise<number> {
+  auditCliCommand("module", "install");
   try {
     validateModuleId(opts.id);
     const manifest = (await import("../../modules/module-loader.js"))
@@ -205,6 +207,7 @@ export async function runModuleInstall(
 
 
 export async function runModuleUninstall(opts: { id: string; workDir: string }): Promise<number> {
+  auditCliCommand("module", "uninstall");
   try {
     validateModuleId(opts.id);
     process.stdout.write(`Uninstalling module: ${opts.id} ...\n`);

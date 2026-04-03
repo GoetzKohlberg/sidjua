@@ -25,6 +25,7 @@ import { loadSchedulingGovernance } from "../../scheduler/config-loader.js";
 import type { ScheduleDefinition } from "../../scheduler/types.js";
 import { createLogger } from "../../core/logger.js";
 import { BudgetTracker } from "../../agent-lifecycle/budget-tracker.js";
+import { auditCliCommand } from "../cli-audit.js";
 
 const logger = createLogger("schedule-cmd");
 
@@ -172,6 +173,7 @@ export function registerScheduleCommands(program: Command): void {
         process.exit(1);
       }
 
+      auditCliCommand("schedule", "create");
       const { scheduler, close } = openScheduler(opts.workDir);
       try {
         const created = scheduler.createSchedule({
@@ -212,6 +214,7 @@ export function registerScheduleCommands(program: Command): void {
     .description("Enable a disabled schedule")
     .option("--work-dir <path>", "Working directory", process.cwd())
     .action((scheduleId: string, opts: { workDir: string }) => {
+      auditCliCommand("schedule", "enable");
       const { scheduler, close } = openScheduler(opts.workDir);
       try {
         scheduler.enableSchedule(scheduleId);
@@ -233,6 +236,7 @@ export function registerScheduleCommands(program: Command): void {
     .description("Disable a schedule (pauses automatic execution)")
     .option("--work-dir <path>", "Working directory", process.cwd())
     .action((scheduleId: string, opts: { workDir: string }) => {
+      auditCliCommand("schedule", "disable");
       const { scheduler, close } = openScheduler(opts.workDir);
       try {
         scheduler.disableSchedule(scheduleId);
@@ -260,6 +264,7 @@ export function registerScheduleCommands(program: Command): void {
         );
         process.exit(1);
       }
+      auditCliCommand("schedule", "delete");
       const { scheduler, close } = openScheduler(opts.workDir);
       try {
         scheduler.deleteSchedule(scheduleId);
