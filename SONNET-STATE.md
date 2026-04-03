@@ -1,5 +1,5 @@
 # SONNET STATE — `cat` THIS FIRST, EVERY PROMPT
-# Updated: 2026-04-03 07:00 PHT | Sonnet T2
+# Updated: 2026-04-03 07:45 PHT | Sonnet T2
 
 ## HARD GATES (run before code)
 Gate0: cat SONNET-STATE.md (this file)
@@ -78,16 +78,35 @@ src/core/update/migration-framework.ts — MigrationRunner + MigrationRegistry
 tests/api/update-system.test.ts — drain/readonly/lifecycle/updater proxy tests (23 tests total)
 
 ## CURRENT
-Version: 1.0.1 | Build: 81 | Tests: 7994 pass, 0 fail (3 pre-existing flaky: gui-smoke+tls+multi-agent), 18 skipped
+Version: 1.0.1 | Build: 82 | Tests: 8108 pass, 0 fail (3 pre-existing flaky: gui-smoke+tls+multi-agent), 18 skipped
+Last commit: 7905fad — P375 (tool calling in orchestrator)
 Deadline V1.0.2: 2026-04-20 | V1.0.3: 2026-05-01 | V1.1: 2026-05-15
 
 ## NOTES FOR NEXT SESSION
-GRUPPE B Code Quality is COMPLETE (commit fede7d2).
-FIX 1: 4 catch-return-[] → logger.warn + void-e fixed in discord.ts.
-FIX 2: utils/logger.ts DELETED. All 43 src/ files migrated to core/logger createLogger(). createSilentLogger() added to core/logger.
-FIX 3a: ActivityEmitter: registerForAgent() + removeListenersForAgent() + removeCallback() added.
-FIX 3b: isValidApiBase() delegates to validateProviderUrl() — private IPs now blocked via https too.
-FIX 3c: sanitizePath() applied unconditionally to all error fields (message, suggestion, detail).
-FIX 4: withCliDatabase/withCliDatabaseAsync HOFs in src/cli/utils/with-cli-database.ts. 15 CLI functions refactored across 13 files.
+P373 YAML Schema Validation + Docs Pipeline — COMPLETE (commit ccdf8b4)
+P374 MCP Client Core — COMPLETE (commit ccdf8b4, 55 new tests)
+P375 Tool Calling in Orchestrator — COMPLETE (commit 7905fad, 33 new tests)
+
+MCP key files:
+  src/core/mcp/types.ts — JSON-RPC 2.0, McpTool, McpServerConfig, governance types, risk levels
+  src/core/mcp/mcp-client.ts — STDIO + SSE transports, crash recovery (max 3), arg-hash logging only
+  src/core/mcp/mcp-registry.ts — YAML parsing, ${secrets:KEY} resolution, tool index, governance filter
+  src/core/mcp/mcp-governance-hook.ts — 6-stage fail-closed (risk→RBAC→budget→forbidden→ceiling→rate)
+  src/core/mcp/mcp-tool-adapter.ts — Anthropic/OpenAI/Ollama format conversion + detectProviderFromModel()
+  src/core/mcp/tool-selector.ts — selectRelevantTools() keyword-scored, caps at maxTools
+  src/core/mcp/context-budget.ts — estimateTokens() + compressContext() (keeps first+tail, removes middle)
+  src/core/mcp/memory-verifier.ts — verifyMemoryReferences() path existence + workDir boundary
+  src/core/mcp/tool-executor.ts — McpLlmProvider, createMcpLlmProvider(), executeWithToolLoop()
+    MAX_TOOL_ITERATIONS=10, hard ceiling=25, activityEmitter for mcp.tool.{called,success,blocked,error}
+  src/api/routes/mcp-routes.ts — /api/v1/mcp/servers, /tools, /tools/:agentId, /reload, /test/:server
+  config/mcp-servers.yaml.default — template copied by sidjua init
+  DUAL PATH wired: server-startup.ts + start.ts both create McpRegistry and call shutdown()
+
+P375 integration in reasoning-loop.ts:
+  ReasoningLoopDeps.mcpRegistry?: McpRegistry | null
+  use_tool dispatch: getServerForTool() → callTool() direct (bypasses dispatchTool for MCP tools)
+  ToolCall.id now preserved in AnthropicAdapter + OpenAICompatibleAdapter parseToolResponse()
+  ActivitySeverity: "warning" (not "warn") — matches activity-types.ts
+
 Next: continue Block H P358-P360 or start next Opus spec.
 
