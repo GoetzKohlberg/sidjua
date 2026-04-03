@@ -47,6 +47,9 @@ export interface LLMResponse {
 }
 
 export interface ToolCall {
+  /** Provider-assigned tool call id (Anthropic tool_use id / OpenAI tool call id).
+   *  Required for multi-turn tool-result messages. Undefined for old-style dispatched tools. */
+  id?:   string;
   name:  string;
   input: Record<string, unknown>;
 }

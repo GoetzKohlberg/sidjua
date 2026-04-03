@@ -12,6 +12,7 @@ export { governToolCall, clearRateLimitState } from "./mcp-governance-hook.js";
 export {
   mcpToolsToLlmFormat,
   llmToolResultToMcp,
+  detectProviderFromModel,
 } from "./mcp-tool-adapter.js";
 export type {
   AnthropicTool,
@@ -19,3 +20,25 @@ export type {
   OllamaTool,
   LlmToolFormat,
 } from "./mcp-tool-adapter.js";
+export { selectRelevantTools } from "./tool-selector.js";
+export { estimateTokens, compressContext } from "./context-budget.js";
+export type { CompressResult } from "./context-budget.js";
+export { verifyMemoryReferences } from "./memory-verifier.js";
+export type { VerifyResult } from "./memory-verifier.js";
+export {
+  createMcpLlmProvider,
+  executeWithToolLoop,
+  MAX_TOOL_ITERATIONS,
+  MAX_TOOL_ITERATIONS_HARD_CEILING,
+  CONTEXT_COMPRESS_THRESHOLD,
+  CONTEXT_COMPRESS_TARGET,
+  MAX_TOOLS_PER_CALL,
+} from "./tool-executor.js";
+export type {
+  McpContentBlock,
+  McpMessage,
+  McpLlmResponse,
+  McpLlmProvider,
+  ToolLoopContext,
+  ToolLoopResult,
+} from "./tool-executor.js";

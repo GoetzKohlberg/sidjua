@@ -190,7 +190,7 @@ export class AnthropicAdapter implements ProviderAdapter {
 
     const toolCalls: ToolCall[] = raw.content
       .filter((b): b is AnthropicToolUseBlock => b.type === "tool_use")
-      .map((b) => ({ name: b.name, input: b.input }));
+      .map((b) => ({ id: b.id, name: b.name, input: b.input }));
 
     const textContent = raw.content
       .filter((b): b is AnthropicTextBlock => b.type === "text")

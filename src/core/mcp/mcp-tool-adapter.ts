@@ -36,6 +36,17 @@ export type OllamaTool = OpenAiTool;
 
 export type LlmToolFormat = "anthropic" | "openai" | "ollama";
 
+/**
+ * Detect LLM provider format from model name string.
+ * Used to pick the correct tool format for native MCP tool calling.
+ */
+export function detectProviderFromModel(model: string): LlmToolFormat {
+  const lower = model.toLowerCase();
+  if (lower.startsWith("claude")) return "anthropic";
+  // openai, deepseek, grok/xai, kimi, mistral, qwen, llama, gemma, etc.
+  return "openai";
+}
+
 // ---------------------------------------------------------------------------
 // Conversion helpers
 // ---------------------------------------------------------------------------

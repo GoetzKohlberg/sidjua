@@ -47,6 +47,7 @@ import type { RbacContext }     from "../tool-integration/tool-rbac.js";
 import type { Task }            from "../tasks/types.js";
 import type { TaskStore }       from "../tasks/store.js";
 import type { TaskEventBus }    from "../tasks/event-bus.js";
+import type { McpRegistry }     from "../core/mcp/mcp-registry.js";
 
 const logger = createLogger("reasoning-loop");
 
@@ -130,6 +131,9 @@ export interface ReasoningLoopDeps {
   eventBus:           TaskEventBus;
   /** Pluggable tool executor. null = no external tools available. */
   dispatchTool:       ToolDispatcher | null;
+  /** P374 MCP Registry — direct tool routing for tools registered via mcp-servers.yaml.
+   *  When non-null, tools found here are called directly instead of via dispatchTool. */
+  mcpRegistry?:       McpRegistry | null;
   /** Optional cost recorder (wired to Phase 6 CostTracker). */
   recordCost?:        CostRecorder;
   /** Loop safety config. */
@@ -397,7 +401,27 @@ export class AgentReasoningLoop {
         });
 
         let toolResult: unknown = { status: "no_tool_dispatcher_configured" };
-        if (this.deps.dispatchTool !== null) {
+        let handledByMcp = false;
+
+        // P374 McpRegistry — direct routing for tools registered via mcp-servers.yaml
+        const mcpRegistry = this.deps.mcpRegistry;
+        if (mcpRegistry !== null && mcpRegistry !== undefined) {
+          const serverInfo = mcpRegistry.getServerForTool(decision.tool_name);
+          if (serverInfo !== undefined) {
+            handledByMcp = true;
+            try {
+              const mcpResult = await mcpRegistry.callTool(decision.tool_name, decision.tool_input);
+              toolResult = mcpResult.content.map((b) => b.type === "text" ? b.text : "").join("\n");
+            } catch (err) {
+              toolResult = { error: err instanceof Error ? err.message : String(err) };
+              logger.warn("reasoning_mcp_tool_error", `MCP tool call failed: ${decision.tool_name}`, {
+                metadata: { agent_id: agent.id, task_id: task.id, tool_name: decision.tool_name },
+              });
+            }
+          }
+        }
+
+        if (!handledByMcp && this.deps.dispatchTool !== null) {
           try {
             toolResult = await this.deps.dispatchTool(decision.tool_name, decision.tool_input);
           } catch (err) {

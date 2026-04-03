@@ -232,7 +232,7 @@ export class OpenAICompatibleAdapter implements ProviderAdapter {
       } catch (e: unknown) {
         logger.warn("openai-compatible-adapter", "Tool argument JSON parse failed — using empty input", { metadata: { error: e instanceof Error ? e.message : String(e) } });
       }
-      return { name: tc.function.name, input };
+      return { id: tc.id, name: tc.function.name, input };
     });
 
     return {
