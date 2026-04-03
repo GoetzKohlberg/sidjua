@@ -13,14 +13,14 @@ export class ImageExtractor implements FileExtractor {
   }
 
   async extract(buffer: Buffer, filename: string): Promise<ExtractionResult> {
+    // tesseract.js v7: terminate() returns Promise<ConfigResult>, not void
     let createWorker: (lang: string) => Promise<{
       recognize: (buf: Buffer) => Promise<{ data: { text: string; confidence: number } }>;
-      terminate: () => Promise<void>;
+      terminate: () => Promise<unknown>;
     }>;
 
     try {
       const tesseract = await import('tesseract.js');
-      // tesseract.js v7 exports createWorker directly
       createWorker = tesseract.createWorker as typeof createWorker;
     } catch (_e) {
       throw new Error('Image OCR requires the "tesseract.js" package');

@@ -65,15 +65,36 @@ const BUILD_META = loadBuildMeta();
 const startedAt = new Date();
 const startMs   = Date.now();
 
+/**
+ * Inject a deep health provider that adds db/disk/migration fields to GET /health.
+ * Called by registerAllRoutes when a database is available.
+ */
+type DeepHealthFields = {
+  healthy:            boolean;
+  db_read:            boolean;
+  db_write:           boolean;
+  disk_ok:            boolean;
+  migration_complete: boolean;
+  qdrant_connected:   boolean;
+};
+
+let _deepHealthProvider: (() => Promise<DeepHealthFields>) | null = null;
+
+export function setDeepHealthProvider(fn: (() => Promise<DeepHealthFields>) | null): void {
+  _deepHealthProvider = fn;
+}
+
 export function createSystemRoutes(getApiKey?: () => string): Hono {
   const app = new Hono();
 
   /**
    * GET /health
    * Public endpoint — no authentication required.
-   * Returns basic liveness check suitable for monitoring.
+   * Returns basic liveness plus deep health fields when DB is available.
    */
-  app.get("/health", (c) => {
+  // SCOPE: public (intentional, no auth required)
+  app.get("/health", async (c) => {
+    const deep = _deepHealthProvider ? await _deepHealthProvider() : null;
     return c.json({
       status:        "ok",
       version:       VERSION,
@@ -82,6 +103,7 @@ export function createSystemRoutes(getApiKey?: () => string): Hono {
       build_date:    BUILD_META?.build ?? null,
       build_ref:     BUILD_META?.ref   ?? null,
       components:    {},
+      ...(deep ?? {}),
     });
   });
 

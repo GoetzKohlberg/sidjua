@@ -165,7 +165,6 @@ export async function parseXlsx(buffer: Buffer): Promise<RawOrgRow[]> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let XLSX: any;
   try {
-    // @ts-expect-error xlsx is an optional dep; may not be installed
     const mod = await import("xlsx") as Record<string, unknown>;
     XLSX = mod["default"] ?? mod;
   } catch (_e) {

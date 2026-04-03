@@ -63,6 +63,8 @@ import type { TokenStore }               from "../token-store.js";
 import { registerUpdaterRoutes }         from "./updater.js";
 import { registerUpdateLifecycleRoutes } from "./update-lifecycle.js";
 import { registerSystemLifecycleRoutes } from "./system-lifecycle.js";
+import { setDeepHealthProvider }         from "./system.js";
+import { checkDeepHealth }              from "../../core/health/deep-health.js";
 import { registerUploadRoutes }          from "./upload.js";
 import type { UploadRouteServices }      from "./upload.js";
 import type { UploadStore }              from "../../uploads/upload-store.js";
@@ -164,6 +166,12 @@ export function registerAllRoutes(app: Hono, services: AllRouteServices = {}): v
   const db       = services.db ?? null;
   const workDir  = services.workDir ?? process.cwd();
 
+  // Wire deep health provider when DB is available — enriches GET /api/v1/health
+  // with fields the blue/green sidecar checks: healthy, migration_complete, db_read, etc.
+  if (db !== null) {
+    setDeepHealthProvider(() => checkDeepHealth(db, workDir, workDir));
+  }
+
   // DB-backed routes
   if (db !== null) {
     registerTaskRoutes(app,              { db });
@@ -239,10 +247,10 @@ export function registerAllRoutes(app: Hono, services: AllRouteServices = {}): v
   // P351: File upload in agent chats
   if (services.uploadStore != null && services.fileStorage != null) {
     registerUploadRoutes(app, {
-      uploadStore:       services.uploadStore,
-      fileStorage:       services.fileStorage,
-      extractionService: services.extractionService ?? undefined,
-      emitEvent:         (evt) => { void sseManager.broadcast(evt as any); },
+      uploadStore: services.uploadStore,
+      fileStorage: services.fileStorage,
+      ...(services.extractionService != null ? { extractionService: services.extractionService } : {}),
+      emitEvent:   (evt) => { void sseManager.broadcast(evt as any); },
     });
   }
 

@@ -68,8 +68,8 @@ export function registerUploadRoutes(app: Hono, services: UploadRouteServices): 
       const filePath = fileStorage.store(agentId, filename, buffer);
 
       const record = uploadStore.create({
-        agent_id:        agentId,
-        conversation_id: conversationId,
+        agent_id: agentId,
+        ...(conversationId !== undefined ? { conversation_id: conversationId } : {}),
         filename,
         mimetype,
         size_bytes:      buffer.length,
