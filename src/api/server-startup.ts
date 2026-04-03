@@ -44,6 +44,7 @@ import { SIDJUA_VERSION }        from "../version.js";
 import { wireCheckpointDb }      from "../core/agents/checkpoint.js";
 import { wireFreezeAuditDb }     from "../core/agents/freeze-audit.js";
 import { reconcileOnStartup }    from "../core/agents/reconcile.js";
+import { runMigrations, getSchemaVersion } from "../core/updater/migrations/index.js";
 
 const logger = createLogger("api-server-cli");
 
@@ -166,6 +167,26 @@ export async function runServerStart(
     }
   } catch (_e) {
     // Table may not exist on a brand-new DB — non-fatal
+  }
+
+  // Cross-version schema migration detection.
+  // If .update-in-progress marker exists, the new container must complete migrations
+  // that were started by the update sidecar before the proxy switch.
+  try {
+    const schemaVersion = getSchemaVersion(db);
+    if (schemaVersion !== SIDJUA_VERSION) {
+      logger.info("server_start", "Schema version mismatch — running cross-version migrations", {
+        metadata: { schemaVersion, appVersion: SIDJUA_VERSION },
+      });
+      await runMigrations(opts.workDir, schemaVersion, SIDJUA_VERSION);
+    } else {
+      // Marker may still exist even if schema is current — attempt removal is idempotent
+      await runMigrations(opts.workDir, schemaVersion, SIDJUA_VERSION);
+    }
+  } catch (err: unknown) {
+    logger.warn("server_start", "Migration detection failed — continuing with existing schema", {
+      metadata: { error: err instanceof Error ? err.message : String(err) },
+    });
   }
 
   // Wire agent checkpoint + freeze-audit tables; reconcile any orphaned frozen agents

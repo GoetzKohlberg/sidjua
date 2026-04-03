@@ -14,6 +14,7 @@
 import BetterSQLite3, { type Database } from "better-sqlite3";
 import { existsSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+import { enforceSQLiteSafety } from "../core/db/sqlite-safety.js";
 
 // Re-export the Database type so callers only need one import
 export type { Database } from "better-sqlite3";
@@ -34,19 +35,18 @@ export interface DbMigration {
  * @throws if the database cannot be opened
  */
 export function openDatabase(dbPath: string): Database {
-  const parent = dirname(dbPath);
-  if (!existsSync(parent)) {
-    mkdirSync(parent, { recursive: true });
+  const isMemory = dbPath === ":memory:";
+  if (!isMemory) {
+    const parent = dirname(dbPath);
+    if (!existsSync(parent)) {
+      mkdirSync(parent, { recursive: true });
+    }
   }
   const db = new BetterSQLite3(dbPath);
-  // WAL mode allows concurrent readers while a writer is active.
-  // NORMAL synchronous is safe with WAL and avoids fsync on every commit.
-  // busy_timeout prevents "database locked" errors under CLI/orchestrator concurrency.
-  // Security: foreign_keys enforces referential integrity across all tables.
-  db.pragma("journal_mode=WAL");
-  db.pragma("synchronous=NORMAL");
-  db.pragma("busy_timeout=5000");
-  db.pragma("foreign_keys=ON");
+  // WAL mode is not supported on in-memory databases — skip safety enforcement
+  if (!isMemory) {
+    enforceSQLiteSafety(db);
+  }
   return db;
 }
 
