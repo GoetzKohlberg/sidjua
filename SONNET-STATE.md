@@ -78,8 +78,8 @@ src/core/update/migration-framework.ts — MigrationRunner + MigrationRegistry
 tests/api/update-system.test.ts — drain/readonly/lifecycle/updater proxy tests (23 tests total)
 
 ## CURRENT
-Version: 1.0.1 | Build: 87 | Tests: 8290 pass, 0 fail (3 pre-existing flaky: gui-smoke+tls+multi-agent), 18 skipped
-Last commit: d4e39fb — PDF report generator with HTML templates
+Version: 1.0.1 | Build: 91 | Tests: 8328 pass, 0 fail (pre-existing flaky: parallel-execution timing), 18 skipped
+Last commit: cd0e4e6 — agent runtime hardening (dead worker recovery + backpressure + immutable audit, P386)
 Deadline V1.0.2: 2026-04-20 | V1.0.3: 2026-05-01 | V1.1: 2026-05-15
 
 ## NOTES FOR NEXT SESSION
@@ -136,6 +136,34 @@ P375 integration in reasoning-loop.ts:
   use_tool dispatch: getServerForTool() → callTool() direct (bypasses dispatchTool for MCP tools)
   ToolCall.id now preserved in AnthropicAdapter + OpenAICompatibleAdapter parseToolResponse()
   ActivitySeverity: "warning" (not "warn") — matches activity-types.ts
+
+P385 — LLM Context Document — COMPLETE (3 new tests, commit 302da9f):
+  docs/llm/SIDJUA-ARCHITECTURE-CONTEXT.md — 10914 chars, ~2728 tokens (limit 8000)
+  Sections: System Identity, Core Concepts, C4 diagram (AUTO-GENERATED markers), File Map, Data Flow (user msg + delegation), Agent Definitions table, Governance config YAML reference, API Surface table (14 endpoints), Technology Stack
+  tests: llm-context-validation(3) — file exists, tokens < 8000, all 7 required sections present
+
+P384 — Developer Documentation Content — COMPLETE (3 new tests, commit 5720211):
+  docs/dev/ARCHITECTURE.md — C4 L1/L2/L3 diagrams, 15-step flow, key files table
+  docs/dev/GOVERNANCE-PIPELINE.md — 6-stage flowchart, per-stage explanation, YAML config guide, FAQ
+  docs/dev/MCP-CLIENT.md — architecture diagram, 10-step flow, mcp-servers.yaml reference, FAQ
+  docs/dev/AGENT-SYSTEM.md — delegation diagram (T1→T2→T3), definition format, delegation rules table, FAQ
+  docs/dev/MODULE-SDK.md — module.yaml format, CLI commands, governance override example, FAQ
+  docs/dev/IMPORT-SYSTEM.md — 6-step import flow, skill mapping table, FAQ
+  docs/dev/CONTRIBUTING.md — dev setup, testing, code style, PR workflow, architecture rules, Docker (gitignored)
+  docs/dev/GLOSSARY.md — 28 terms A-W
+  docs/dev/img/.gitkeep — directory for auto-generated SVGs
+  AUTO-GENERATED markers in ARCHITECTURE.md, GOVERNANCE-PIPELINE.md, AGENT-SYSTEM.md — all updated by generate-dev-diagrams.ts
+  tests: docs-validation(3) — file existence, Mermaid fence balance, no placeholder/secret patterns
+
+P383 — Documentation Generator Scripts — COMPLETE (16 new tests, commit 3ab2e0a):
+  .dependency-cruiser.cjs — depcruise config (doNotFollow: node_modules/dist/__tests__, tsConfig)
+  scripts/extract-file-map.ts — walks src/, 6 regex export patterns, JSDoc/line-comment descriptions, docs/.build/filemap.json
+  scripts/generate-llm-context.ts — ANTHROPIC_API_KEY from env (exits 1 if missing), calls claude-sonnet-4-20250514, writes docs/llm/SIDJUA-ARCHITECTURE-CONTEXT.md
+  scripts/generate-dev-diagrams.ts — generateC4Level2()/generateGovernanceDiagram()/generateAgentDelegationDiagram(), updateFileWithDiagram() with AUTO-GENERATED-DIAGRAM markers
+  docs/.build/mermaid-config.json — theme: primaryColor #16213e, flowchart curve basis
+  .gitignore: docs/.build/deps.json + docs/.build/filemap.json gitignored; docs/api/ gitignored
+  package.json: docs:api/deps/filemap/context/diagrams/render/generate scripts; build: dist/api/static + glasscheibe-widget.js
+  tests: extract-file-map(7), generate-dev-diagrams(7), dependency-cruiser(2) — all in tests/scripts/
 
 P382 — PDF Report Generator — COMPLETE (18 new tests, commit d4e39fb):
   src/core/reporting/types.ts — ReportData/Section/ChartImage/Table, AgentActivityData, GovernanceEventSummary, SystemHealthData, ReportGenerateRequest
