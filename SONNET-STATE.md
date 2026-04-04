@@ -78,8 +78,8 @@ src/core/update/migration-framework.ts — MigrationRunner + MigrationRegistry
 tests/api/update-system.test.ts — drain/readonly/lifecycle/updater proxy tests (23 tests total)
 
 ## CURRENT
-Version: 1.0.1 | Build: 86 | Tests: 8272 pass, 0 fail (3 pre-existing flaky: gui-smoke+tls+multi-agent), 18 skipped
-Last commit: P381 Agent Definitions + Skills + Templates (pending commit)
+Version: 1.0.1 | Build: 87 | Tests: 8290 pass, 0 fail (3 pre-existing flaky: gui-smoke+tls+multi-agent), 18 skipped
+Last commit: d4e39fb — PDF report generator with HTML templates
 Deadline V1.0.2: 2026-04-20 | V1.0.3: 2026-05-01 | V1.1: 2026-05-15
 
 ## NOTES FOR NEXT SESSION
@@ -136,6 +136,17 @@ P375 integration in reasoning-loop.ts:
   use_tool dispatch: getServerForTool() → callTool() direct (bypasses dispatchTool for MCP tools)
   ToolCall.id now preserved in AnthropicAdapter + OpenAICompatibleAdapter parseToolResponse()
   ActivitySeverity: "warning" (not "warn") — matches activity-types.ts
+
+P382 — PDF Report Generator — COMPLETE (18 new tests, commit d4e39fb):
+  src/core/reporting/types.ts — ReportData/Section/ChartImage/Table, AgentActivityData, GovernanceEventSummary, SystemHealthData, ReportGenerateRequest
+  src/core/reporting/report-data-aggregator.ts — ReportDataAggregator: getAgentActivity()/getGovernanceEvents() queries tasks+audit_events; getSystemHealth() reads MetricsCollector
+  src/core/reporting/report-template.ts — renderReportHtml() self-contained HTML + escapeHtml() (& < > " ') + renderSection/Table/Chart helpers
+  src/core/reporting/report-builder.ts — buildMonthlyReport() (6 sections) + buildComplianceReport() (5 sections) + buildRecommendationsSection() (3 heuristics)
+  src/core/reporting/pdf-renderer.ts — renderReport(): Puppeteer MCP strategy + HTML fallback; PdfMcpRegistry duck-type
+  src/core/reporting/index.ts — barrel export
+  src/api/routes/report-routes.ts — POST /api/v1/reports/generate (operator scope) + GET /api/v1/reports/:filename (basename path-traversal guard)
+  src/core/metrics/metrics-collector.ts — Gauge.getValue(labels) + Gauge.getAllEntries() + Counter.getTotal() (used by aggregator)
+  src/api/routes/index.ts — registerReportRoutes() wired with reportMcpRegistry/mcpRegistry fallback
 
 P381 — Agent Definitions + Skills + Templates — COMPLETE (30 new tests):
   agents/definitions/ceo-assistant.yaml — T1 management, can_delegate_to: [hr-manager, it-manager]
