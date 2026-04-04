@@ -78,8 +78,8 @@ src/core/update/migration-framework.ts — MigrationRunner + MigrationRegistry
 tests/api/update-system.test.ts — drain/readonly/lifecycle/updater proxy tests (23 tests total)
 
 ## CURRENT
-Version: 1.0.1 | Build: 84 | Tests: 8200 pass, 0 fail (3 pre-existing flaky: gui-smoke+tls+multi-agent), 18 skipped
-Last commit: (P379 Prometheus Metrics + Grafana Dashboard)
+Version: 1.0.1 | Build: 85 | Tests: 8242 pass, 0 fail (3 pre-existing flaky: gui-smoke+tls+multi-agent), 18 skipped
+Last commit: (P380 OpenClaw Import Parser + Mapper)
 Deadline V1.0.2: 2026-04-20 | V1.0.3: 2026-05-01 | V1.1: 2026-05-15
 
 ## NOTES FOR NEXT SESSION
@@ -138,6 +138,17 @@ P375 integration in reasoning-loop.ts:
   ActivitySeverity: "warning" (not "warn") — matches activity-types.ts
 
 P377a-ADDON — Docs Cleanup + CLI SSE Migration + README Roadmap — COMPLETE (commit b9f109e)
+P380 — OpenClaw Import Parser + Mapper — COMPLETE (41 new tests):
+  src/core/import/types.ts — OpenClawAgent/Soul/Memory/Heartbeat/Skill/Channel/Installation, SkillMapping, ImportResult
+  src/core/import/openclaw-validators.ts — validateOpenClawPath() (~ expansion, directory check, file presence)
+  src/core/import/openclaw-parser.ts — parseAgentsMd/parseSoulMd/parseMemoryMd/parseHeartbeatMd/parseConfigYaml/parseClawHub + minimalYamlParse (3-level)
+  src/core/import/skill-mapping-table.ts — 18 direct, 1 partial, 5 none; lookupSkillMapping/lookupAllSkills
+  src/core/import/openclaw-mappers.ts — mapAgentToYaml/mapSoulToSkillMd/mapMemoriesToJson/mapHeartbeatsToSchedulerYaml/mapChannelsToAdapterYaml/mapSkillsToMcpConfig
+  src/core/import/import-executor.ts — analyzeInstallation() (read-only) + executeImport() (write, fail-component-not-all)
+  src/core/import/index.ts — barrel export
+  agents/skills/knowledge/openclaw-filesystem.md — OpenClaw directory structure for HR agent
+  agents/skills/knowledge/openclaw-skill-mapping.md — skill mapping table (direct/partial/none)
+
 P379 — Prometheus Metrics + Grafana Dashboard — COMPLETE (14 new tests):
   src/core/metrics/metrics-collector.ts — Counter/Gauge + MetricsCollector singleton (12 metrics, MAX_ENTRIES=500 cardinality cap)
   src/core/metrics/index.ts — barrel export
