@@ -45,11 +45,13 @@ export class TaskBuilder {
     });
 
     return {
-      description:  envelope.content.text,
-      priority:     this.config.defaults.priority,
+      description:    envelope.content.text,
+      priority:       this.config.defaults.priority,
       division,
-      budget_usd:   this.config.defaults.budget_usd,
-      ttl_seconds:  this.config.defaults.ttl_seconds,
+      budget_usd:     this.config.defaults.budget_usd,
+      ttl_seconds:    this.config.defaults.ttl_seconds,
+      callerDivision: user.default_division ?? division,
+      callerRole:     user.role,
       source_metadata: {
         source_channel:     envelope.channel,
         source_instance_id: envelope.instance_id,

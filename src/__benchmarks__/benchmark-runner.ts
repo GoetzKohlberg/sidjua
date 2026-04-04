@@ -322,7 +322,7 @@ export class BenchmarkRunner {
         if (event.type === "queue-flood") {
           // Flood T3 workers
           for (const [agentId, setup] of fleet.entries()) {
-            if (setup.definition.tier === 3) {
+            if (setup.definition.tier === "T3") {
               for (let i = 0; i < 40; i++) {
                 inFlight.push(submitTask(agentId, "T3", "low", false));
               }

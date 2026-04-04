@@ -258,6 +258,7 @@ export function registerExecutionRoutes(app: Hono, services: ExecutionRouteServi
   app.post("/api/v1/tasks/:id/cancel", requireScope("operator"), async (c) => {
     const { id } = c.req.param();
 
+    // Pre-flight: check for already-terminal state without division check
     const task = store.get(id);
     if (task === null) {
       throw SidjuaError.from("EXEC-004", `Task not found: ${id}`);
@@ -271,29 +272,11 @@ export function registerExecutionRoutes(app: Hono, services: ExecutionRouteServi
       });
     }
 
-    // Cancel root task and all sub-tasks
-    const allTasks = store.getByRoot(id);
-    let cancelled  = 0;
-
-    for (const t of allTasks) {
-      if (!TERMINAL.has(t.status)) {
-        store.update(t.id, { status: "CANCELLED" });
-        cancelled++;
-      }
-    }
-
-    await eventBus.emitTask({
-      event_type:     "TASK_FAILED",
-      task_id:        id,
-      parent_task_id: null,
-      agent_from:     "api",
-      agent_to:       null,
-      division:       task.division,
-      data:           { reason: "user_cancelled", cancelled_count: cancelled },
-    });
-
-    logger.info("task_cancelled", `Cancelled task ${id} and ${cancelled - 1} sub-tasks`, {
-      metadata: { task_id: id, cancelled },
+    // Route through ExecutionBridge — enforces division isolation
+    const callerCtx = getCallerCtx(c);
+    const { cancelled } = await bridge.cancelTask(id, {
+      division: callerCtx?.division,
+      role:     callerCtx?.role,
     });
 
     return c.json({ cancelled: true, tasks_cancelled: cancelled });

@@ -55,8 +55,8 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function tierNum(tier: "T1" | "T2" | "T3"): 1 | 2 | 3 {
-  return tier === "T1" ? 1 : tier === "T2" ? 2 : 3;
+function tierStr(tier: "T1" | "T2" | "T3"): "T1" | "T2" | "T3" {
+  return tier;
 }
 
 // ---------------------------------------------------------------------------
@@ -199,7 +199,7 @@ export class MockAgentFactory {
     const baseDefinition = {
       id: config.id,
       name: `Mock Agent ${config.id}`,
-      tier: tierNum(config.tier),
+      tier: tierStr(config.tier),
       division: config.division,
       model: `mock-model-${config.id}`,
       capabilities: ["mock"],

@@ -150,8 +150,9 @@ export function registerWebhookRoutes(app: Hono, services: WebhookRouteServices)
       const eventBus = new TaskEventBus(services.db);
       const bridge   = new ExecutionBridge(services.db, eventBus);
       const handle   = await bridge.submitTask({
-        description: `${normalized.title}\n\n${normalized.description}`,
-        priority:    3,
+        description:    `${normalized.title}\n\n${normalized.description}`,
+        priority:       3,
+        assigned_agent: agentId,
       });
 
       getMetrics().webhookReceivedTotal.inc({ agent: agentId, source: normalized.source });

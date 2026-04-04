@@ -137,6 +137,10 @@ export interface UserTaskInput {
   division:           string;
   budget_usd?:        number;
   ttl_seconds?:       number;
+  /** Division of the caller — forwarded to TaskAdmissionGate for cross-division isolation. */
+  callerDivision?:    string;
+  /** Role of the caller — "admin" bypasses cross-division check in admission gate. */
+  callerRole?:        string;
   source_metadata: {
     source_channel:     string;
     source_instance_id: string;

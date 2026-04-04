@@ -25,7 +25,7 @@ export interface AgentGovernance {
 export interface AgentDefinition {
   id: string;
   name: string;
-  tier: 1 | 2 | 3;
+  tier: "T1" | "T2" | "T3";
   division: string;
   model: string;
   capabilities: string[];
@@ -105,7 +105,7 @@ function isAgentDefinition(value: unknown): value is AgentDefinition {
   return (
     typeof obj["id"] === "string" &&
     typeof obj["name"] === "string" &&
-    (obj["tier"] === 1 || obj["tier"] === 2 || obj["tier"] === 3) &&
+    (obj["tier"] === "T1" || obj["tier"] === "T2" || obj["tier"] === "T3") &&
     typeof obj["division"] === "string" &&
     typeof obj["model"] === "string" &&
     Array.isArray(obj["capabilities"]) &&

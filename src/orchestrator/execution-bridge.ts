@@ -37,6 +37,8 @@ export interface UserTaskInput {
   budget_tokens?: number;       // max tokens across all agents
   budget_usd?:    number;       // max USD across all agents
   ttl_seconds?:   number;       // task timeout
+  /** Pin task to a specific agent ID at creation time (e.g., from webhook :agentId param). */
+  assigned_agent?: string;
   /** CallerContext division — enforces cross-division isolation in the admission gate. */
   callerDivision?: string;
   /** CallerContext role — "admin" bypasses cross-division check. */
@@ -149,6 +151,7 @@ export class ExecutionBridge {
       token_budget: tokenBudget,
       cost_budget:  costBudget,
       ttl_seconds:  ttl,
+      ...(input.assigned_agent !== undefined && { assigned_agent: input.assigned_agent }),
     });
 
     // Emit TASK_CREATED so the Orchestrator picks it up on its next event loop
@@ -367,6 +370,8 @@ export class ExecutionBridge {
       division,
       budget_usd:  costBudget,
       caller:      "messaging",
+      ...(input.callerDivision !== undefined && { callerDivision: input.callerDivision }),
+      ...(input.callerRole     !== undefined && { callerRole:     input.callerRole }),
     });
     if (!admission.admitted) {
       throw SidjuaError.from("EXEC-003", `Task denied by governance: ${admission.reason}`);
@@ -430,12 +435,122 @@ export class ExecutionBridge {
 
   /**
    * Re-submit a task that was previously blocked by governance, now carrying
-   * a governance_override flag. Governance enforcement is bypassed for the
-   * overridden rule; the override is audited via the governance_override field
-   * stored on the task record.
+   * a governance_override flag. Admission gate is bypassed — the override is
+   * audited via the governance_override field stored on the task record.
    */
   async submitTaskWithOverride(input: MessagingTaskInput): Promise<SubmitResult> {
-    return this.submitMessageTask(input);
+    const tokenBudget = 100_000;
+    const costBudget  = input.budget_usd ?? 10.0;
+    const division    = input.division ?? "general";
+    const ttl         = input.ttl_seconds ?? 300;
+
+    // Admission gate deliberately skipped — caller has already obtained a governance override.
+    const manager = new TaskManager(this.store, getSanitizer());
+    const task = manager.createTask({
+      title:           input.description.slice(0, 80),
+      description:     input.description,
+      division,
+      type:            "root",
+      tier:            1,
+      token_budget:    tokenBudget,
+      cost_budget:     costBudget,
+      ttl_seconds:     ttl,
+      priority:        input.priority,
+      source_metadata: input.source_metadata,
+      ...(input.governance_override !== undefined
+        ? { governance_override: input.governance_override }
+        : {}),
+    });
+
+    await this.eventBus.emitTask({
+      event_type:     "TASK_CREATED",
+      task_id:        task.id,
+      parent_task_id: null,
+      agent_from:     null,
+      agent_to:       null,
+      division,
+      data: {
+        source:         "messaging-override",
+        source_channel: input.source_metadata.source_channel,
+        source_user:    input.source_metadata.source_user,
+        priority:       input.priority,
+      },
+    });
+
+    logger.info("override_task_submitted", `Submitted override task: ${task.id}`, {
+      metadata: {
+        task_id:        task.id,
+        division,
+        source_channel: input.source_metadata.source_channel,
+        source_user:    input.source_metadata.source_user,
+      },
+    });
+
+    return {
+      blocked: false,
+      handle: {
+        id:          task.id,
+        description: input.description,
+        agent_id:    task.assigned_agent,
+        budget_usd:  costBudget,
+        status:      task.status,
+      },
+    };
+  }
+
+  /**
+   * Cancel a task and all its sub-tasks, enforcing division isolation.
+   *
+   * Callers in the same division or with role "admin" may cancel.
+   * Returns the number of tasks cancelled, or throws EXEC-003 (forbidden) / EXEC-004 (not found).
+   */
+  async cancelTask(
+    taskId: string,
+    callerCtx: { division: string | undefined; role: string | undefined },
+  ): Promise<{ cancelled: number }> {
+    const task = this.store.get(taskId);
+    if (task === null) {
+      throw SidjuaError.from("EXEC-004", `Task not found: ${taskId}`);
+    }
+
+    // Division isolation: only admin or same-division callers may cancel
+    if (
+      callerCtx.role !== "admin" &&
+      callerCtx.division !== undefined &&
+      task.division !== callerCtx.division
+    ) {
+      throw SidjuaError.from(
+        "EXEC-003",
+        `Not allowed to cancel task in division "${task.division}" from division "${callerCtx.division}"`,
+      );
+    }
+
+    const TERMINAL = new Set(["DONE", "FAILED", "CANCELLED", "ESCALATED"]);
+    const allTasks = this.store.getByRoot(taskId);
+    let cancelled  = 0;
+
+    for (const t of allTasks) {
+      if (!TERMINAL.has(t.status)) {
+        this.store.update(t.id, { status: "CANCELLED" });
+        cancelled++;
+      }
+    }
+
+    await this.eventBus.emitTask({
+      event_type:     "TASK_FAILED",
+      task_id:        taskId,
+      parent_task_id: null,
+      agent_from:     "api",
+      agent_to:       null,
+      division:       task.division,
+      data:           { reason: "user_cancelled", cancelled_count: cancelled },
+    });
+
+    logger.info("task_cancelled", `Cancelled task ${taskId} and ${cancelled - 1} sub-tasks`, {
+      metadata: { task_id: taskId, cancelled, caller_division: callerCtx.division },
+    });
+
+    return { cancelled };
   }
 
   /**

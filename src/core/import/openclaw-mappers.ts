@@ -47,8 +47,8 @@ ${agent.provider ? `provider: "${agent.provider}"\n` : ""}capabilities:
 ${caps}
 
 budget:
-  daily_limit_usd: 5.00
-  per_task_limit_usd: 0.50
+  daily_usd: 5.00
+  per_task_usd: 0.50
 
 governance:
   allowed_divisions: ["*"]

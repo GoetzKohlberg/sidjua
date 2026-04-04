@@ -179,6 +179,9 @@ export class FilesystemAdapter implements ToolAdapter {
   }
 
   private async createDir(filePath: string, start: number): Promise<ToolResult> {
+    if (this.config.read_only === true) {
+      throw new Error("Read-only filesystem");
+    }
     this.validatePath(filePath);
     await fs.mkdir(filePath, { recursive: true });
     return {

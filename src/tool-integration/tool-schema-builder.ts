@@ -63,6 +63,8 @@ export class ToolSchemaBuilder {
     for (const name of allowedInternal) {
       const toolDef = ALL_INTERNAL_TOOLS.find((t) => t.name === name);
       if (toolDef === undefined) continue;
+      // H8: orchestrator-only tools must not appear in agent-facing LLM schemas
+      if (toolDef.callerRestriction === "orchestrator") continue;
 
       for (const cap of toolDef.capabilities) {
         schemas.push({

@@ -16,7 +16,7 @@ import { z } from "zod";
 export const AgentDefinitionSchema = z.object({
   id:                     z.string().min(1),
   name:                   z.string().min(1),
-  tier:                   z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  tier:                   z.enum(["T1", "T2", "T3"]),
   provider:               z.string().min(1),
   model:                  z.string().min(1),
   skill_file:             z.string().min(1),
