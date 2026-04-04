@@ -46,6 +46,17 @@ export interface AdmissionInput {
   callerDivision?: string;
   /** Role of the caller (from CallerContext). "admin" bypasses cross-division check. */
   callerRole?: string;
+  /**
+   * Explicit bootstrap-mode flag for pre-apply task creation.
+   *
+   * When true AND workspace_config.bootstrap_complete is NOT set (i.e. `sidjua apply`
+   * has not yet been run), missing governance tables are tolerated and the admission
+   * check falls back to fail-open behaviour.
+   *
+   * MUST NOT be set to true once `sidjua apply` has completed.
+   * The CLI `sidjua run` passes this flag; the REST API never does.
+   */
+  bootstrap_mode?: boolean;
 }
 
 export type AdmissionResult =
@@ -79,7 +90,7 @@ export class TaskAdmissionGate {
   admitTask(input: AdmissionInput): AdmissionResult {
     try {
       // 1. Division check
-      if (!this._divisionAllowed(input.division)) {
+      if (!this._divisionAllowed(input.division, input.bootstrap_mode)) {
         logger.warn("admission-gate", "Task denied — unknown division", {
           metadata: { division: input.division, caller: input.caller },
         });
@@ -99,7 +110,7 @@ export class TaskAdmissionGate {
 
       // 2. Budget pre-check
       const costUsd = input.budget_usd ?? 0;
-      if (!this._budgetAllowed(input.division, costUsd)) {
+      if (!this._budgetAllowed(input.division, costUsd, input.bootstrap_mode)) {
         logger.warn("admission-gate", "Task denied — budget limit exceeded", {
           metadata: { division: input.division, budget_usd: costUsd, caller: input.caller },
         });
@@ -144,19 +155,37 @@ export class TaskAdmissionGate {
 
   /**
    * Check that the division is the built-in "general" division or exists
-   * in the divisions table. Fails open (allows) if the divisions table
-   * does not exist (pre-`sidjua apply` state).
+   * in the divisions table.
+   *
+   * Fail-closed by default: when the divisions table does not exist, the task
+   * is DENIED. Exception: when `bootstrapMode` is true AND
+   * workspace_config.bootstrap_complete has not been set (i.e. `sidjua apply`
+   * has not yet completed), the gate fails-open so that CLI users can run tasks
+   * before first-time provisioning.
    */
-  private _divisionAllowed(division: string): boolean {
+  private _divisionAllowed(division: string, bootstrapMode?: boolean): boolean {
     if (division === "general") return true;
     try {
       const row = this.db
         .prepare<[string], { code: string }>("SELECT code FROM divisions WHERE code = ?")
         .get(division);
       return row !== undefined;
-    } catch (_err: unknown) {
-      // Table absent (pre-apply) — fail-open for division check
-      return true;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("no such table")) {
+        if (bootstrapMode === true && !this._isBootstrapComplete()) {
+          logger.debug("admission-gate", "Divisions table absent (pre-apply bootstrap) — allowing task", {
+            metadata: { division },
+          });
+          return true;
+        }
+        logger.warn("admission-gate", "Divisions table absent — blocking task (fail-closed)", {
+          metadata: { division },
+        });
+        return false;
+      }
+      // Other DB errors → fail-closed
+      return false;
     }
   }
 
@@ -164,12 +193,15 @@ export class TaskAdmissionGate {
    * Check whether estimated cost stays within the division's budget limits.
    * Uses the existing CostTracker which queries cost_budgets + cost_ledger.
    *
-   * Fails open when the budget tables are absent (pre-`sidjua apply` state) —
-   * no limits have been configured yet so there is nothing to enforce.
-   * Fails closed for all other errors (database I/O failure, corrupt row, etc.)
-   * to prevent silent over-spend.
+   * Fail-closed by default: when budget tables are absent, the task is DENIED.
+   * Exception: when `bootstrapMode` is true AND workspace_config.bootstrap_complete
+   * has not been set (pre-apply state), the check fails-open because no budgets
+   * have been configured yet.
+   *
+   * All other errors (database I/O failure, corrupt row) are fail-closed to
+   * prevent silent over-spend.
    */
-  private _budgetAllowed(division: string, estimatedCostUsd: number): boolean {
+  private _budgetAllowed(division: string, estimatedCostUsd: number, bootstrapMode?: boolean): boolean {
     if (estimatedCostUsd <= 0) return true; // nothing to check
     try {
       const tracker = new CostTracker(this.db);
@@ -177,18 +209,41 @@ export class TaskAdmissionGate {
       return result.allowed;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      // Table absent = pre-apply state; no budgets configured → fail-open
       if (msg.includes("no such table")) {
-        logger.debug("admission-gate", "Budget tables absent (pre-apply) — allowing task", {
+        if (bootstrapMode === true && !this._isBootstrapComplete()) {
+          logger.debug("admission-gate", "Budget tables absent (pre-apply bootstrap) — allowing task", {
+            metadata: { division, estimated_usd: estimatedCostUsd },
+          });
+          return true;
+        }
+        logger.warn("admission-gate", "Budget tables absent — blocking task (fail-closed)", {
           metadata: { division, estimated_usd: estimatedCostUsd },
         });
-        return true;
+        return false;
       }
       // Any other error → fail-closed
       logger.error("admission-gate", "Budget check threw — blocking task (fail-closed)", {
         metadata: { division, estimated_usd: estimatedCostUsd, error: msg },
       });
       return false;
+    }
+  }
+
+  /**
+   * Check whether `sidjua apply` has completed by reading bootstrap_complete
+   * from workspace_config. Returns false (not complete) when the table or key
+   * are absent so that bootstrap-mode tasks can proceed pre-apply.
+   */
+  private _isBootstrapComplete(): boolean {
+    try {
+      const row = this.db
+        .prepare<[string], { value: string }>(
+          "SELECT value FROM workspace_config WHERE key = ?",
+        )
+        .get("bootstrap_complete") as { value: string } | undefined;
+      return row?.value === "true";
+    } catch (_err: unknown) {
+      return false; // workspace_config absent → not yet applied
     }
   }
 

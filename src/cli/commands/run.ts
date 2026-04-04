@@ -194,8 +194,9 @@ export async function runRunCommand(opts: RunCommandOptions): Promise<number> {
     const admission = gate.admitTask({
       description,
       division,
-      budget_usd: costBudget,
-      caller:     "cli",
+      budget_usd:     costBudget,
+      caller:         "cli",
+      bootstrap_mode: true, // CLI may run before sidjua apply completes
     });
     if (!admission.admitted) {
       process.stderr.write(`✗ Task denied by governance: ${admission.reason}\n`);

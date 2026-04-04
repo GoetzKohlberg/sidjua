@@ -26,6 +26,7 @@ import { SqliteSecretsProvider } from "../../apply/secrets.js";
 import { hasTable }           from "../utils/db-init.js";
 import { msg }                from "../../i18n/index.js";
 import { auditCliCommand }    from "../cli-audit.js";
+import { getOsUsername }      from "../cli-governance-gate.js";
 
 
 async function openProvider(workDir: string): Promise<{
@@ -158,7 +159,7 @@ export function registerSecretCommands(program: Command): void {
             auditDb.prepare(
               `INSERT INTO secret_reveal_audit (ns, key, agent_id, division, role, revealed_at)
                VALUES (?, ?, ?, ?, ?, ?)`,
-            ).run(namespace, key, "cli-operator", "system", "operator", new Date().toISOString());
+            ).run(namespace, key, getOsUsername(), "system", "operator", new Date().toISOString());
           } catch (_auditErr) {
             auditDb.close();
             err("Cannot reveal secret: audit logging unavailable");

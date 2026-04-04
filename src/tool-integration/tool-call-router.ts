@@ -28,6 +28,25 @@ import type { Database }                  from "../utils/db.js";
 
 const logger = createLogger("tool-router");
 
+/**
+ * Derive write/delete semantics from a capability name.
+ * Mirrors the same helper in tool-governance.ts to ensure record() uses the
+ * same classification as check(), keeping rate-limit windows consistent.
+ *
+ * Splits on underscores, hyphens, and spaces to handle snake_case and
+ * kebab-case capability names (e.g. "write_file" → ["write","file"]).
+ */
+function inferToolSemantics(capability: string): { isWrite: boolean; isDelete: boolean } {
+  const words = capability.toLowerCase().split(/[_\-\s]+/);
+  const DELETE_WORDS = new Set(["delete", "remove", "destroy", "clear", "purge", "drop", "wipe", "uninstall"]);
+  const WRITE_WORDS  = new Set(["create", "write", "set", "insert", "post", "put", "add", "update",
+                                 "edit", "modify", "upload", "push", "patch", "append", "rotate",
+                                 "enable", "disable", "install"]);
+  const isDelete = words.some((w) => DELETE_WORDS.has(w));
+  const isWrite  = isDelete || words.some((w) => WRITE_WORDS.has(w));
+  return { isWrite, isDelete };
+}
+
 /** No-op rate limiter used when none is configured — always allows. */
 const NULL_RATE_LIMITER: SlidingWindowRateLimiter = {
   check: () => ({ allowed: true }),
@@ -242,6 +261,14 @@ export class ToolCallRouter {
           delete result._compositePath;
         }
       }
+
+      // Record rate-limit hit AFTER successful execution (not during governance check).
+      // Uses the same isWrite/isDelete semantics as the governance check so that
+      // write-specific and delete-specific windows (writes_per_min, deletes_per_hour)
+      // are accurately populated.
+      const toolIdForRate  = type === "mcp" ? serverName! : resolvedName;
+      const { isWrite, isDelete } = inferToolSemantics(resolvedName);
+      this.rateLimiter.record(toolIdForRate, resolvedName, isWrite, isDelete, this.rateConfig);
 
       const status = "allowed"; // errors still reached execution
       this.writeAuditEntry(ctx, toolName, status, result.error, { adapter_type: adapterType, ...(compositePath !== undefined ? { composite_path: compositePath } : {}) });

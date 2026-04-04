@@ -76,6 +76,24 @@ function extractDomain(rawUrl: string): string | undefined {
 }
 
 /**
+ * Derive write/delete semantics from a capability name.
+ * Used to correctly route rate-limit checks to ops_per_min / writes_per_min / deletes_per_hour.
+ *
+ * Splits on underscores, hyphens, and spaces to handle snake_case and
+ * kebab-case capability names (e.g. "write_file" → ["write","file"]).
+ */
+function inferToolSemantics(capability: string): { isWrite: boolean; isDelete: boolean } {
+  const words = capability.toLowerCase().split(/[_\-\s]+/);
+  const DELETE_WORDS = new Set(["delete", "remove", "destroy", "clear", "purge", "drop", "wipe", "uninstall"]);
+  const WRITE_WORDS  = new Set(["create", "write", "set", "insert", "post", "put", "add", "update",
+                                 "edit", "modify", "upload", "push", "patch", "append", "rotate",
+                                 "enable", "disable", "install"]);
+  const isDelete = words.some((w) => DELETE_WORDS.has(w));
+  const isWrite  = isDelete || words.some((w) => WRITE_WORDS.has(w));
+  return { isWrite, isDelete };
+}
+
+/**
  * Check if a hostname matches a domain pattern.
  * Requires exact match or a proper subdomain (prevents "evil-example.com" matching "example.com").
  */
@@ -277,11 +295,12 @@ export class ToolGovernance {
       }
 
       case "rate_limit": {
+        const { isWrite, isDelete } = inferToolSemantics(action.capability);
         const result = rateLimiter.check(
           action.tool_id,
           action.capability,
-          false,
-          false,
+          isWrite,
+          isDelete,
           rateConfig,
         );
         if (!result.allowed) {
