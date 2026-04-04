@@ -48,7 +48,7 @@ export async function loadAgentDefinitions(
   let entries: string[];
   try {
     entries = await readdir(defsDir);
-  } catch {
+  } catch (_err) {
     return [];
   }
 
@@ -67,7 +67,7 @@ export async function loadAgentDefinitions(
 
       if (!isAgentDefinition(parsed)) continue;
       definitions.push(parsed);
-    } catch {
+    } catch (_err) {
       // Malformed YAML or unreadable file — skip
     }
   }
@@ -91,7 +91,7 @@ export async function loadSkillContent(
 
   try {
     return await readFile(filePath, "utf8");
-  } catch {
+  } catch (_err) {
     return null;
   }
 }
