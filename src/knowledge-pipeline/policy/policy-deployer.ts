@@ -13,6 +13,7 @@ import { stringify as stringifyYaml } from "yaml";
 import type { Database } from "../../utils/db.js";
 import type { PolicyRuleInput } from "../types.js";
 import { createLogger, type Logger } from "../../core/logger.js";
+import { resolveContainedPath } from "../../utils/path-security.js";
 
 export interface DeployResult {
   file_written: string;
@@ -63,8 +64,8 @@ export class PolicyDeployer {
       .get() as { id: number };
     const ruleId = idRow.id;
 
-    // Write to YAML governance file
-    const filePath = join(this.governanceDir, rule.source_file);
+    // Write to YAML governance file — validate source_file stays within governanceDir
+    const filePath = resolveContainedPath(this.governanceDir, rule.source_file);
     const dir = dirname(filePath);
     await mkdir(dir, { recursive: true });
 

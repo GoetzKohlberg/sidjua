@@ -8,7 +8,7 @@
  */
 
 import { existsSync, realpathSync, readFileSync } from "node:fs";
-import { isAbsolute, join }                       from "node:path";
+import { isAbsolute, join, sep }                  from "node:path";
 import type { InternalToolDef } from "../adapters/internal-adapter.js";
 
 const MAX_LINES = 200;
@@ -66,7 +66,10 @@ export const logReaderTool: InternalToolDef = {
     }
 
     const isAllowed = ALLOWED_LOG_DIRS.some((d) => {
-      try { return realPath.startsWith(realpathSync(d)); } catch (_e) { return false; }
+      try {
+        const realDir = realpathSync(d);
+        return realPath === realDir || realPath.startsWith(realDir + sep);
+      } catch (_e) { return false; }
     });
     if (!isAllowed) {
       return { error: "Access denied: file outside allowed log directories" };

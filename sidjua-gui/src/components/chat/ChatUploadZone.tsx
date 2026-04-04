@@ -50,8 +50,10 @@ export function ChatUploadZone({
     setUploadProgress(`Uploading ${file.name}…`);
 
     try {
+      // Sanitize filename to prevent path traversal or injection via Content-Disposition
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', file, safeName);
       if (conversationId) formData.append('conversation_id', conversationId);
 
       const res = await fetch(`${baseUrl}/api/v1/chat/${agentId}/upload`, {

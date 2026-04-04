@@ -13,7 +13,7 @@ import type { Hono } from "hono";
 import type { Context } from "hono";
 import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { join, extname } from "node:path";
-import { assertWithinDirectory } from "../utils/path-utils.js";
+import { assertWithinDirectoryReal } from "../utils/path-utils.js";
 
 /** MIME types for GUI static file serving. */
 export const MIME_TYPES: Record<string, string> = {
@@ -44,7 +44,7 @@ export function serveGuiFile(c: Context, dir: string, filename: string): Respons
   }
 
   try {
-    assertWithinDirectory(realPath, realpathSync(dir));
+    assertWithinDirectoryReal(realPath, dir);
   } catch (_e) {
     return c.text("Forbidden", 403);
   }
@@ -80,7 +80,7 @@ export function serveIndexHtmlWithBootstrap(
     return c.text("Not found", 404);
   }
   try {
-    assertWithinDirectory(realPath, realpathSync(guiDist));
+    assertWithinDirectoryReal(realPath, guiDist);
   } catch (_e) {
     return c.text("Forbidden", 403);
   }

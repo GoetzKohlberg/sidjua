@@ -17,6 +17,7 @@ import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import type { InternalToolDef }                    from "../adapters/internal-adapter.js";
 import { loadMcpConfig, saveMcpConfig }            from "../mcp-config.js";
 import { createLogger }                            from "../../core/logger.js";
+import { validateSafeId }                          from "../../utils/path-security.js";
 
 const logger = createLogger("mcp-configurator");
 
@@ -55,8 +56,17 @@ function getRolesDir(): string {
  * Returns true if the role file was found and updated.
  */
 function addMcpToolToRole(roleId: string, serverId: string): boolean {
-  const rolesDir  = getRolesDir();
-  const filePath  = join(rolesDir, `${roleId}.yaml`);
+  const rolesDir = getRolesDir();
+  let safeRoleId: string;
+  try {
+    safeRoleId = validateSafeId(roleId);
+  } catch (_err) {
+    logger.warn("mcp_configurator_invalid_role_id", "Invalid roleId — rejecting role YAML update", {
+      metadata: { roleId },
+    });
+    return false;
+  }
+  const filePath = join(rolesDir, `${safeRoleId}.yaml`);
   if (!existsSync(filePath)) return false;
 
   try {

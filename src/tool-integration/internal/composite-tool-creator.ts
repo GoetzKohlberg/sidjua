@@ -21,6 +21,7 @@ import type { ToolManager }                        from "../tool-manager.js";
 import { CompositeAdapter }                        from "../adapters/composite-adapter.js";
 import type { CompositeToolConfig, ToolCapability } from "../types.js";
 import { createLogger }                            from "../../core/logger.js";
+import { validateSafeId }                          from "../../utils/path-security.js";
 
 const logger = createLogger("composite-tool-creator");
 
@@ -56,7 +57,16 @@ function getRolesDir(): string {
  */
 function addToolToRoleYaml(roleId: string, toolId: string): boolean {
   const rolesDir = getRolesDir();
-  const filePath = join(rolesDir, `${roleId}.yaml`);
+  let safeRoleId: string;
+  try {
+    safeRoleId = validateSafeId(roleId);
+  } catch (_err) {
+    logger.warn("composite_creator_invalid_role_id", "Invalid roleId — rejecting role YAML update", {
+      metadata: { roleId },
+    });
+    return false;
+  }
+  const filePath = join(rolesDir, `${safeRoleId}.yaml`);
   if (!existsSync(filePath)) return false;
 
   try {

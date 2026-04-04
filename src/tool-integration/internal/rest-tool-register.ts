@@ -19,6 +19,7 @@ import type { InternalToolDef }                    from "../adapters/internal-ad
 import { loadRestToolsConfig, saveRestToolsConfig, type RestToolEntry, type RestToolCapabilityEntry } from "../rest-config.js";
 import type { RestToolFactory }                    from "../rest-tool-factory.js";
 import { createLogger }                            from "../../core/logger.js";
+import { validateSafeId }                          from "../../utils/path-security.js";
 
 const logger = createLogger("rest-tool-register");
 
@@ -127,7 +128,16 @@ function loadCatalogEntry(catalogId: string): RestCatalogEntry | null {
  */
 function addToolToRoleYaml(roleId: string, toolId: string): boolean {
   const rolesDir = getRolesDir();
-  const filePath = join(rolesDir, `${roleId}.yaml`);
+  let safeRoleId: string;
+  try {
+    safeRoleId = validateSafeId(roleId);
+  } catch (_err) {
+    logger.warn("rest_register_invalid_role_id", "Invalid roleId — rejecting role YAML update", {
+      metadata: { roleId },
+    });
+    return false;
+  }
+  const filePath = join(rolesDir, `${safeRoleId}.yaml`);
   if (!existsSync(filePath)) return false;
 
   try {

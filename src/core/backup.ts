@@ -49,8 +49,9 @@ import * as yauzl    from "yauzl";
 import * as yazl     from "yazl";
 import BetterSQLite3 from "better-sqlite3";
 import { parse }     from "yaml";
-import { createLogger }   from "./logger.js";
-import { SidjuaError }    from "./error-codes.js";
+import { createLogger }              from "./logger.js";
+import { SidjuaError }               from "./error-codes.js";
+import { assertWithinDirectoryReal } from "../utils/path-utils.js";
 import { isProcessAlive } from "../cli/utils/process.js";
 import { SIDJUA_VERSION } from "../version.js";
 
@@ -433,8 +434,15 @@ async function streamingExtract(
         return;
       }
 
-      // Directory entry — just create and proceed
+      // Directory entry — verify containment (symlink-aware) BEFORE creating
       if (entry.fileName.endsWith("/")) {
+        try {
+          assertWithinDirectoryReal(fullEntryPath, resolvedTarget);
+        } catch (_symErr) {
+          zipfile.close();
+          fail(SidjuaError.from("SYS-009", `Symlink escape in archive directory entry: ${entry.fileName}`));
+          return;
+        }
         mkdirSync(fullEntryPath, { recursive: true, mode: 0o700 });
         zipfile.readEntry();
         return;
@@ -447,6 +455,15 @@ async function streamingExtract(
           return;
         }
 
+        // Verify parent dir containment (symlink-aware) BEFORE creating directories or files
+        try {
+          assertWithinDirectoryReal(dirname(fullEntryPath), resolvedTarget);
+        } catch (_symErr) {
+          stream.destroy();
+          zipfile.close();
+          fail(SidjuaError.from("SYS-009", `Symlink escape in archive file entry: ${entry.fileName}`));
+          return;
+        }
         mkdirSync(dirname(fullEntryPath), { recursive: true, mode: 0o700 });
         const outStream = createWriteStream(fullEntryPath);
 
