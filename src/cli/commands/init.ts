@@ -596,6 +596,37 @@ async function createWorkspace(workDir: string, quiet: boolean): Promise<void> {
   await writeIfAbsent(join(workDir, ".system", "providers", "google.yaml"),     GOOGLE_PROVIDER_YAML, quiet);
   log("✓ .system/providers/");
 
+  // ── config/feature-flags.json ────────────────────────────────────────────
+  // P388: Copy default feature flags into workspace so operators can customise them.
+
+  const featureFlagsDir = join(workDir, "config");
+  await mkdir(featureFlagsDir, { recursive: true });
+  const destFlagsPath = join(featureFlagsDir, "feature-flags.json");
+  if (!existsSync(destFlagsPath)) {
+    // Try to copy from package installation; fall back to writing built-in defaults
+    const { fileURLToPath } = await import("node:url");
+    const pkgFlagsPath = join(
+      resolve(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..", "config"),
+      "feature-flags.json",
+    );
+    try {
+      await copyFile(pkgFlagsPath, destFlagsPath);
+    } catch (_e) {
+      // Package copy failed — write built-in defaults
+      await writeFile(destFlagsPath, JSON.stringify({
+        memory_consolidation_enabled:          false,
+        governance_notifications_enabled:      true,
+        advanced_cost_tracking_enabled:        false,
+        delegation_chain_limits_enabled:       true,
+        experimental_reasoning_loop_enabled:   false,
+        multi_provider_failover_enabled:       false,
+        task_deduplication_enabled:            true,
+        audit_verbose_mode_enabled:            false,
+      }, null, 2), "utf-8");
+    }
+    log("✓ config/feature-flags.json");
+  }
+
   // ── Database ───────────────────────────────────────────────────────────────
 
   const db = openDatabase(join(workDir, ".system", "sidjua.db"));

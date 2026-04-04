@@ -85,6 +85,10 @@ import { registerMetricsRoutes }         from "./metrics-routes.js";
 import { registerReportRoutes }          from "./report-routes.js";
 import type { ReportRouteServices }      from "./report-routes.js";
 export type { ReportRouteServices };
+import { registerMemoryRoutes }          from "./memory-routes.js";
+import type { MemoryRouteServices }      from "./memory-routes.js";
+export type { MemoryRouteServices };
+import { registerFeatureFlagRoutes }     from "./feature-flag-routes.js";
 
 import type { AgentRegistryLike }   from "./agents.js";
 import type { SecretRouteServices }    from "./secrets.js";
@@ -172,6 +176,8 @@ export interface AllRouteServices {
   reportMcpRegistry?: ReportRouteServices["mcpRegistry"];
   /** Backpressure manager — optional; GET /api/v1/system/backpressure returns 503 if absent. */
   backpressure?: BackpressureManager | null;
+  /** P388: Feature flags — optional; routes degrade gracefully without DB. */
+  featureFlags?: boolean;
 }
 
 
@@ -353,6 +359,14 @@ export function registerAllRoutes(app: Hono, services: AllRouteServices = {}): v
       workDir,
       mcpRegistry: services.reportMcpRegistry ?? services.mcpRegistry ?? null,
     });
+  }
+
+  // P388: Feature flag routes (always register)
+  registerFeatureFlagRoutes(app, { ...(db !== null ? { db } : {}) });
+
+  // P388: Memory consolidation routes (requires DB)
+  if (db !== null) {
+    registerMemoryRoutes(app, { db, workDir });
   }
 
   // Blue/Green update routes

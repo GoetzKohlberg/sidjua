@@ -66,6 +66,7 @@ import { restoreRateLimiterState, persistRateLimiterState } from "../../api/midd
 import { CostTracker }                                   from "../../provider/cost-tracker.js";
 import { TokenStore }                                    from "../../api/token-store.js";
 import { WebhookTokenStore }                              from "../../core/webhook/webhook-token-store.js";
+import { initFeatureFlags }                              from "../../core/config/feature-flags.js";
 
 const logger = createLogger("start-cmd");
 
@@ -225,6 +226,9 @@ export async function runStartCommand(opts: StartCommandOptions): Promise<number
     installImmutableAuditTriggers(db);
     activityEmitter.init(db);
     digestEngine.init(db);
+    // P388: Initialize feature flags (JSON defaults → env → DB override hierarchy)
+    // DUAL PATH: server-startup.ts (Docker) calls the same. Changes here MUST be mirrored there.
+    initFeatureFlags(opts.workDir, db);
     const registry = db !== null ? new AgentRegistry(db) : undefined;
 
     // DUAL PATH: cli-server.ts (Docker) does the same. Changes here MUST be mirrored there.

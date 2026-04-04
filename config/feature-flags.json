@@ -1,0 +1,10 @@
+{
+  "memory_consolidation_enabled": false,
+  "governance_notifications_enabled": true,
+  "advanced_cost_tracking_enabled": false,
+  "delegation_chain_limits_enabled": true,
+  "experimental_reasoning_loop_enabled": false,
+  "multi_provider_failover_enabled": false,
+  "task_deduplication_enabled": true,
+  "audit_verbose_mode_enabled": false
+}

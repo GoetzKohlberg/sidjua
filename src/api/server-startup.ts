@@ -51,6 +51,7 @@ import { WebhookTokenStore } from "../core/webhook/webhook-token-store.js";
 import { DeadWorkerRecovery } from "../core/runtime/dead-worker-recovery.js";
 import { BackpressureManager } from "../core/runtime/backpressure.js";
 import { installImmutableAuditTriggers } from "../core/runtime/sqlite-audit-immutable.js";
+import { initFeatureFlags }             from "../core/config/feature-flags.js";
 
 const logger = createLogger("api-server-cli");
 
@@ -159,6 +160,9 @@ export async function runServerStart(
   installImmutableAuditTriggers(db);
   activityEmitter.init(db);
   digestEngine.init(db);
+  // P388: Initialize feature flags (JSON defaults → env → DB override hierarchy)
+  // DUAL PATH: start.ts (CLI foreground) calls the same. Changes here MUST be mirrored there.
+  initFeatureFlags(opts.workDir, db);
   const registry = new AgentRegistry(db);
 
   // Diagnostic: warn if no agents registered (apply likely not run yet)
