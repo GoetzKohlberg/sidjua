@@ -13,7 +13,7 @@
  */
 
 import Database from "better-sqlite3";
-import { scryptSync, randomBytes } from "node:crypto";
+import { scryptSync, randomBytes, timingSafeEqual } from "node:crypto";
 import { sha256hex, generateSecret } from "../core/crypto-utils.js";
 import { createLogger } from "../core/logger.js";
 
@@ -85,19 +85,17 @@ function verifyTokenHash(raw: string, stored: string): boolean {
     const expectedDerived = Buffer.from(parts[1], "base64");
     try {
       const actual = scryptSync(raw, salt, SCRYPT_KEY_LEN, { N: SCRYPT_N, r: SCRYPT_R, p: SCRYPT_P });
-      // Constant-time comparison
       if (actual.length !== expectedDerived.length) return false;
-      let diff = 0;
-      for (let i = 0; i < actual.length; i++) {
-        diff |= (actual[i]! ^ expectedDerived[i]!);
-      }
-      return diff === 0;
+      return timingSafeEqual(actual, expectedDerived);
     } catch (_err) {
       return false;
     }
   }
-  // Legacy SHA-256 hash
-  return sha256hex(raw) === stored;
+  // Legacy SHA-256 hash — constant-time comparison
+  const a = Buffer.from(sha256hex(raw), "utf8");
+  const b = Buffer.from(stored, "utf8");
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
 }
 
 interface TokenDbRow {
@@ -176,6 +174,15 @@ export class TokenStore {
     logger.info("token_created", "API token created", {
       metadata: { id, scope: opts.scope, division: opts.division, label: opts.label },
     });
+
+    // C4: Auto-disable the bootstrap key once an admin-scoped token is created.
+    if (opts.scope === "admin") {
+      try {
+        this.setBootstrapDisabled(true);
+      } catch (_err) {
+        // workspace_config table may not exist on pre-apply installs; non-fatal.
+      }
+    }
 
     return { id, rawToken: raw };
   }

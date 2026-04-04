@@ -14,6 +14,7 @@
 import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, realpathSync, writeFileSync } from "node:fs";
 import { join, extname, resolve as resolvePath } from "node:path";
 import { assertWithinDirectory } from "../../utils/path-utils.js";
+import { buildMcpSecretResolver } from "../../utils/mcp-secret-resolver.js";
 import { spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { createServer } from "node:net";
@@ -479,7 +480,7 @@ export async function runStartCommand(opts: StartCommandOptions): Promise<number
     });
 
     // ── MCP Registry — DUAL PATH: server-startup.ts (Docker) does the same ──
-    const mcpSecretResolver = (key: string): string | undefined => process.env[key];
+    const mcpSecretResolver = buildMcpSecretResolver(new Map(), process.env["NODE_ENV"] !== "production");
     const mcpRegistry = new McpRegistry(mcpSecretResolver);
     await mcpRegistry.initialize(join(opts.workDir, "config", "mcp-servers.yaml"));
 

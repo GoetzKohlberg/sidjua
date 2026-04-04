@@ -17,6 +17,7 @@ import { createLogger, configureLogger } from "../core/logger.js";
 import { loadKeyState } from "./key-store.js";
 import { registerAllRoutes } from "./routes/index.js";
 import { openDatabase } from "../utils/db.js";
+import { buildMcpSecretResolver } from "../utils/mcp-secret-resolver.js";
 import { AgentRegistry } from "../agent-lifecycle/agent-registry.js";
 import { runMigrations105 }        from "../agent-lifecycle/migration.js";
 import { runAuditMigrations }      from "../core/audit/audit-migrations.js";
@@ -313,7 +314,7 @@ export async function runServerStart(
 
   // ── MCP Registry — initialize from config/mcp-servers.yaml ─────────────
   // DUAL PATH: server-startup.ts (Docker). start.ts (CLI foreground) does the same.
-  const mcpSecretResolver = (key: string): string | undefined => process.env[key];
+  const mcpSecretResolver = buildMcpSecretResolver(new Map(), process.env["NODE_ENV"] !== "production");
   const mcpRegistry = new McpRegistry(mcpSecretResolver);
   await mcpRegistry.initialize(join(opts.workDir, "config", "mcp-servers.yaml"));
 

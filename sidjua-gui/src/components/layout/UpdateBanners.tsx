@@ -222,68 +222,86 @@ export function UpdateProgressDialog({ targetVersion, onClose }: UpdateProgressD
   const [done, setDone]     = useState(false);
   const [error, setError]   = useState<string | null>(null);
   const [rolling, setRolling] = useState(false);
-  const esRef = useRef<EventSource | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  /** Stream SSE events from an authenticated POST endpoint. */
+  const streamSse = useCallback(async (url: string, body?: Record<string, string>) => {
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
+
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method:  'POST',
+        headers: {
+          Authorization:  `Bearer ${config.apiKey ?? ''}`,
+          'Content-Type': 'application/json',
+        },
+        body:   body ? JSON.stringify(body) : undefined,
+        signal: ac.signal,
+      });
+    } catch (_err) {
+      if (!ac.signal.aborted) setError('Connection lost');
+      return;
+    }
+
+    if (!res.ok || !res.body) {
+      setError(`Request failed (${res.status})`);
+      return;
+    }
+
+    const reader  = res.body.getReader();
+    const decoder = new TextDecoder();
+    let   buf     = '';
+
+    try {
+      while (true) {
+        const { value, done: streamDone } = await reader.read();
+        if (streamDone) break;
+        buf += decoder.decode(value, { stream: true });
+
+        // Parse SSE data lines from the buffer
+        const lines = buf.split('\n');
+        buf = lines.pop() ?? '';
+        for (const line of lines) {
+          if (!line.startsWith('data:')) continue;
+          const data = line.slice(5).trim();
+          if (!data) continue;
+          try {
+            const evt = JSON.parse(data) as ProgressEvent;
+            if (evt.error) {
+              setError(evt.error);
+              return;
+            } else if (evt.done) {
+              setDone(true);
+              return;
+            } else {
+              setSteps((prev) => [...prev, evt.step]);
+            }
+          } catch (_e) { /* ignore parse errors */ }
+        }
+      }
+    } catch (_err) {
+      if (!ac.signal.aborted) setError('Connection lost');
+    }
+  }, [config.apiKey]);
 
   const startUpdate = useCallback(() => {
-    if (esRef.current) esRef.current.close();
-
-    const url = `/api/v1/update/start?targetVersion=${encodeURIComponent(targetVersion)}`;
-    const es = new EventSource(url);
-    esRef.current = es;
-
-    es.onmessage = (e) => {
-      try {
-        const evt = JSON.parse(e.data) as ProgressEvent;
-        if (evt.error) {
-          setError(evt.error);
-          es.close();
-        } else if (evt.done) {
-          setDone(true);
-          es.close();
-        } else {
-          setSteps((prev) => [...prev, evt.step]);
-        }
-      } catch (_err) { /* ignore parse errors */ }
-    };
-    es.onerror = () => {
-      setError('Connection lost');
-      es.close();
-    };
-  }, [targetVersion]);
+    void streamSse('/api/v1/update/start', { targetVersion });
+  }, [streamSse, targetVersion]);
 
   const startRollback = useCallback(() => {
     setRolling(true);
     setSteps([]);
     setDone(false);
     setError(null);
-
-    if (esRef.current) esRef.current.close();
-    const es = new EventSource('/api/v1/update/rollback');
-    esRef.current = es;
-
-    es.onmessage = (e) => {
-      try {
-        const evt = JSON.parse(e.data) as ProgressEvent;
-        if (evt.error) {
-          setError(evt.error);
-          es.close();
-        } else if (evt.done) {
-          setDone(true);
-          es.close();
-        } else {
-          setSteps((prev) => [...prev, evt.step]);
-        }
-      } catch (_err) { /* ignore parse errors */ }
-    };
-    es.onerror = () => {
-      setError('Connection lost');
-      es.close();
-    };
-  }, []);
+    void streamSse('/api/v1/update/rollback');
+  }, [streamSse]);
 
   useEffect(() => {
     startUpdate();
-    return () => { esRef.current?.close(); };
+    return () => { abortRef.current?.abort(); };
   }, [startUpdate]);
 
   return (

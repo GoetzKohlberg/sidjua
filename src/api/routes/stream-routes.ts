@@ -11,7 +11,7 @@
  * an McpRegistry is provided.
  *
  * Security:
- *   - requireScope("readonly") — minimum scope for authenticated access
+ *   - requireScope("operator") — LLM execution requires at least operator scope
  *   - Max 5 concurrent streams per token (429 when exceeded)
  *   - 5-minute idle timeout (no events for 5 min → close)
  *   - tool_use_input_delta events NOT forwarded to client (may contain secrets)
@@ -146,7 +146,7 @@ export function registerStreamRoutes(app: Hono, services: StreamRouteServices = 
    *   message  — required — the user's message text
    *   model    — optional — override the agent's default model
    */
-  app.get("/api/v1/stream/:agentId", requireScope("readonly"), (c: Context) => {
+  app.get("/api/v1/stream/:agentId", requireScope("operator"), (c: Context) => {
     const agentId = c.req.param("agentId");
     const message = c.req.query("message");
 

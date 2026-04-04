@@ -9,15 +9,13 @@
  * The API key is held in React state ONLY — never persisted to localStorage.
  * Server URL (non-secret) is persisted to localStorage for convenience.
  *
- * Bootstrap key flow (P325):
+ * Bootstrap key flow (P325 / H17):
  *   1. Server injects window.__SIDJUA_BOOTSTRAP__ = { api_key, server_url }
- *   2. On mount, check sessionStorage for a stored admin session token
- *   3. If stored token found, use it directly (skips exchange)
- *   4. If not found, call POST /api/v1/tokens to exchange bootstrap key → admin token
- *   5. Store the admin rawToken in sessionStorage['sidjua-session-token']
- *   6. On auth failure, clear the stored token and reset key (forces re-exchange on next load)
+ *   2. On mount, call POST /api/v1/tokens to exchange bootstrap key → admin token
+ *   3. Admin token is held in React state (memory) only — never written to sessionStorage
+ *   4. On auth failure, clear key from state (forces re-exchange on next page load)
  *
- * The bootstrap key is NEVER persisted — only the exchanged admin token is stored.
+ * H17: Admin tokens must NOT be persisted to sessionStorage — XSS risk.
  */
 
 import { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo, type ReactNode, createElement } from 'react';
@@ -140,29 +138,12 @@ function saveConfig(cfg: AppConfig): void {
 }
 
 // ---------------------------------------------------------------------------
-// Session token helpers (P325)
+// Session token helpers (H17)
 //
-// The admin session token is stored in sessionStorage (not localStorage) so
-// the token is scoped to the current browser tab and cleared automatically
-// when the tab is closed.  The bootstrap key itself is NEVER written to
-// storage.
+// Admin tokens are held in React state (memory) only.
+// clearSessionToken() cleans up any token that may have been stored by
+// earlier versions of the GUI.
 // ---------------------------------------------------------------------------
-
-function loadStoredSessionToken(): string | null {
-  try {
-    return sessionStorage.getItem(SESSION_STORAGE_KEY) ?? null;
-  } catch {
-    return null;
-  }
-}
-
-function saveSessionToken(token: string): void {
-  try {
-    sessionStorage.setItem(SESSION_STORAGE_KEY, token);
-  } catch {
-    // ignore storage errors
-  }
-}
 
 function clearSessionToken(): void {
   try {
@@ -251,7 +232,6 @@ export function AppConfigProvider({ children }: { children: ReactNode }) {
       if (next.apiKey) {
         const adminToken = await exchangeForAdminToken(next.serverUrl, next.apiKey);
         if (adminToken) {
-          saveSessionToken(adminToken);
           const upgraded = { ...next, apiKey: adminToken };
           setConfigState(upgraded);
           saveConfig(upgraded);
@@ -313,28 +293,16 @@ export function AppConfigProvider({ children }: { children: ReactNode }) {
   }, [config.serverUrl]);
 
   // GUI bootstrap: read the API key from the server-injected window object,
-  // then exchange it for an admin session token (P325).
+  // then exchange it for an admin session token (H17: memory-only, no sessionStorage).
   //
   // Flow:
   //  1. If we already have a key in React state, nothing to do.
-  //  2. If a session token is stored in sessionStorage, use it directly
-  //     (page reload within the same tab — no new exchange needed).
-  //  3. Otherwise read the bootstrap key from window.__SIDJUA_BOOTSTRAP__,
-  //     exchange it for an admin token, store the admin token, and apply it.
+  //  2. Read the bootstrap key from window.__SIDJUA_BOOTSTRAP__,
+  //     exchange it for an admin token and apply it.
   //     If exchange fails, fall back to using the bootstrap key directly
   //     (local-dev / non-production setups where bootstrap key has admin scope).
   useEffect(() => {
     if (config.apiKey) return;  // already have a key
-
-    const storedToken = loadStoredSessionToken();
-    if (storedToken) {
-      // Reuse persisted admin token across page reloads — mark as bootstrap session
-      const serverUrl = config.serverUrl || window.location.origin;
-      _isBootstrapSession = true;
-      setIsBootstrap(true);
-      setConfigState((prev) => ({ ...prev, serverUrl, apiKey: storedToken }));
-      return;
-    }
 
     const injected = (window as WindowWithBootstrap).__SIDJUA_BOOTSTRAP__;
     if (typeof injected?.api_key === 'string' && injected.api_key) {
@@ -345,7 +313,6 @@ export function AppConfigProvider({ children }: { children: ReactNode }) {
         _isBootstrapSession = true;
         setIsBootstrap(true);
         if (adminToken) {
-          saveSessionToken(adminToken);
           setConfigState({ serverUrl, apiKey: adminToken });
         } else {
           // Exchange failed (e.g. local dev with admin bootstrap key) — use key as-is
