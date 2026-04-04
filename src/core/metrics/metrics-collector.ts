@@ -246,6 +246,24 @@ export class MetricsCollector {
     "Number of currently active agents",
   );
 
+  /** Total dead worker recoveries per tier. Labels: tier */
+  readonly deadWorkerRecoveriesTotal = new Counter(
+    "sidjua_dead_worker_recoveries_total",
+    "Total dead worker recoveries per agent tier",
+  );
+
+  /** Active workers per agent tier. Labels: tier */
+  readonly activeWorkersByTier = new Gauge(
+    "sidjua_active_workers_by_tier",
+    "Active concurrent workers per agent tier",
+  );
+
+  /** Number of tasks waiting in backpressure queue. Labels: none */
+  readonly backpressureQueueLength = new Gauge(
+    "sidjua_backpressure_queue_length",
+    "Number of tasks waiting in the backpressure queue",
+  );
+
   private readonly startTime = Date.now();
 
   /**
@@ -268,6 +286,9 @@ export class MetricsCollector {
       this.mcpServerHealth.serialize(),
       this.uptimeSeconds.serialize(),
       this.activeAgents.serialize(),
+      this.deadWorkerRecoveriesTotal.serialize(),
+      this.activeWorkersByTier.serialize(),
+      this.backpressureQueueLength.serialize(),
     ];
 
     // Only include sections that have at least one data line (not just HELP + TYPE)
@@ -290,6 +311,9 @@ export class MetricsCollector {
     this.mcpServerHealth.reset();
     this.uptimeSeconds.reset();
     this.activeAgents.reset();
+    this.deadWorkerRecoveriesTotal.reset();
+    this.activeWorkersByTier.reset();
+    this.backpressureQueueLength.reset();
   }
 }
 

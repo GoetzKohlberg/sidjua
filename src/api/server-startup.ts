@@ -48,6 +48,9 @@ import { runMigrations, getSchemaVersion } from "../core/updater/migrations/inde
 import { McpRegistry } from "../core/mcp/mcp-registry.js";
 import { scanModules, buildModuleConfigMap } from "../core/modules/index.js";
 import { WebhookTokenStore } from "../core/webhook/webhook-token-store.js";
+import { DeadWorkerRecovery } from "../core/runtime/dead-worker-recovery.js";
+import { BackpressureManager } from "../core/runtime/backpressure.js";
+import { installImmutableAuditTriggers } from "../core/runtime/sqlite-audit-immutable.js";
 
 const logger = createLogger("api-server-cli");
 
@@ -153,6 +156,7 @@ export async function runServerStart(
   runMigrations105(db);
   runAuditMigrations(db);
   runActivityMigrations(db);
+  installImmutableAuditTriggers(db);
   activityEmitter.init(db);
   digestEngine.init(db);
   const registry = new AgentRegistry(db);
@@ -336,6 +340,28 @@ export async function runServerStart(
   if (uploadEmbedder !== null) {
     void uploadEmbedder.embedPending().catch((_e: unknown) => { /* best effort */ }); // cleanup-ignore: startup re-embedding is best-effort
   }
+  // ── Runtime services: dead worker recovery + backpressure ───────────────
+  const deadWorkerRecovery = new DeadWorkerRecovery(db, {
+    checkIntervalMs: parseInt(process.env["SIDJUA_DEAD_WORKER_CHECK_INTERVAL"] ?? "60000", 10),
+    taskTimeoutMs:   parseInt(process.env["SIDJUA_DEAD_WORKER_TIMEOUT"] ?? "300000", 10),
+    enabled: true,
+  });
+  deadWorkerRecovery.start();
+
+  const backpressure = new BackpressureManager({
+    maxConcurrentByTier: {
+      "1": parseInt(process.env["SIDJUA_BACKPRESSURE_T1_MAX"] ?? "2",   10),
+      "2": parseInt(process.env["SIDJUA_BACKPRESSURE_T2_MAX"] ?? "4",   10),
+      "3": parseInt(process.env["SIDJUA_BACKPRESSURE_T3_MAX"] ?? "8",   10),
+      T1:  parseInt(process.env["SIDJUA_BACKPRESSURE_T1_MAX"] ?? "2",   10),
+      T2:  parseInt(process.env["SIDJUA_BACKPRESSURE_T2_MAX"] ?? "4",   10),
+      T3:  parseInt(process.env["SIDJUA_BACKPRESSURE_T3_MAX"] ?? "8",   10),
+    },
+    maxQueueLength: parseInt(process.env["SIDJUA_BACKPRESSURE_QUEUE_MAX"] ?? "100", 10),
+    queueTimeoutMs: parseInt(process.env["SIDJUA_BACKPRESSURE_QUEUE_TIMEOUT"] ?? "120000", 10),
+  });
+  backpressure.start();
+
   registerAllRoutes(server.app, {
     db,
     workDir:          opts.workDir,
@@ -351,6 +377,7 @@ export async function runServerStart(
     activityEmitter,
     mcpRegistry,
     webhookTokenStore:  db !== null ? new WebhookTokenStore(db) : null,
+    backpressure,
   });
 
   // ── GUI static file serving ───────────────────────────────────────────────
@@ -447,6 +474,8 @@ export async function runServerStart(
     });
 
     if (chatPersistTimer !== null) clearInterval(chatPersistTimer);
+    deadWorkerRecovery.stop();
+    backpressure.stop();
     if (orchestrator !== null) {
       try { await orchestrator.stop(); } catch (_e) { /* cleanup-ignore */ }
     }

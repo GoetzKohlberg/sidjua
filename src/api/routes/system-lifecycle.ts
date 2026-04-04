@@ -29,10 +29,18 @@ import {
   cleanupFreezeAudit,
 }                           from "../../core/agents/freeze-audit.js";
 import { createLogger }     from "../../core/logger.js";
+import type { BackpressureManager } from "../../core/runtime/backpressure.js";
 
 const logger = createLogger("system-lifecycle");
 
-export function registerSystemLifecycleRoutes(app: Hono): void {
+export interface SystemLifecycleServices {
+  backpressure?: BackpressureManager | null;
+}
+
+export function registerSystemLifecycleRoutes(
+  app: Hono,
+  services: SystemLifecycleServices = {},
+): void {
   /**
    * POST /api/v1/system/freeze
    *
@@ -121,5 +129,20 @@ export function registerSystemLifecycleRoutes(app: Hono): void {
       state:        getSystemState(),
       activeAgents: getActiveAgentCount(),
     });
+  });
+
+  /**
+   * GET /api/v1/system/backpressure
+   *
+   * Returns current backpressure queue status: active workers per tier,
+   * queue depth, and per-tier concurrency limits.
+   * Returns 503 if the BackpressureManager is not wired up.
+   */
+  app.get("/api/v1/system/backpressure", requireScope("operator"), (c) => {
+    const { backpressure } = services;
+    if (backpressure == null) {
+      return c.json({ error: "Backpressure manager not available" }, 503);
+    }
+    return c.json(backpressure.getStatus());
   });
 }

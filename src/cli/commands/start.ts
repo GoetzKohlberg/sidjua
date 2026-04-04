@@ -21,6 +21,9 @@ import { isProcessAlive } from "../utils/process.js";
 import { createLogger } from "../../core/logger.js";
 import { createApiServer, DEFAULT_SERVER_CONFIG } from "../../api/server.js";
 import { registerAllRoutes } from "../../api/routes/index.js";
+import { DeadWorkerRecovery } from "../../core/runtime/dead-worker-recovery.js";
+import { BackpressureManager } from "../../core/runtime/backpressure.js";
+import { installImmutableAuditTriggers } from "../../core/runtime/sqlite-audit-immutable.js";
 import { McpRegistry } from "../../core/mcp/mcp-registry.js";
 import { scanModules, buildModuleConfigMap } from "../../core/modules/index.js";
 import { openDatabase } from "../../utils/db.js";
@@ -219,6 +222,7 @@ export async function runStartCommand(opts: StartCommandOptions): Promise<number
     runMigrations105(db);
     runAuditMigrations(db);
     runActivityMigrations(db);
+    installImmutableAuditTriggers(db);
     activityEmitter.init(db);
     digestEngine.init(db);
     const registry = db !== null ? new AgentRegistry(db) : undefined;
@@ -494,7 +498,30 @@ export async function runStartCommand(opts: StartCommandOptions): Promise<number
       mcpRegistry,
       webhookTokenStore: db !== null ? new WebhookTokenStore(db) : null,
     };
-    registerAllRoutes(server.app, routeServices);
+
+    // DUAL PATH: server-startup.ts (Docker) starts the same services. Keep in sync.
+    const deadWorkerRecovery = new DeadWorkerRecovery(db, {
+      checkIntervalMs: parseInt(process.env["SIDJUA_DEAD_WORKER_CHECK_INTERVAL"] ?? "60000", 10),
+      taskTimeoutMs:   parseInt(process.env["SIDJUA_DEAD_WORKER_TIMEOUT"] ?? "300000", 10),
+      enabled: true,
+    });
+    deadWorkerRecovery.start();
+
+    const backpressure = new BackpressureManager({
+      maxConcurrentByTier: {
+        "1": parseInt(process.env["SIDJUA_BACKPRESSURE_T1_MAX"] ?? "2",  10),
+        "2": parseInt(process.env["SIDJUA_BACKPRESSURE_T2_MAX"] ?? "4",  10),
+        "3": parseInt(process.env["SIDJUA_BACKPRESSURE_T3_MAX"] ?? "8",  10),
+        T1:  parseInt(process.env["SIDJUA_BACKPRESSURE_T1_MAX"] ?? "2",  10),
+        T2:  parseInt(process.env["SIDJUA_BACKPRESSURE_T2_MAX"] ?? "4",  10),
+        T3:  parseInt(process.env["SIDJUA_BACKPRESSURE_T3_MAX"] ?? "8",  10),
+      },
+      maxQueueLength: parseInt(process.env["SIDJUA_BACKPRESSURE_QUEUE_MAX"] ?? "100",    10),
+      queueTimeoutMs: parseInt(process.env["SIDJUA_BACKPRESSURE_QUEUE_TIMEOUT"] ?? "120000", 10),
+    });
+    backpressure.start();
+
+    registerAllRoutes(server.app, { ...routeServices, backpressure });
 
     // ── GUI static file serving (no auth required) ────────────────────────
 
@@ -575,6 +602,8 @@ export async function runStartCommand(opts: StartCommandOptions): Promise<number
       process.stdout.write(msg("cli.start.shutting_down"));
       checkpointTimer?.stop();
       stopDigestScheduler();
+      deadWorkerRecovery.stop();
+      backpressure.stop();
       if (orchestrator !== null) {
         try { await orchestrator.stop(); } catch (_e) { /* cleanup-ignore */ }
       }

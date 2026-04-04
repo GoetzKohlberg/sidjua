@@ -63,6 +63,7 @@ import type { TokenStore }               from "../token-store.js";
 import { registerUpdaterRoutes }         from "./updater.js";
 import { registerUpdateLifecycleRoutes } from "./update-lifecycle.js";
 import { registerSystemLifecycleRoutes } from "./system-lifecycle.js";
+import type { BackpressureManager }      from "../../core/runtime/backpressure.js";
 import { setDeepHealthProvider }         from "./system.js";
 import { checkDeepHealth }              from "../../core/health/deep-health.js";
 import { registerUploadRoutes }          from "./upload.js";
@@ -169,6 +170,8 @@ export interface AllRouteServices {
   webhookTokenStore?: WebhookTokenStore | null;
   /** P382: MCP registry for Puppeteer PDF rendering — reuses mcpRegistry if omitted. */
   reportMcpRegistry?: ReportRouteServices["mcpRegistry"];
+  /** Backpressure manager — optional; GET /api/v1/system/backpressure returns 503 if absent. */
+  backpressure?: BackpressureManager | null;
 }
 
 
@@ -355,7 +358,7 @@ export function registerAllRoutes(app: Hono, services: AllRouteServices = {}): v
   // Blue/Green update routes
   registerUpdaterRoutes(app);
   registerUpdateLifecycleRoutes(app);
-  registerSystemLifecycleRoutes(app);
+  registerSystemLifecycleRoutes(app, { backpressure: services.backpressure ?? null });
 
   // ── Apply endpoint — POST /api/v1/apply ──────────────────────────────────
   // Runs `sidjua apply --force` in-process. Same logic as the CLI command.
