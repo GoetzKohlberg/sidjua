@@ -221,6 +221,8 @@ const ERROR_REGISTRY: Readonly<Record<string, ErrorCodeEntry>> = {
   // REST tool security
   "REST-SEC-001": { code: "REST-SEC-001", category: ErrorCategory.SECURITY, message: "Request to private or local address blocked", recoverable: false, suggestion: "Use a publicly routable URL or configure an explicit allowlist" },
   "REST-SEC-002": { code: "REST-SEC-002", category: ErrorCategory.SECURITY, message: "Request domain not in allowlist",             recoverable: false, suggestion: "Add the domain to SIDJUA_REST_ALLOWLIST or use an allowed endpoint" },
+  // REST tool routing
+  "REST-001": { code: "REST-001", category: ErrorCategory.INPUT, message: "Missing required path parameter in URL template", recoverable: false, suggestion: "Provide all required path parameters in the tool action params" },
 
   // SSRF protection
   "SSRF-001": { code: "SSRF-001", category: ErrorCategory.SSRF, message: "Invalid or non-HTTP(S) outbound URL",  recoverable: false, suggestion: "Use an http:// or https:// URL for outbound requests" },

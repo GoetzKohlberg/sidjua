@@ -64,6 +64,12 @@ export interface McpToolConfig {
   timeout_ms?: number;
 }
 
+/** Per-capability route definition for template-based REST tools. */
+export interface RestCapabilityRoute {
+  method:        "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+  path_template: string;
+}
+
 export interface RestToolConfig {
   type: "rest";
   base_url: string;
@@ -77,6 +83,11 @@ export interface RestToolConfig {
   };
   timeout_ms?: number;
   retry_count?: number;
+  /**
+   * Per-capability routing map populated by RestToolFactory.
+   * key = capability name (e.g. "search"), value = method + path_template.
+   */
+  routes?: Record<string, RestCapabilityRoute>;
 }
 
 export interface ShellToolConfig {

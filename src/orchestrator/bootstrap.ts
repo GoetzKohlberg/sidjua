@@ -36,6 +36,7 @@ import { setDocumentsToolDb }          from "../tool-integration/internal/list-d
 import { loadMcpConfig }               from "../tool-integration/mcp-config.js";
 import { McpLifecycleManager }         from "../tool-integration/mcp-lifecycle.js";
 import { toolCallRouter }              from "../tool-integration/tool-call-router.js";
+import { RestToolFactory }             from "../tool-integration/rest-tool-factory.js";
 
 const logger = createLogger("orchestrator-bootstrap");
 
@@ -145,6 +146,11 @@ export async function bootstrapOrchestrator(
         });
       });
     }
+
+    // Register REST tools from config — best-effort, non-fatal
+    const restFactory  = new RestToolFactory(registry, toolManager);
+    const restCount    = await restFactory.loadAndRegister(join(workDir, "config", "rest-tools.yaml"));
+    logger.info("orchestrator-bootstrap", `Registered ${restCount} REST tool(s)`, { metadata: { restCount } });
   } catch (_e) { /* non-fatal — orchestrator runs without tools if migrations haven't run */ }
 
   return orchestrator;

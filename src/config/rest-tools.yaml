@@ -1,0 +1,189 @@
+# REST Tool Configuration
+# Loaded by RestToolFactory on boot. Credentials resolved via SecretsService.
+#
+# Secret references use the format "secret:<key_name>" and are resolved at
+# runtime via SecretsService. The base_url may use env vars: "${ENV_VAR}".
+#
+# Example additional tool:
+# - id: my-api
+#   name: My API
+#   base_url: "https://api.example.com"
+#   auth:
+#     type: bearer
+#     token: "secret:my_api_token"
+#   capabilities:
+#     - name: search
+#       description: Search for items
+#       method: GET
+#       path_template: /v1/search
+#       risk_level: low
+#       requires_approval: false
+
+tools:
+  - id: qdrant
+    name: Qdrant Vector Store
+    base_url: "${SIDJUA_QDRANT_URL:-http://qdrant:6333}"
+    timeout_ms: 10000
+    capabilities:
+      - name: search
+        description: Semantic vector search in a Qdrant collection
+        method: POST
+        path_template: /collections/{collection_name}/points/search
+        risk_level: low
+        requires_approval: false
+        input_schema:
+          type: object
+          required: [collection_name, vector]
+          properties:
+            collection_name:
+              type: string
+              description: Name of the Qdrant collection to search
+            vector:
+              type: array
+              items: { type: number }
+              description: Query embedding vector
+            limit:
+              type: integer
+              default: 10
+              description: Maximum number of results to return
+            score_threshold:
+              type: number
+              description: Minimum similarity score threshold
+        output_schema:
+          type: object
+          properties:
+            result:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: { type: string }
+                  score: { type: number }
+                  payload: { type: object }
+
+      - name: add_point
+        description: Upsert a vector point into a Qdrant collection
+        method: PUT
+        path_template: /collections/{collection_name}/points
+        risk_level: medium
+        requires_approval: false
+        input_schema:
+          type: object
+          required: [collection_name, points]
+          properties:
+            collection_name:
+              type: string
+              description: Target collection name
+            points:
+              type: array
+              description: Array of points to upsert
+              items:
+                type: object
+                required: [id, vector]
+                properties:
+                  id:      { type: string }
+                  vector:  { type: array, items: { type: number } }
+                  payload: { type: object }
+        output_schema:
+          type: object
+          properties:
+            result: { type: object }
+
+      - name: get_collection_info
+        description: Get metadata and statistics for a Qdrant collection
+        method: GET
+        path_template: /collections/{collection_name}
+        risk_level: low
+        requires_approval: false
+        input_schema:
+          type: object
+          required: [collection_name]
+          properties:
+            collection_name:
+              type: string
+              description: Name of the collection
+        output_schema:
+          type: object
+          properties:
+            result:
+              type: object
+              properties:
+                status:        { type: string }
+                vectors_count: { type: integer }
+                points_count:  { type: integer }
+
+      - name: scroll_points
+        description: Scroll through points in a Qdrant collection with optional filtering
+        method: POST
+        path_template: /collections/{collection_name}/points/scroll
+        risk_level: low
+        requires_approval: false
+        input_schema:
+          type: object
+          required: [collection_name]
+          properties:
+            collection_name:
+              type: string
+              description: Collection to scroll
+            limit:
+              type: integer
+              default: 100
+              description: Page size
+            offset:
+              type: string
+              description: Pagination offset (point ID of next page start)
+            with_payload:
+              type: boolean
+              default: true
+        output_schema:
+          type: object
+          properties:
+            result:
+              type: object
+              properties:
+                points: { type: array }
+                next_page_offset: { type: string }
+
+      - name: delete_points
+        description: Delete specific vector points from a Qdrant collection by ID
+        method: POST
+        path_template: /collections/{collection_name}/points/delete
+        risk_level: high
+        requires_approval: true
+        input_schema:
+          type: object
+          required: [collection_name, points]
+          properties:
+            collection_name:
+              type: string
+              description: Collection to delete from
+            points:
+              type: array
+              items: { type: string }
+              description: Point IDs to delete
+        output_schema:
+          type: object
+          properties:
+            result: { type: object }
+
+      - name: list_collections
+        description: List all collections in the Qdrant instance
+        method: GET
+        path_template: /collections
+        risk_level: low
+        requires_approval: false
+        input_schema:
+          type: object
+          properties: {}
+        output_schema:
+          type: object
+          properties:
+            result:
+              type: object
+              properties:
+                collections:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name: { type: string }

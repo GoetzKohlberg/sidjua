@@ -14,6 +14,7 @@ import type {
   ToolResult,
   ToolType,
   RestToolConfig,
+  RestCapabilityRoute,
 } from "../types.js";
 import { createLogger } from "../../core/logger.js";
 import { SidjuaError } from "../../core/error-codes.js";
@@ -104,6 +105,12 @@ export class RestAdapter implements ToolAdapter {
   async execute(action: ToolAction): Promise<ToolResult> {
     const start = Date.now();
     const params = action.params;
+
+    // Template-based routing (populated by RestToolFactory)
+    const route = this.config.routes?.[action.capability];
+    if (route !== undefined) {
+      return this.executeTemplated(action, route, start);
+    }
 
     const url =
       typeof params["path"] === "string"
@@ -248,6 +255,148 @@ export class RestAdapter implements ToolAdapter {
 
   getCapabilities(): ToolCapability[] {
     return this.capabilities;
+  }
+
+  // -------------------------------------------------------------------------
+  // Private: template-based routing
+  // -------------------------------------------------------------------------
+
+  /**
+   * Execute a capability using a path_template route.
+   * Substitutes {param} placeholders from action.params;
+   * remaining params go to query string (GET) or JSON body (others).
+   */
+  private async executeTemplated(
+    action: ToolAction,
+    route: RestCapabilityRoute,
+    start: number,
+  ): Promise<ToolResult> {
+    let pathWithQuery: string;
+    let fetchInit: RequestInit;
+    const headers = this.buildAuthHeaders();
+    headers["Content-Type"] = "application/json";
+
+    let substitutedPath: string;
+    let remainingParams: Record<string, unknown>;
+    try {
+      const result = this.substitutePathTemplate(route.path_template, action.params);
+      substitutedPath = result.path;
+      remainingParams = result.remainingParams;
+    } catch (err) {
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : String(err),
+        duration_ms: Date.now() - start,
+      };
+    }
+
+    if (route.method === "GET" || route.method === "DELETE") {
+      // Remaining params → query string
+      const qs = new URLSearchParams();
+      for (const [k, v] of Object.entries(remainingParams)) {
+        if (v !== undefined && v !== null) qs.set(k, String(v));
+      }
+      const queryString = qs.toString();
+      pathWithQuery = queryString.length > 0 ? `${substitutedPath}?${queryString}` : substitutedPath;
+      fetchInit = { method: route.method, headers };
+    } else {
+      // POST / PUT / PATCH → remaining params go to body
+      pathWithQuery = substitutedPath;
+      fetchInit = {
+        method: route.method,
+        headers,
+        body: JSON.stringify(remainingParams),
+      };
+    }
+
+    const url = this.config.base_url + pathWithQuery;
+    assertAllowedUrl(url);
+
+    const timeoutMs = this.config.timeout_ms ?? 30_000;
+    const maxResponseBytes = 1_048_576; // 1 MiB
+
+    let lastError: string | undefined;
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      if (attempt > 0) {
+        const delay = RETRY_DELAYS_MS[attempt - 1] ?? RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1]!;
+        await sleep(delay);
+      }
+
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+      let response: Response;
+      try {
+        response = await fetch(url, { ...fetchInit, signal: controller.signal });
+      } catch (err) {
+        lastError = err instanceof Error ? err.message : String(err);
+        return { success: false, error: lastError, duration_ms: Date.now() - start };
+      } finally {
+        clearTimeout(timer);
+      }
+
+      if (!RETRY_STATUS_CODES.has(response.status)) {
+        const duration_ms = Date.now() - start;
+        let data: unknown;
+        try {
+          const text = await response.text();
+          if (text.length > maxResponseBytes) {
+            return { success: false, error: "Response exceeds 1 MiB limit", duration_ms };
+          }
+          try {
+            data = JSON.parse(text) as unknown;
+          } catch (_parseErr) {
+            data = text;
+          }
+        } catch (e: unknown) {
+          logger.debug("rest-adapter", "REST templated response body read failed", {
+            metadata: { error: e instanceof Error ? e.message : String(e) },
+          });
+          data = null;
+        }
+        return {
+          success: response.ok,
+          ...(response.ok ? { data } : { error: response.statusText }),
+          duration_ms,
+        };
+      }
+
+      lastError = `HTTP ${response.status}: ${response.statusText}`;
+    }
+
+    return { success: false, error: lastError ?? "Max retries exceeded", duration_ms: Date.now() - start };
+  }
+
+  /**
+   * Substitute `{param}` placeholders in a path template from action params.
+   * Returns the substituted path and a map of remaining (unused) params.
+   * Throws SidjuaError REST-001 if a placeholder has no corresponding param.
+   */
+  private substitutePathTemplate(
+    template: string,
+    params: Record<string, unknown>,
+  ): { path: string; remainingParams: Record<string, unknown> } {
+    const usedKeys = new Set<string>();
+    const placeholders = [...template.matchAll(/\{([^}]+)\}/g)];
+
+    let path = template;
+    for (const match of placeholders) {
+      const key = match[1];
+      if (key === undefined) continue;
+      const val = params[key];
+      if (val === undefined || val === null) {
+        throw SidjuaError.from("REST-001", `Missing required path parameter: ${key}`);
+      }
+      path = path.replace(`{${key}}`, encodeURIComponent(String(val)));
+      usedKeys.add(key);
+    }
+
+    const remainingParams: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(params)) {
+      if (!usedKeys.has(k)) remainingParams[k] = v;
+    }
+
+    return { path, remainingParams };
   }
 
   // -------------------------------------------------------------------------
