@@ -78,8 +78,8 @@ src/core/update/migration-framework.ts — MigrationRunner + MigrationRegistry
 tests/api/update-system.test.ts — drain/readonly/lifecycle/updater proxy tests (23 tests total)
 
 ## CURRENT
-Version: 1.0.1 | Build: 91 | Tests: 8328 pass, 0 fail (pre-existing flaky: parallel-execution timing), 18 skipped
-Last commit: cd0e4e6 — agent runtime hardening (dead worker recovery + backpressure + immutable audit, P386)
+Version: 1.0.1 | Build: 92 | Tests: 8350 pass, 0 fail (pre-existing flaky: parallel-execution timing), 18 skipped
+Last commit: 7b01631 — agent runtime benchmark suite (mock factory, 5 scenarios, failure injector, P387)
 Deadline V1.0.2: 2026-04-20 | V1.0.3: 2026-05-01 | V1.1: 2026-05-15
 
 ## NOTES FOR NEXT SESSION
