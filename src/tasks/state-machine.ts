@@ -14,6 +14,7 @@
 import type { Task, TaskStatus, TaskEventType, TransitionContext } from "./types.js";
 import type { TaskStore } from "./store.js";
 import type { TaskEventBus } from "./event-bus.js";
+import { getMetrics } from "../core/metrics/index.js";
 
 
 const VALID_TRANSITIONS: Readonly<Record<TaskStatus, readonly TaskStatus[]>> = {
@@ -134,6 +135,15 @@ export class TaskStateMachine {
         ...(context?.confidence !== undefined && { confidence: context.confidence }),
       },
     });
+
+    // Prometheus metrics — record terminal transitions
+    if (newStatus === "DONE" || newStatus === "FAILED" || newStatus === "ESCALATED") {
+      getMetrics().agentTasksTotal.inc({
+        agent:    task.assigned_agent ?? "unknown",
+        division: task.division,
+        status:   newStatus,
+      });
+    }
 
     // Cascade cancellation to children
     if (newStatus === "CANCELLED") {

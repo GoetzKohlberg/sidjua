@@ -80,6 +80,7 @@ export type { StreamRouteServices }      from "./stream-routes.js";
 import { registerWebhookRoutes }         from "./webhook-routes.js";
 export type { WebhookRouteServices }     from "./webhook-routes.js";
 import { WebhookTokenStore }             from "../../core/webhook/webhook-token-store.js";
+import { registerMetricsRoutes }         from "./metrics-routes.js";
 
 import type { AgentRegistryLike }   from "./agents.js";
 import type { SecretRouteServices }    from "./secrets.js";
@@ -333,6 +334,9 @@ export function registerAllRoutes(app: Hono, services: AllRouteServices = {}): v
       ...(services.webhookTokenStore != null ? { webhookTokenStore: services.webhookTokenStore } : {}),
     });
   }
+
+  // P379: Prometheus metrics endpoints
+  registerMetricsRoutes(app);
 
   // Blue/Green update routes
   registerUpdaterRoutes(app);

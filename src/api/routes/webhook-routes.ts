@@ -27,6 +27,7 @@ import { normalizeWebhookPayload }     from "../../core/webhook/webhook-adapter.
 import { webhookRateLimitCheck }       from "../../core/webhook/webhook-rate-limiter.js";
 import { ExecutionBridge }             from "../../orchestrator/execution-bridge.js";
 import { TaskEventBus }                from "../../tasks/event-bus.js";
+import { getMetrics }                  from "../../core/metrics/index.js";
 
 
 const logger = createLogger("webhook-routes");
@@ -152,6 +153,8 @@ export function registerWebhookRoutes(app: Hono, services: WebhookRouteServices)
         description: `${normalized.title}\n\n${normalized.description}`,
         priority:    3,
       });
+
+      getMetrics().webhookReceivedTotal.inc({ agent: agentId, source: normalized.source });
 
       return c.json({
         task_id: handle.task_id,

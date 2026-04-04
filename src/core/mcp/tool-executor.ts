@@ -26,6 +26,7 @@
 import { createHash }           from "node:crypto";
 import { createLogger }         from "../logger.js";
 import { activityEmitter }      from "../activity/activity-emitter.js";
+import { getMetrics }           from "./../../core/metrics/index.js";
 import { governToolCall }       from "./mcp-governance-hook.js";
 import { selectRelevantTools }  from "./tool-selector.js";
 import { estimateTokens, compressContext } from "./context-budget.js";
@@ -291,6 +292,11 @@ export async function executeWithToolLoop(
     totalOutputTokens += response.outputTokens;
     finalText          = response.textContent;
 
+    // Prometheus metrics — LLM request + token usage
+    getMetrics().llmRequestsTotal.inc({ agent: ctx.agentId, model: ctx.model });
+    getMetrics().llmTokensTotal.inc({ agent: ctx.agentId, model: ctx.model, direction: "input" },  response.inputTokens);
+    getMetrics().llmTokensTotal.inc({ agent: ctx.agentId, model: ctx.model, direction: "output" }, response.outputTokens);
+
     // Terminal: no tool calls or model says done
     if (response.toolCalls.length === 0 || response.stopReason === "end_turn") {
       return {
@@ -367,6 +373,7 @@ export async function executeWithToolLoop(
 
       const decision = await governToolCall(toolName, args, serverInfo.name, serverInfo.governance, govCtx);
       if (!decision.allowed) {
+        getMetrics().governanceBlocksTotal.inc({ agent: ctx.agentId, stage: String(decision.stage ?? "unknown") });
         activityEmitter.emit({
           event_type: "mcp.tool.blocked",
           category:   "agent",
@@ -393,6 +400,7 @@ export async function executeWithToolLoop(
         const result     = await registry.callTool(toolName, args);
         const resultText = result.content.map((b) => b.type === "text" ? b.text : "").join("\n");
         toolCallsMade++;
+        getMetrics().toolCallsTotal.inc({ agent: ctx.agentId, tool: toolName });
 
         activityEmitter.emit({
           event_type: "mcp.tool.success",

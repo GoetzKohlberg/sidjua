@@ -78,8 +78,8 @@ src/core/update/migration-framework.ts — MigrationRunner + MigrationRegistry
 tests/api/update-system.test.ts — drain/readonly/lifecycle/updater proxy tests (23 tests total)
 
 ## CURRENT
-Version: 1.0.1 | Build: 83 | Tests: 8187 pass, 0 fail (3 pre-existing flaky: gui-smoke+tls+multi-agent), 18 skipped
-Last commit: 88e661a — P378 Webhook Inbound
+Version: 1.0.1 | Build: 84 | Tests: 8200 pass, 0 fail (3 pre-existing flaky: gui-smoke+tls+multi-agent), 18 skipped
+Last commit: (P379 Prometheus Metrics + Grafana Dashboard)
 Deadline V1.0.2: 2026-04-20 | V1.0.3: 2026-05-01 | V1.1: 2026-05-15
 
 ## NOTES FOR NEXT SESSION
@@ -138,6 +138,13 @@ P375 integration in reasoning-loop.ts:
   ActivitySeverity: "warning" (not "warn") — matches activity-types.ts
 
 P377a-ADDON — Docs Cleanup + CLI SSE Migration + README Roadmap — COMPLETE (commit b9f109e)
+P379 — Prometheus Metrics + Grafana Dashboard — COMPLETE (14 new tests):
+  src/core/metrics/metrics-collector.ts — Counter/Gauge + MetricsCollector singleton (12 metrics, MAX_ENTRIES=500 cardinality cap)
+  src/core/metrics/index.ts — barrel export
+  src/api/routes/metrics-routes.ts — GET /api/v1/metrics/prometheus (operator scope, text/plain 0.0.4) + /json
+  config/grafana/sidjua-dashboard.json — 8-panel Grafana dashboard template (uid: sidjua-ops-v1)
+  Instrumented: state-machine.ts (agentTasksTotal on DONE/FAILED/ESCALATED), tool-executor.ts (llmRequestsTotal+llmTokensTotal+toolCallsTotal+governanceBlocksTotal), webhook-routes.ts (webhookReceivedTotal)
+
 P378 — Webhook Inbound — COMPLETE (commit 88e661a, 28 new tests):
   src/core/webhook/webhook-auth.ts — generateWebhookToken(), hashToken(), validateToken() (SHA-256, timingSafe)
   src/core/webhook/webhook-token-store.ts — WebhookTokenStore SQLite (save/findByAgent/getById/listAll/updateLastUsed/disable/revoke)
