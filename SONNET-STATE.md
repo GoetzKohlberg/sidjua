@@ -78,8 +78,8 @@ src/core/update/migration-framework.ts — MigrationRunner + MigrationRegistry
 tests/api/update-system.test.ts — drain/readonly/lifecycle/updater proxy tests (23 tests total)
 
 ## CURRENT
-Version: 1.0.1 | Build: 82 | Tests: 8159 pass, 0 fail (3 pre-existing flaky: gui-smoke+tls+multi-agent), 18 skipped
-Last commit: 6578459 — P376+P377 | P377a-ADDON uncommitted
+Version: 1.0.1 | Build: 83 | Tests: 8187 pass, 0 fail (3 pre-existing flaky: gui-smoke+tls+multi-agent), 18 skipped
+Last commit: 88e661a — P378 Webhook Inbound
 Deadline V1.0.2: 2026-04-20 | V1.0.3: 2026-05-01 | V1.1: 2026-05-15
 
 ## NOTES FOR NEXT SESSION
@@ -137,16 +137,19 @@ P375 integration in reasoning-loop.ts:
   ToolCall.id now preserved in AnthropicAdapter + OpenAICompatibleAdapter parseToolResponse()
   ActivitySeverity: "warning" (not "warn") — matches activity-types.ts
 
-P377a-ADDON — Docs Cleanup + CLI SSE Migration + README Roadmap — COMPLETE (uncommitted):
-  docs/KNOWN-ISSUES-V1.md: renamed to "V1 Release History"; 8 items → Resolved, 1 → Partially Resolved
-  docs/KNOWN-LIMITATIONS.md: v1.0.1 header; 2 items Resolved, 1 Partially Resolved
-  src/cli/utils/sse-client.ts: lightweight SSE client (fetch streaming, SSE wire format parser, AbortSignal)
-  src/cli/commands/logs.ts: --follow prefers SSE when server+admin.token available; falls back to polling
-    readAdminToken() reads .system/admin.token; isServerReachable() health check timeout 2s
-    obtainSseTicket() POST /api/v1/sse/ticket with Bearer; builds URL with ticket+agent+division params
-    client-side type filter applied to activity events; polling fallback preserved (POLL_BASE/IDLE_MS)
-  README.md: ## Roadmap expanded — Shipped V1.0/V1.0.1, In Development V1.1 full list,
-    Planned V1.2, Architecture Vision V2.0 (sidjua-core Rust + sidjua-gui Tauri), V2.0 Enterprise
+P377a-ADDON — Docs Cleanup + CLI SSE Migration + README Roadmap — COMPLETE (commit b9f109e)
+P378 — Webhook Inbound — COMPLETE (commit 88e661a, 28 new tests):
+  src/core/webhook/webhook-auth.ts — generateWebhookToken(), hashToken(), validateToken() (SHA-256, timingSafe)
+  src/core/webhook/webhook-token-store.ts — WebhookTokenStore SQLite (save/findByAgent/getById/listAll/updateLastUsed/disable/revoke)
+  src/core/webhook/webhook-adapter.ts — normalizeWebhookPayload(github/grafana/generic) + extractSafeFields()
+  src/core/webhook/webhook-rate-limiter.ts — webhookRateLimitCheck() 60 req/min per agent, in-memory
+  src/api/routes/webhook-routes.ts — POST /api/v1/webhook/:agentId (no requireScope, own X-Sidjua-Token auth)
+    1MB payload limit, rate check, validateToken loop, normalize, ExecutionBridge.submitTask(), 202 Accepted
+    401 generic for ALL auth failures (no enumeration), 413 for oversized, 429 for rate limit
+  src/cli/commands/cmd-webhook.ts — sidjua webhook create/list/revoke; token shown ONCE with TTY guard
+  src/core/webhook/index.ts — barrel export
+  DUAL PATH: server-startup.ts + start.ts both wire WebhookTokenStore
+  i18n: 6 cli.webhook.* keys in en.json/de.json/_template.json + all 42 AI locales (English fallback)
 
-Next: commit P377a-ADDON, then continue Block H P358-P360 or start next Opus spec.
+Next: continue Block H P358-P360 or start next Opus spec.
 
