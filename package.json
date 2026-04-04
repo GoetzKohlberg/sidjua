@@ -21,7 +21,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup && mkdir -p dist/roles dist/divisions dist/knowledge dist/i18n/messages locales && cp src/i18n/messages/en.json dist/i18n/messages/en.json && cp src/core/backup-checkpoint-worker.cjs dist/backup-checkpoint-worker.cjs && cp src/defaults/roles/*.yaml dist/roles/ && cp src/defaults/divisions/*.yaml dist/divisions/ && cp src/defaults/knowledge/*.md dist/knowledge/ && cp src/defaults/approved-providers.json dist/ && mkdir -p dist/defaults && cp src/defaults/org-chart-default.json dist/defaults/ && cp src/locales/*.json locales/ && node -e \"const v=JSON.parse(require('fs').readFileSync('package.json','utf8')).version;require('fs').writeFileSync('dist/.version',v);\"",
+    "build": "tsup && mkdir -p dist/roles dist/divisions dist/knowledge dist/i18n/messages locales dist/api/static && cp src/i18n/messages/en.json dist/i18n/messages/en.json && cp src/core/backup-checkpoint-worker.cjs dist/backup-checkpoint-worker.cjs && cp src/defaults/roles/*.yaml dist/roles/ && cp src/defaults/divisions/*.yaml dist/divisions/ && cp src/defaults/knowledge/*.md dist/knowledge/ && cp src/defaults/approved-providers.json dist/ && mkdir -p dist/defaults && cp src/defaults/org-chart-default.json dist/defaults/ && cp src/locales/*.json locales/ && cp src/api/static/glasscheibe-widget.js dist/api/static/ && node -e \"const v=JSON.parse(require('fs').readFileSync('package.json','utf8')).version;require('fs').writeFileSync('dist/.version',v);\"",
     "dev": "tsup --watch",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -31,7 +31,15 @@
     "i18n:check": "npx tsx scripts/check-i18n-completeness.ts",
     "i18n:sync": "npx tsx scripts/sync-locales.ts && cp src/locales/*.json locales/",
     "i18n:sync:dry": "npx tsx scripts/sync-locales.ts --dry",
-    "audit:check": "npm audit --audit-level=high"
+    "audit:check": "npm audit --audit-level=high",
+    "docs:api": "typedoc",
+    "docs:validate": "bash scripts/docs-check.sh",
+    "docs:deps": "npx depcruise --output-type json src/ > docs/.build/deps.json",
+    "docs:filemap": "npx tsx scripts/extract-file-map.ts",
+    "docs:context": "npx tsx scripts/generate-llm-context.ts",
+    "docs:diagrams": "npx tsx scripts/generate-dev-diagrams.ts",
+    "docs:render": "npx mmdc -i docs/dev/ARCHITECTURE.md -o docs/dev/img/architecture.svg -c docs/.build/mermaid-config.json",
+    "docs:generate": "npm run docs:deps && npm run docs:filemap && npm run docs:context && npm run docs:diagrams"
   },
   "engines": {
     "node": ">=22.0.0"
@@ -58,14 +66,18 @@
     "url": "https://github.com/GoetzKohlberg/sidjua/issues"
   },
   "devDependencies": {
+    "@mermaid-js/mermaid-cli": "^11.12.0",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.3.2",
     "@types/papaparse": "^5.5.2",
     "@types/pdf-parse": "^1.1.5",
     "@types/ssh2": "^1.15.5",
     "@types/ws": "^8.18.1",
+    "dependency-cruiser": "^17.3.10",
     "sharp": "^0.34.5",
     "tsup": "^8.5.1",
+    "typedoc": "^0.28.18",
+    "typedoc-plugin-markdown": "^4.11.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   },
@@ -104,6 +116,7 @@
     "xlsx": "^0.18.5",
     "yaml": "^2.8.2",
     "yauzl": "^3.2.1",
-    "yazl": "^3.3.1"
+    "yazl": "^3.3.1",
+    "zod": "^4.3.6"
   }
 }

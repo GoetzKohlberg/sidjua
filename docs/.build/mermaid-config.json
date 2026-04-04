@@ -1,0 +1,20 @@
+{
+  "theme": "default",
+  "themeVariables": {
+    "primaryColor": "#16213e",
+    "primaryTextColor": "#fff",
+    "primaryBorderColor": "#0f3460",
+    "lineColor": "#333",
+    "secondaryColor": "#e2e8f0",
+    "tertiaryColor": "#f0f4f8"
+  },
+  "flowchart": {
+    "curve": "basis",
+    "padding": 20
+  },
+  "c4": {
+    "personFontSize": 14,
+    "containerFontSize": 12,
+    "systemFontSize": 14
+  }
+}

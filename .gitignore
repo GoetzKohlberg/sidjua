@@ -11,6 +11,10 @@ modules/**/.env
 .system/
 agents/definitions/
 agents/skills/
+
+# Documentation build artifacts (regenerated on each build)
+docs/.build/deps.json
+docs/.build/filemap.json
 *.log
 *.pid
 .DS_Store
@@ -28,6 +32,9 @@ specs/
 assets/
 tests/
 .github/
+
+# Generated docs (typedoc output)
+docs/api/
 
 # Internal docs
 docs/GUI-SMOKE-TEST-CHECKLIST.md
