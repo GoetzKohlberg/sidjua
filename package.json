@@ -39,7 +39,10 @@
     "docs:context": "npx tsx scripts/generate-llm-context.ts",
     "docs:diagrams": "npx tsx scripts/generate-dev-diagrams.ts",
     "docs:render": "npx mmdc -i docs/dev/ARCHITECTURE.md -o docs/dev/img/architecture.svg -c docs/.build/mermaid-config.json",
-    "docs:generate": "npm run docs:deps && npm run docs:filemap && npm run docs:context && npm run docs:diagrams"
+    "docs:generate": "npm run docs:deps && npm run docs:filemap && npm run docs:context && npm run docs:diagrams",
+    "benchmark": "npx tsx src/__benchmarks__/run.ts",
+    "benchmark:quick": "npx tsx src/__benchmarks__/run.ts --scenario short-burst",
+    "benchmark:full": "npx tsx src/__benchmarks__/run.ts --all"
   },
   "engines": {
     "node": ">=22.0.0"

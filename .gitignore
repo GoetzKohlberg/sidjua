@@ -44,6 +44,7 @@ docs/PRE-ACTION-PIPELINE-SPEC-V1.md
 docs/SIDJUA-APPLY-TECH-SPEC-V1.md
 docs/security-limitations-v1.md
 test-results/
+benchmarks/*.json
 SONNET-STATE.md.backup.*
 *.backup.*
 SONNET-STATE.md
