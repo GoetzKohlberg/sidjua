@@ -30,10 +30,13 @@ import { listDocumentsTool }       from "./list-documents.js";
 import { ingestDocumentTool }      from "./ingest-document.js";
 
 // ── Part 3: HR / MCP App Store ─────────────────────────────────────────────
-import { searchMcpRegistryTool }  from "./mcp-registry-search.js";
-import { installMcpServerTool }   from "./mcp-installer.js";
-import { configureMcpServerTool } from "./mcp-configurator.js";
-import { importOrgChartTool }     from "./import-org-chart.js";
+import { searchMcpRegistryTool }   from "./mcp-registry-search.js";
+import { installMcpServerTool }    from "./mcp-installer.js";
+import { configureMcpServerTool }  from "./mcp-configurator.js";
+import { importOrgChartTool }      from "./import-org-chart.js";
+import { searchRestCatalogTool }   from "./rest-catalog-search.js";
+import { registerRestToolTool }    from "./rest-tool-register.js";
+import { createCompositeToolTool } from "./composite-tool-creator.js";
 
 // ── Exports ────────────────────────────────────────────────────────────────
 
@@ -61,12 +64,15 @@ export const INTERNAL_TOOLS_KNOWLEDGE: InternalToolDef[] = [
   ingestDocumentTool,
 ];
 
-/** HR/MCP-App-Store internal tools (P344/P350). */
+/** HR/MCP-App-Store internal tools. */
 export const INTERNAL_TOOLS_HR: InternalToolDef[] = [
   searchMcpRegistryTool,
   installMcpServerTool,
   configureMcpServerTool,
   importOrgChartTool,
+  searchRestCatalogTool,
+  registerRestToolTool,
+  createCompositeToolTool,
 ];
 
 /** All 16 internal tools. */
@@ -94,4 +100,7 @@ export {
   installMcpServerTool,
   configureMcpServerTool,
   importOrgChartTool,
+  searchRestCatalogTool,
+  registerRestToolTool,
+  createCompositeToolTool,
 };

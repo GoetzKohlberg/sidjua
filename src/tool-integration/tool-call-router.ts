@@ -57,6 +57,10 @@ export interface ToolCallResult {
   governance_blocked?: boolean;
   governance_reason?:  string;
   requires_approval?:  boolean;
+  /** Resolved adapter type — "composite" for tools backed by CompositeAdapter. */
+  adapter_type?:  "internal" | "mcp" | "rest" | "composite";
+  /** For composite tools: sub-tool IDs showing the configured fallback chain. */
+  composite_path?: string;
 }
 
 
@@ -222,22 +226,33 @@ export class ToolCallRouter {
 
     // 4. Execute
     try {
-      let result: ToolResult;
+      let result: ToolResult & { _adapterType?: string; _compositePath?: string };
+      let adapterType: "internal" | "mcp" | "rest" | "composite" = type === "internal" ? "internal" : "mcp";
+      let compositePath: string | undefined;
 
       if (type === "internal") {
         result = await this.executeInternal(ctx, resolvedName, toolInput, start);
       } else {
         result = await this.executeMcp(ctx, toolName, resolvedName, serverName!, toolInput, start);
+        if (result._adapterType !== undefined) {
+          adapterType    = result._adapterType as "internal" | "mcp" | "rest" | "composite";
+          compositePath  = result._compositePath;
+          // Remove private fields before returning
+          delete result._adapterType;
+          delete result._compositePath;
+        }
       }
 
-      const status = result.success ? "allowed" : "allowed"; // errors still reached execution
-      this.writeAuditEntry(ctx, toolName, status, result.error);
+      const status = "allowed"; // errors still reached execution
+      this.writeAuditEntry(ctx, toolName, status, result.error, { adapter_type: adapterType, ...(compositePath !== undefined ? { composite_path: compositePath } : {}) });
 
       return {
-        success:    result.success,
-        tool_name:  toolName,
-        tool_type:  type,
-        duration_ms: result.duration_ms,
+        success:       result.success,
+        tool_name:     toolName,
+        tool_type:     type,
+        duration_ms:   result.duration_ms,
+        adapter_type:  adapterType,
+        ...(compositePath !== undefined ? { composite_path: compositePath } : {}),
         ...(result.data  !== undefined ? { data:  result.data  } : {}),
         ...(result.error !== undefined ? { error: result.error } : {}),
       };
@@ -248,10 +263,10 @@ export class ToolCallRouter {
       });
       this.writeAuditEntry(ctx, toolName, "allowed", errMsg);
       return {
-        success:    false,
-        error:      errMsg,
-        tool_name:  toolName,
-        tool_type:  type,
+        success:     false,
+        error:       errMsg,
+        tool_name:   toolName,
+        tool_type:   type,
         duration_ms: Date.now() - start,
       };
     }
@@ -310,7 +325,7 @@ export class ToolCallRouter {
     serverName:   string,
     toolInput:    Record<string, unknown>,
     startMs:      number,
-  ): Promise<ToolResult> {
+  ): Promise<ToolResult & { _adapterType?: string; _compositePath?: string }> {
     if (this.toolManager === null) {
       return {
         success:    false,
@@ -344,6 +359,31 @@ export class ToolCallRouter {
       };
     }
 
+    // Determine adapter type for audit trail
+    const adapterType = adapter.type === "composite" ? "composite"
+      : adapter.type === "rest" ? "rest"
+      : "mcp";
+
+    // For composite adapters, build a path string from the config stored in registry
+    let compositePath: string | undefined;
+    if (adapterType === "composite" && this.db !== null) {
+      try {
+        const row = this.db.prepare<[string], { config_yaml: string }>(
+          "SELECT config_yaml FROM tool_definitions WHERE id = ?",
+        ).get(serverName);
+        if (row !== undefined) {
+          const cfg = JSON.parse(row.config_yaml) as { sub_tools?: string[]; strategy?: string };
+          if (Array.isArray(cfg.sub_tools)) {
+            compositePath = `${cfg.strategy ?? "fallback"}:${cfg.sub_tools.join("→")}`;
+          }
+        }
+      } catch (err) {
+        logger.warn("tool_router_composite_path_error", "Failed to read composite config for audit", {
+          metadata: { serverName, error: err instanceof Error ? err.message : String(err) },
+        });
+      }
+    }
+
     const action: ToolAction = {
       tool_id:    serverName,
       capability: capabilityName,
@@ -352,7 +392,12 @@ export class ToolCallRouter {
       ...(ctx.task_id !== undefined ? { task_id: ctx.task_id } : {}),
     };
 
-    return adapter.execute(action);
+    const result = await adapter.execute(action);
+    // Attach audit metadata as private fields (stripped before returning to callers)
+    const augmented = result as ToolResult & { _adapterType?: string; _compositePath?: string };
+    augmented._adapterType = adapterType;
+    if (compositePath !== undefined) augmented._compositePath = compositePath;
+    return augmented;
   }
 
   // ---------------------------------------------------------------------------
@@ -400,12 +445,14 @@ export class ToolCallRouter {
    *
    * `action` column CHECK: 'allowed' | 'blocked' | 'escalated'
    * `severity` column: 'low' | 'medium' | 'high' | 'critical'
+   * `extraDetails` is merged into the details JSON (e.g. adapter_type, composite_path).
    */
   private writeAuditEntry(
-    ctx:      ToolCallContext,
-    toolName: string,
-    action:   "allowed" | "blocked" | "escalated",
-    detail?:  string,
+    ctx:          ToolCallContext,
+    toolName:     string,
+    action:       "allowed" | "blocked" | "escalated",
+    detail?:      string,
+    extraDetails?: Record<string, unknown>,
   ): void {
     if (this.db === null) return;
     try {
@@ -419,7 +466,11 @@ export class ToolCallRouter {
         ctx.division,
         action,
         action === "blocked" ? "medium" : "low",
-        JSON.stringify({ tool: toolName, ...(detail !== undefined ? { detail } : {}) }),
+        JSON.stringify({
+          tool: toolName,
+          ...(detail        !== undefined ? { detail }        : {}),
+          ...(extraDetails  !== undefined ? extraDetails       : {}),
+        }),
         ctx.task_id ?? null,
       );
     } catch (err) {

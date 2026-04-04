@@ -9,8 +9,8 @@
  * Mirrors mcp-config.ts structure.
  */
 
-import { existsSync, readFileSync } from "node:fs";
-import { parse as parseYaml } from "yaml";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
 import { createLogger } from "../core/logger.js";
 import type { RestCapabilityRoute } from "./types.js";
 
@@ -153,4 +153,12 @@ function validateCapabilityEntry(cap: unknown): RestToolCapabilityEntry | null {
 /** Convert a RestToolCapabilityEntry to a RestCapabilityRoute for use in RestToolConfig.routes. */
 export function toCapabilityRoute(entry: RestToolCapabilityEntry): RestCapabilityRoute {
   return { method: entry.method, path_template: entry.path_template };
+}
+
+
+/** Persist a RestToolsConfig back to YAML. */
+export function saveRestToolsConfig(config: RestToolsConfig, configPath?: string): void {
+  const path    = configPath ?? DEFAULT_CONFIG_PATH;
+  const content = stringifyYaml(config, { lineWidth: 120 });
+  writeFileSync(path, content, "utf-8");
 }

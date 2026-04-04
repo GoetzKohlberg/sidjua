@@ -1,0 +1,141 @@
+{
+  "version": "1.0",
+  "updated": "2026-04-04",
+  "note": "Services requiring OAuth2 (Google Drive, Google Sheets) are excluded — use MCP-only until OAuth2 support lands.",
+  "services": [
+    {
+      "id": "github",
+      "name": "GitHub",
+      "base_url": "https://api.github.com",
+      "docs_url": "https://docs.github.com/rest",
+      "auth_type": "bearer",
+      "auth_env_key": "GITHUB_TOKEN",
+      "tags": ["git", "code", "issues", "pr"],
+      "mcp_equivalent": "github-mcp",
+      "core_capabilities": [
+        { "name": "get_user",      "method": "GET",  "path": "/user",                                "risk": "low"    },
+        { "name": "list_repos",    "method": "GET",  "path": "/user/repos",                          "risk": "low"    },
+        { "name": "list_issues",   "method": "GET",  "path": "/repos/{owner}/{repo}/issues",         "risk": "low"    },
+        { "name": "create_issue",  "method": "POST", "path": "/repos/{owner}/{repo}/issues",         "risk": "medium" },
+        { "name": "list_prs",      "method": "GET",  "path": "/repos/{owner}/{repo}/pulls",          "risk": "low"    },
+        { "name": "create_pr",     "method": "POST", "path": "/repos/{owner}/{repo}/pulls",          "risk": "medium" }
+      ]
+    },
+    {
+      "id": "gitlab",
+      "name": "GitLab",
+      "base_url": "https://gitlab.com/api/v4",
+      "docs_url": "https://docs.gitlab.com/ee/api/rest",
+      "auth_type": "header",
+      "auth_env_key": "GITLAB_TOKEN",
+      "auth_header_name": "PRIVATE-TOKEN",
+      "tags": ["git", "code", "ci"],
+      "mcp_equivalent": "gitlab-mcp",
+      "core_capabilities": [
+        { "name": "list_projects", "method": "GET",  "path": "/projects",                            "risk": "low"    },
+        { "name": "list_issues",   "method": "GET",  "path": "/projects/{id}/issues",                "risk": "low"    },
+        { "name": "create_issue",  "method": "POST", "path": "/projects/{id}/issues",                "risk": "medium" },
+        { "name": "list_mrs",      "method": "GET",  "path": "/projects/{id}/merge_requests",        "risk": "low"    }
+      ]
+    },
+    {
+      "id": "slack",
+      "name": "Slack",
+      "base_url": "https://slack.com/api",
+      "docs_url": "https://api.slack.com/methods",
+      "auth_type": "bearer",
+      "auth_env_key": "SLACK_BOT_TOKEN",
+      "tags": ["chat", "messaging", "team"],
+      "mcp_equivalent": "slack-mcp",
+      "core_capabilities": [
+        { "name": "list_channels",      "method": "GET",  "path": "/conversations.list",             "risk": "low"    },
+        { "name": "get_channel_history","method": "GET",  "path": "/conversations.history",          "risk": "low"    },
+        { "name": "post_message",        "method": "POST", "path": "/chat.postMessage",              "risk": "medium" },
+        { "name": "list_users",          "method": "GET",  "path": "/users.list",                    "risk": "low"    }
+      ]
+    },
+    {
+      "id": "notion",
+      "name": "Notion",
+      "base_url": "https://api.notion.com/v1",
+      "docs_url": "https://developers.notion.com/reference",
+      "auth_type": "bearer",
+      "auth_env_key": "NOTION_API_KEY",
+      "tags": ["wiki", "docs", "project"],
+      "mcp_equivalent": "notion-mcp",
+      "core_capabilities": [
+        { "name": "search",       "method": "POST", "path": "/search",                               "risk": "low"    },
+        { "name": "get_page",     "method": "GET",  "path": "/pages/{page_id}",                     "risk": "low"    },
+        { "name": "create_page",  "method": "POST", "path": "/pages",                               "risk": "medium" },
+        { "name": "get_database", "method": "GET",  "path": "/databases/{database_id}",             "risk": "low"    },
+        { "name": "query_database","method": "POST", "path": "/databases/{database_id}/query",      "risk": "low"    }
+      ]
+    },
+    {
+      "id": "linear",
+      "name": "Linear",
+      "base_url": "https://api.linear.app",
+      "docs_url": "https://developers.linear.app/docs",
+      "auth_type": "bearer",
+      "auth_env_key": "LINEAR_API_KEY",
+      "tags": ["project", "issues", "agile"],
+      "mcp_equivalent": "linear-mcp",
+      "core_capabilities": [
+        { "name": "list_issues",  "method": "GET",  "path": "/issues",                              "risk": "low"    },
+        { "name": "get_issue",    "method": "GET",  "path": "/issues/{issueId}",                    "risk": "low"    },
+        { "name": "create_issue", "method": "POST", "path": "/issues",                              "risk": "medium" },
+        { "name": "list_teams",   "method": "GET",  "path": "/teams",                               "risk": "low"    }
+      ]
+    },
+    {
+      "id": "stripe",
+      "name": "Stripe",
+      "base_url": "https://api.stripe.com/v1",
+      "docs_url": "https://stripe.com/docs/api",
+      "auth_type": "basic",
+      "auth_env_key": "STRIPE_SECRET_KEY",
+      "tags": ["payments", "billing"],
+      "mcp_equivalent": "stripe-mcp",
+      "core_capabilities": [
+        { "name": "list_customers",       "method": "GET",  "path": "/customers",                   "risk": "low"    },
+        { "name": "get_customer",         "method": "GET",  "path": "/customers/{id}",              "risk": "low"    },
+        { "name": "create_payment_intent","method": "POST", "path": "/payment_intents",             "risk": "high"   },
+        { "name": "list_invoices",        "method": "GET",  "path": "/invoices",                    "risk": "low"    }
+      ]
+    },
+    {
+      "id": "todoist",
+      "name": "Todoist",
+      "base_url": "https://api.todoist.com/rest/v2",
+      "docs_url": "https://developer.todoist.com/rest/v2",
+      "auth_type": "bearer",
+      "auth_env_key": "TODOIST_API_TOKEN",
+      "tags": ["tasks", "todo"],
+      "mcp_equivalent": "todoist-mcp",
+      "core_capabilities": [
+        { "name": "list_tasks",   "method": "GET",  "path": "/tasks",                               "risk": "low"    },
+        { "name": "get_task",     "method": "GET",  "path": "/tasks/{task_id}",                     "risk": "low"    },
+        { "name": "create_task",  "method": "POST", "path": "/tasks",                               "risk": "medium" },
+        { "name": "close_task",   "method": "POST", "path": "/tasks/{task_id}/close",              "risk": "medium" },
+        { "name": "delete_task",  "method": "DELETE","path": "/tasks/{task_id}",                   "risk": "high"   }
+      ]
+    },
+    {
+      "id": "brave-search",
+      "name": "Brave Search",
+      "base_url": "https://api.search.brave.com/res/v1",
+      "docs_url": "https://api.search.brave.com/app/documentation",
+      "auth_type": "header",
+      "auth_env_key": "BRAVE_SEARCH_API_KEY",
+      "auth_header_name": "X-Subscription-Token",
+      "tags": ["search", "web"],
+      "mcp_equivalent": "brave-search-mcp",
+      "core_capabilities": [
+        { "name": "web_search",        "method": "GET", "path": "/web/search",                     "risk": "low"    },
+        { "name": "image_search",      "method": "GET", "path": "/images/search",                  "risk": "low"    },
+        { "name": "news_search",       "method": "GET", "path": "/news/search",                    "risk": "low"    },
+        { "name": "summarizer_search", "method": "GET", "path": "/summarizer/search",              "risk": "low"    }
+      ]
+    }
+  ]
+}

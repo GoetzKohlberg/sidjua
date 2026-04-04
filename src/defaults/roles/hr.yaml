@@ -16,6 +16,9 @@ role:
     - Create agent definition YAML
     - Manage agent offboarding
     - Maintain organizational chart
+    - Search MCP registry and REST API catalog for available tools
+    - Install MCP servers and register REST tools with credentials
+    - Create composite tools with automatic MCP-to-REST fallback
   recommended_model:
     min_quality: "B+"
     suggested: "groq-llama70b-free"
@@ -25,4 +28,7 @@ role:
       - install_mcp_server
       - configure_mcp_server
       - import_org_chart
+      - search_rest_catalog
+      - register_rest_tool
+      - create_composite_tool
     mcp: []
