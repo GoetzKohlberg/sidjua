@@ -94,6 +94,7 @@ export interface ToolAuditEvent {
 
 /** In-memory audit log — for tests; cleared by clearToolAuditLog(). */
 export const _toolAuditEvents: ToolAuditEvent[] = [];
+const MAX_TOOL_AUDIT_EVENTS = 1000;
 
 /** Return a copy of the tool audit log. */
 export function getToolAuditLog(): ToolAuditEvent[] {
@@ -107,6 +108,9 @@ export function clearToolAuditLog(): void {
 
 function recordAuditEvent(event: ToolAuditEvent): void {
   _toolAuditEvents.push(event);
+  if (_toolAuditEvents.length > MAX_TOOL_AUDIT_EVENTS) {
+    _toolAuditEvents.splice(0, _toolAuditEvents.length - MAX_TOOL_AUDIT_EVENTS);
+  }
   logger.debug("tool_audit", `Tool ${event.allowed ? "allowed" : "denied"}: ${event.toolName}`, {
     metadata: {
       agent_id:    event.agentId,

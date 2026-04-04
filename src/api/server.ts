@@ -207,7 +207,7 @@ export function createApiServer(config: ApiServerConfig): ApiServer {
   app.use("*", authenticate({
     getApiKey:  () => config.api_key,
     ...(config.getPendingApiKey !== undefined ? { getPendingKey: config.getPendingApiKey } : {}),
-    tokenStore: config.tokenStore ?? null,
+    ...(config.tokenStore !== undefined ? { tokenStore: config.tokenStore } : {}),
   }));
   app.use("*", rateLimiter(config.rate_limit));
   app.use("*", requestTimeout);

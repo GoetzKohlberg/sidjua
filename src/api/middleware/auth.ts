@@ -162,6 +162,47 @@ export const authenticate = (
   }
 
   // ── 2. Fall back to legacy single API key ──────────────────────────────────
+
+  // R3-M3: fail-closed when called with the AuthMiddlewareOptions form and
+  // tokenStore is explicitly null (DB unavailable). Continuing with legacy-key
+  // auth would silently degrade security. Return 503 instead.
+  if (typeof getApiKeyOrOpts !== "function" && tokenStore === null) {
+    logger.warn("auth_token_store_unavailable", "TokenStore unavailable — refusing legacy key fallback", {
+      correlationId: requestId,
+      metadata: { path },
+    });
+    return c.json(
+      {
+        error: {
+          code:        "AUTH-503",
+          message:     "Authentication service temporarily unavailable",
+          recoverable: true,
+          request_id:  requestId,
+        },
+      },
+      503,
+    );
+  }
+
+  // C3: if bootstrap key has been explicitly disabled, reject all legacy key auth.
+  if (tokenStore !== null && tokenStore !== undefined && tokenStore.isBootstrapDisabled()) {
+    logger.warn("auth_bootstrap_disabled", "Bootstrap key authentication is disabled — use a scoped token", {
+      correlationId: requestId,
+      metadata: { path },
+    });
+    return c.json(
+      {
+        error: {
+          code:        "AUTH-011",
+          message:     "Bootstrap key authentication is disabled. Use a scoped token.",
+          recoverable: false,
+          request_id:  requestId,
+        },
+      },
+      401,
+    );
+  }
+
   const currentKey = getApiKey();
   const pendingKey = getPending?.() ?? null;
 

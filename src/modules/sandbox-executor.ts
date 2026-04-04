@@ -18,12 +18,14 @@
  * SandboxProvider.name === "bubblewrap".
  */
 
+import { randomUUID }                      from "node:crypto";
 import { getModuleNetworkPolicy }          from "./network-policy.js";
 import type { ModuleNetworkPolicy }        from "./network-policy.js";
 import { NoSandboxProvider }               from "../core/sandbox/no-sandbox-provider.js";
 import type { SandboxProvider, AgentSandboxConfig } from "../core/sandbox/types.js";
 import { createLogger }                    from "../core/logger.js";
 import { SidjuaError }                     from "../core/error-codes.js";
+import type Database                       from "better-sqlite3";
 
 const logger = createLogger("sandbox-executor");
 
@@ -91,10 +93,12 @@ function appendAuditEvent(ev: ModuleToolAuditEvent): void {
 export class ModuleSandboxExecutor {
   private readonly _sandboxProvider: SandboxProvider;
   private readonly _timeoutMs:       number;
+  private readonly _db:              InstanceType<typeof Database> | null;
 
-  constructor(sandboxProvider: SandboxProvider, timeoutMs = DEFAULT_MODULE_TIMEOUT_MS) {
+  constructor(sandboxProvider: SandboxProvider, timeoutMs = DEFAULT_MODULE_TIMEOUT_MS, db: InstanceType<typeof Database> | null = null) {
     this._sandboxProvider = sandboxProvider;
     this._timeoutMs       = timeoutMs;
+    this._db              = db;
   }
 
   get sandboxProvider(): SandboxProvider {
@@ -168,6 +172,7 @@ export class ModuleSandboxExecutor {
       const executionTimeMs = Date.now() - startTime;
       const errorMsg        = err instanceof Error ? err.message : String(err);
 
+      const errorTimestamp = new Date().toISOString();
       appendAuditEvent({
         eventType:       "module_tool_error",
         moduleName:      request.moduleName,
@@ -177,8 +182,33 @@ export class ModuleSandboxExecutor {
         sandboxed:       isSandboxed,
         executionTimeMs,
         error:           errorMsg,
-        timestamp:       new Date().toISOString(),
+        timestamp:       errorTimestamp,
       });
+
+      // Persist error to audit_events table for durability across restarts.
+      if (this._db !== null) {
+        try {
+          this._db.prepare<[string, string, string, string, string], void>(`
+            INSERT OR IGNORE INTO audit_events
+              (id, timestamp, agent_id, division, event_type, rule_id, action, severity, details)
+            VALUES (?, ?, ?, ?, 'module_tool_error', '', 'blocked', 'high', ?)
+          `).run(
+            randomUUID(),
+            errorTimestamp,
+            request.agentId,
+            request.divisionId,
+            JSON.stringify({
+              moduleName: request.moduleName,
+              toolName:   request.toolName,
+              sandboxed:  isSandboxed,
+              executionTimeMs,
+              error:      errorMsg.slice(0, 1000),
+            }),
+          );
+        } catch (_dbErr) {
+          // Non-fatal: DB may not have audit_events table (runAuditMigrations not yet called)
+        }
+      }
 
       logger.warn(
         "module_tool_error",

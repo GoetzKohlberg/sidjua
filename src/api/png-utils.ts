@@ -10,16 +10,22 @@
 import { deflateSync } from "node:zlib";
 
 
-/** Compute CRC-32 of a Buffer using the standard polynomial 0xEDB88320. */
-function crc32(data: Buffer): number {
-  const table = new Uint32Array(256);
+// CRC-32 lookup table — computed once at module load (polynomial 0xEDB88320).
+const CRC32_TABLE = (() => {
+  const t = new Uint32Array(256);
   for (let i = 0; i < 256; i++) {
     let c = i;
     for (let j = 0; j < 8; j++) {
       c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
     }
-    table[i] = c;
+    t[i] = c;
   }
+  return t;
+})();
+
+/** Compute CRC-32 of a Buffer using the standard polynomial 0xEDB88320. */
+function crc32(data: Buffer): number {
+  const table = CRC32_TABLE;
   let crc = 0xFFFFFFFF;
   for (const byte of data) {
     crc = (table[(crc ^ byte) & 0xFF]! ^ (crc >>> 8)) >>> 0;

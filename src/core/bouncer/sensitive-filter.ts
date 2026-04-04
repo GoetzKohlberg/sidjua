@@ -19,6 +19,9 @@ const MAX_SCAN_BYTES = 100 * 1024; // 100 KiB
 /** Definition of a single detection pattern. */
 interface PatternDef {
   label:       string;
+  /** Source and flags for the pattern. The /g flag must NOT be included here —
+   *  a fresh RegExp with the g flag is created per scan call to avoid lastIndex
+   *  state leaking between concurrent scans (stateful regex bug). */
   pattern:     RegExp;
   confidence:  "high" | "medium";
 }
@@ -33,120 +36,120 @@ const PATTERNS: PatternDef[] = [
   // ── OpenAI ─────────────────────────────────────────────────────────────────
   {
     label:      "openai_key",
-    pattern:    /\bsk-[A-Za-z0-9]{32,}\b/g,
+    pattern:    /\bsk-[A-Za-z0-9]{32,}\b/,
     confidence: "high",
   },
   {
     label:      "openai_proj",
-    pattern:    /\bsk-proj-[A-Za-z0-9_-]{32,}\b/g,
+    pattern:    /\bsk-proj-[A-Za-z0-9_-]{32,}\b/,
     confidence: "high",
   },
 
   // ── Anthropic ──────────────────────────────────────────────────────────────
   {
     label:      "anthropic_key",
-    pattern:    /\bsk-ant-[A-Za-z0-9_-]{32,}\b/g,
+    pattern:    /\bsk-ant-[A-Za-z0-9_-]{32,}\b/,
     confidence: "high",
   },
 
   // ── Stripe ─────────────────────────────────────────────────────────────────
   {
     label:      "stripe_live",
-    pattern:    /\bsk_live_[A-Za-z0-9]{24,}\b/g,
+    pattern:    /\bsk_live_[A-Za-z0-9]{24,}\b/,
     confidence: "high",
   },
   {
     label:      "stripe_secret",
-    pattern:    /\brk_live_[A-Za-z0-9]{24,}\b/g,
+    pattern:    /\brk_live_[A-Za-z0-9]{24,}\b/,
     confidence: "high",
   },
 
   // ── GitHub ─────────────────────────────────────────────────────────────────
   {
     label:      "github_pat",
-    pattern:    /\bghp_[A-Za-z0-9]{36}\b/g,
+    pattern:    /\bghp_[A-Za-z0-9]{36}\b/,
     confidence: "high",
   },
   {
     label:      "github_fine",
-    pattern:    /\bgithub_pat_[A-Za-z0-9_]{80,}\b/g,
+    pattern:    /\bgithub_pat_[A-Za-z0-9_]{80,}\b/,
     confidence: "high",
   },
 
   // ── AWS ────────────────────────────────────────────────────────────────────
   {
     label:      "aws_access",
-    pattern:    /\bAKIA[A-Z0-9]{16}\b/g,
+    pattern:    /\bAKIA[A-Z0-9]{16}\b/,
     confidence: "high",
   },
 
   // ── Google ─────────────────────────────────────────────────────────────────
   {
     label:      "google_api",
-    pattern:    /\bAIza[A-Za-z0-9_-]{35}\b/g,
+    pattern:    /\bAIza[A-Za-z0-9_-]{35}\b/,
     confidence: "high",
   },
 
   // ── Slack ──────────────────────────────────────────────────────────────────
   {
     label:      "slack_token",
-    pattern:    /\bxox[baprs]-[A-Za-z0-9-]{10,}\b/g,
+    pattern:    /\bxox[baprs]-[A-Za-z0-9-]{10,}\b/,
     confidence: "high",
   },
 
   // ── Discord ────────────────────────────────────────────────────────────────
   {
     label:      "discord_token",
-    pattern:    /\b[MN][A-Za-z0-9_-]{23,25}\.[A-Za-z0-9_-]{6}\.[A-Za-z0-9_-]{27,38}\b/g,
+    pattern:    /\b[MN][A-Za-z0-9_-]{23,25}\.[A-Za-z0-9_-]{6}\.[A-Za-z0-9_-]{27,38}\b/,
     confidence: "high",
   },
 
   // ── JWT ────────────────────────────────────────────────────────────────────
   {
     label:      "jwt_token",
-    pattern:    /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g,
+    pattern:    /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/,
     confidence: "high",
   },
 
   // ── SSH private key ────────────────────────────────────────────────────────
   {
     label:      "ssh_private",
-    pattern:    /-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----/g,
+    pattern:    /-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----/,
     confidence: "high",
   },
 
   // ── Database connection strings ────────────────────────────────────────────
   {
     label:      "db_connection",
-    pattern:    /(?:postgres|postgresql|mysql|mongodb|redis):\/\/[^:@\s]+:[^@\s]+@[^\s]+/gi,
+    pattern:    /(?:postgres|postgresql|mysql|mongodb|redis):\/\/[^:@\s]+:[^@\s]+@[^\s]+/i,
     confidence: "high",
   },
 
   // ── URLs with credentials ──────────────────────────────────────────────────
   {
     label:      "basic_auth_url",
-    pattern:    /https?:\/\/[^:@\s]+:[^@\s]+@[^\s]+/g,
+    pattern:    /https?:\/\/[^:@\s]+:[^@\s]+@[^\s]+/,
     confidence: "high",
   },
 
   // ── Bearer tokens ─────────────────────────────────────────────────────────
   {
     label:      "bearer_token",
-    pattern:    /\bBearer\s+([A-Za-z0-9_\-./+]{20,})\b/g,
+    pattern:    /\bBearer\s+([A-Za-z0-9_\-./+]{20,})\b/,
     confidence: "high",
   },
 
   // ── Labeled passwords (medium — requires label context) ───────────────────
   {
     label:      "labeled_password",
-    pattern:    /(?:password|passwd|pwd|secret|api[_-]?key)\s*[=:]\s*["']?([^\s"']{8,})["']?/gi,
+    pattern:    /(?:password|passwd|pwd|secret|api[_-]?key)\s*[=:]\s*["']?([^\s"']{8,})["']?/i,
     confidence: "medium",
   },
 
   // ── Generic hex secrets (medium — long hex strings with label context) ─────
   {
     label:      "hex_secret",
-    pattern:    /(?:secret|token|key|hash)\s*[=:]\s*["']?([0-9a-fA-F]{32,})["']?/gi,
+    pattern:    /(?:secret|token|key|hash)\s*[=:]\s*["']?([0-9a-fA-F]{32,})["']?/i,
     confidence: "medium",
   },
 ];
@@ -180,10 +183,11 @@ export function scanForSensitiveData(
   const rawMatches: SensitiveMatch[] = [];
 
   for (const def of activePatterns) {
-    // Reset lastIndex for global regexes
-    def.pattern.lastIndex = 0;
+    // Create a fresh regex with the global flag each scan to prevent lastIndex
+    // leaking between concurrent calls (stateful /g regex bug).
+    const re = new RegExp(def.pattern.source, def.pattern.flags + "g");
 
-    for (const m of input.matchAll(def.pattern)) {
+    for (const m of input.matchAll(re)) {
       if (m.index === undefined) continue;
       const start = m.index;
       const end   = start + m[0].length;

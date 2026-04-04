@@ -80,6 +80,15 @@ export class DigestEngine {
     return this._generate("daily", periodStart, periodEnd, division ?? null);
   }
 
+  /**
+   * Generate a daily digest using explicit UTC range boundaries.
+   * Use this when the calendar date is derived from a non-UTC timezone —
+   * the UTC boundaries correctly cover the 24-hour window in the target timezone.
+   */
+  generateDailyRange(periodStart: string, periodEnd: string, division?: string): DigestResult {
+    return this._generate("daily", periodStart, periodEnd, division ?? null);
+  }
+
   /** Generate a digest for the 7-day week beginning at weekStart (YYYY-MM-DD). */
   generateWeekly(weekStart: string, division?: string): DigestResult {
     const start = new Date(weekStart);

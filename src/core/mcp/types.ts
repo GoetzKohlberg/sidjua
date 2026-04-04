@@ -89,7 +89,20 @@ export interface McpServerConfig {
   command?: string;
   args?: string[];
   url?: string;
+  /**
+   * Environment variables to set for the MCP child process.
+   * By default the child does NOT inherit the parent process environment
+   * (to prevent API key leakage). Only PATH, HOME, USER, TMPDIR, and TEMP
+   * are inherited automatically. Set inherit_env: true to pass the full
+   * parent environment (not recommended for production).
+   */
   env?: Record<string, string>;
+  /**
+   * When true, the MCP child process inherits the full parent environment
+   * (including all SIDJUA_* env vars and API keys). Default: false.
+   * Only enable for trusted local servers that explicitly require parent env.
+   */
+  inherit_env?: boolean;
   headers?: Record<string, string>;
   description: string;
   governance: McpGovernanceConfig;

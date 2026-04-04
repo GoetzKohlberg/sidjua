@@ -47,6 +47,7 @@ export interface SecretAuditEvent {
 
 /** In-memory audit log — for tests; cleared by clearSecretAuditLog(). */
 export const _secretAuditEvents: SecretAuditEvent[] = [];
+const MAX_SECRET_AUDIT_EVENTS = 1000;
 
 /** Return a copy of the audit log. */
 export function getSecretAuditLog(): SecretAuditEvent[] {
@@ -120,6 +121,9 @@ function auditSecretOperation(
     timestamp: new Date().toISOString(),
   };
   _secretAuditEvents.push(event);
+  if (_secretAuditEvents.length > MAX_SECRET_AUDIT_EVENTS) {
+    _secretAuditEvents.splice(0, _secretAuditEvents.length - MAX_SECRET_AUDIT_EVENTS);
+  }
 
   if (outcome === "denied") {
     logger.warn("secret_access_denied", `Secret ${op} denied for ns=${ns}`, {

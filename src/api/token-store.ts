@@ -13,6 +13,7 @@
  */
 
 import Database from "better-sqlite3";
+import { scryptSync, randomBytes } from "node:crypto";
 import { sha256hex, generateSecret } from "../core/crypto-utils.js";
 import { createLogger } from "../core/logger.js";
 
@@ -52,6 +53,52 @@ export const TOKEN_SCHEMA_SQL = `
 
 /** Token prefix — makes tokens grep-able and identifiable in logs. */
 export const TOKEN_PREFIX = "sidjua_sk_";
+
+/** Prefix stored in the hash column to indicate scrypt hashing (vs legacy SHA-256). */
+const SCRYPT_HASH_PREFIX = "$scrypt$";
+
+/** scrypt parameters — N=16384 (2^14), r=8, p=1; 32-byte output. */
+const SCRYPT_N = 16384;
+const SCRYPT_R = 8;
+const SCRYPT_P = 1;
+const SCRYPT_KEY_LEN = 32;
+
+/**
+ * Hash a raw token using scrypt (new tokens).
+ * Format: "$scrypt$<base64-salt>$<base64-derived-key>"
+ */
+function scryptHash(raw: string): string {
+  const salt = randomBytes(16);
+  const derived = scryptSync(raw, salt, SCRYPT_KEY_LEN, { N: SCRYPT_N, r: SCRYPT_R, p: SCRYPT_P });
+  return `${SCRYPT_HASH_PREFIX}${salt.toString("base64")}$${derived.toString("base64")}`;
+}
+
+/**
+ * Verify a raw token against its stored hash.
+ * Handles both legacy SHA-256 hashes and new scrypt hashes.
+ */
+function verifyTokenHash(raw: string, stored: string): boolean {
+  if (stored.startsWith(SCRYPT_HASH_PREFIX)) {
+    const parts = stored.slice(SCRYPT_HASH_PREFIX.length).split("$");
+    if (parts.length !== 2 || parts[0] === undefined || parts[1] === undefined) return false;
+    const salt = Buffer.from(parts[0], "base64");
+    const expectedDerived = Buffer.from(parts[1], "base64");
+    try {
+      const actual = scryptSync(raw, salt, SCRYPT_KEY_LEN, { N: SCRYPT_N, r: SCRYPT_R, p: SCRYPT_P });
+      // Constant-time comparison
+      if (actual.length !== expectedDerived.length) return false;
+      let diff = 0;
+      for (let i = 0; i < actual.length; i++) {
+        diff |= (actual[i]! ^ expectedDerived[i]!);
+      }
+      return diff === 0;
+    } catch (_err) {
+      return false;
+    }
+  }
+  // Legacy SHA-256 hash
+  return sha256hex(raw) === stored;
+}
 
 interface TokenDbRow {
   id:           string;
@@ -109,7 +156,7 @@ export class TokenStore {
   }): { id: string; rawToken: string } {
     const id       = crypto.randomUUID();
     const raw      = TOKEN_PREFIX + generateSecret(32);
-    const hash     = sha256hex(raw);
+    const hash     = scryptHash(raw);
     const now      = new Date().toISOString();
 
     this.db.prepare<unknown[], void>(`
@@ -140,12 +187,40 @@ export class TokenStore {
    * Returns null when the token is unknown, revoked, or expired.
    */
   validateToken(rawToken: string): ApiToken | null {
-    const hash = sha256hex(rawToken);
-    const row  = this.db
+    // For legacy SHA-256 tokens: look up by hash directly.
+    // For scrypt tokens: we cannot do a DB lookup by hash (scrypt is not deterministic
+    // due to random salt), so we fetch all non-revoked tokens matching the token prefix
+    // and verify each one. In practice the token prefix makes this set small.
+    //
+    // Legacy path: fast O(1) DB lookup by SHA-256 hash.
+    const legacyHash = sha256hex(rawToken);
+    const legacyRow  = this.db
       .prepare<[string], TokenDbRow>(
         "SELECT * FROM api_tokens WHERE hash = ?",
       )
-      .get(hash) as TokenDbRow | undefined;
+      .get(legacyHash) as TokenDbRow | undefined;
+
+    // If found via legacy hash and not scrypt, use that row.
+    // (Legacy SHA-256 hashes do NOT start with "$scrypt$".)
+    let row: TokenDbRow | undefined = legacyRow !== undefined && !legacyRow.hash.startsWith(SCRYPT_HASH_PREFIX)
+      ? legacyRow
+      : undefined;
+
+    // Scrypt path: scan active scrypt tokens (those whose hash starts with the prefix).
+    if (row === undefined) {
+      const candidates = this.db
+        .prepare<[string], TokenDbRow>(
+          "SELECT * FROM api_tokens WHERE hash LIKE ? AND revoked = 0",
+        )
+        .all(SCRYPT_HASH_PREFIX + "%") as TokenDbRow[];
+
+      for (const candidate of candidates) {
+        if (verifyTokenHash(rawToken, candidate.hash)) {
+          row = candidate;
+          break;
+        }
+      }
+    }
 
     if (row === undefined) return null;
 
@@ -228,6 +303,38 @@ export class TokenStore {
     } catch (_err) {
       return false; // fail-open: if table missing, allow bootstrap (avoid lockout)
     }
+  }
+
+  /**
+   * Check whether the bootstrap (legacy raw API key) authentication path
+   * has been explicitly disabled by an admin.
+   *
+   * Reads the `bootstrap_disabled` key from workspace_config.
+   * Returns false (allow) if the table does not exist or the key is absent —
+   * fail-open to avoid locking out installations that have not run `sidjua apply`.
+   */
+  isBootstrapDisabled(): boolean {
+    try {
+      const row = this.db
+        .prepare<[string], { value: string }>(
+          "SELECT value FROM workspace_config WHERE key = ?",
+        )
+        .get("bootstrap_disabled") as { value: string } | undefined;
+      return row?.value === "true";
+    } catch (_err) {
+      return false; // fail-open: table may not exist
+    }
+  }
+
+  /**
+   * Set or clear the bootstrap_disabled flag in workspace_config.
+   * Idempotent — safe to call multiple times.
+   */
+  setBootstrapDisabled(disabled: boolean): void {
+    this.db.prepare<[string], void>(
+      `INSERT OR REPLACE INTO workspace_config (key, value, updated_at)
+       VALUES ('bootstrap_disabled', ?, datetime('now'))`,
+    ).run(disabled ? "true" : "false");
   }
 
   /**

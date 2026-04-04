@@ -171,6 +171,10 @@ export class WatchdogPair {
       // Grace period expired — take over
     }
 
+    // Claim the restart BEFORE the async budget check to prevent duplicate restarts
+    // by the other watchdog during the await window (dual-restart race condition).
+    this.handlingMap.set(targetId, { watchdog_id: watchdogId, since: Date.now() });
+
     // Check restart budget
     if (!this._isWithinRestartBudget()) {
       logger.warn("watchdog-pair", "Restart budget exceeded — skipping restart, notifying human", {
@@ -187,9 +191,6 @@ export class WatchdogPair {
         timestamp:    Date.now(),
       };
     }
-
-    // Claim the restart
-    this.handlingMap.set(targetId, { watchdog_id: watchdogId, since: Date.now() });
 
     logger.info("watchdog-pair", "Restarting unhealthy agent", {
       metadata: { watchdog_id: watchdogId, agent_id: targetId },

@@ -126,13 +126,17 @@ function _tick(config: SchedulerConfig): void {
 
   if (inWindow && _lastDailyDate !== todayStr) {
     _lastDailyDate = todayStr;
-    // Compute yesterday in the target timezone using the local date parts
-    const localDate  = new Date(Date.UTC(year, month - 1, day));
-    const yesterday  = new Date(localDate.getTime() - 86_400_000);
-    const yesterdayStr = `${yesterday.getUTCFullYear()}-${String(yesterday.getUTCMonth() + 1).padStart(2, "0")}-${String(yesterday.getUTCDate()).padStart(2, "0")}`;
+    // Compute UTC boundaries for "yesterday" in the configured timezone.
+    // year/month/day are local-timezone date parts from Intl.DateTimeFormat.
+    // We compute the UTC timestamp corresponding to midnight of "today" in the
+    // configured timezone, then subtract 24h for yesterday's range.
+    // This correctly handles UTC offsets so the digest covers the right events.
+    const todayMidnightUtc = _localMidnightToUtc(year, month, day, config.digest_timezone);
+    const yesterdayStart   = new Date(todayMidnightUtc.getTime() - 86_400_000);
+    const yesterdayEnd     = new Date(todayMidnightUtc.getTime() - 1);
 
     try {
-      const digest = digestEngine.generateDaily(yesterdayStr);
+      const digest = digestEngine.generateDailyRange(yesterdayStart.toISOString(), yesterdayEnd.toISOString());
       logger.info("daily_digest_generated", `Daily digest generated: ${digest.event_count} events`, {});
       if (config.telegram_digest && config.deliverTelegram !== undefined) {
         config.deliverTelegram(digest).catch((err: unknown) => {
@@ -166,5 +170,54 @@ function _tick(config: SchedulerConfig): void {
         metadata: { error: err instanceof Error ? err.message : String(err) },
       });
     }
+  }
+}
+
+
+// ---------------------------------------------------------------------------
+// Internal helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute the UTC Date corresponding to midnight of a given local date in
+ * the specified IANA timezone.
+ *
+ * Algorithm: at UTC midnight of the given local date string, use
+ * Intl.DateTimeFormat to get the local hour/minute/second at that UTC moment.
+ * Adjust by that offset to find true UTC midnight for the local date.
+ *
+ * Works for all standard UTC offsets (-12 to +14).
+ *
+ * @internal exported only for testing
+ */
+export function _localMidnightToUtc(year: number, month: number, day: number, timezone: string): Date {
+  const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  // Start with UTC midnight as a reference point
+  const utcMidnight = new Date(`${dateStr}T00:00:00Z`);
+
+  // Get the local time-of-day in the target timezone at utcMidnight
+  const dtf = new Intl.DateTimeFormat("en-US", {
+    timeZone:  timezone,
+    hour:      "2-digit",
+    minute:    "2-digit",
+    second:    "2-digit",
+    hour12:    false,
+  });
+  const parts = Object.fromEntries(dtf.formatToParts(utcMidnight).map((p) => [p.type, p.value]));
+  const h = parseInt(parts["hour"]   ?? "0") % 24; // formatToParts may return "24" for midnight
+  const m = parseInt(parts["minute"] ?? "0");
+  const s = parseInt(parts["second"] ?? "0");
+
+  const localOffsetMs = (h * 3600 + m * 60 + s) * 1000;
+
+  // If local time at utcMidnight is H:M:S < 12:00:00 → local midnight is BEFORE utcMidnight
+  //   (timezone is ahead of UTC, e.g. UTC+5: at UTC midnight local = 05:00, so local midnight = -5h)
+  // If local time at utcMidnight is H:M:S >= 12:00:00 → local midnight is AFTER utcMidnight
+  //   (timezone is behind UTC, e.g. UTC-5: at UTC midnight local = 19:00 prev day, so local midnight = +5h)
+  if (h < 12) {
+    return new Date(utcMidnight.getTime() - localOffsetMs);
+  } else {
+    const remainingMs = (24 * 3600 - (h * 3600 + m * 60 + s)) * 1000;
+    return new Date(utcMidnight.getTime() + remainingMs);
   }
 }

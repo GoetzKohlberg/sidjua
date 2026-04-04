@@ -9,6 +9,7 @@
  * write-ahead log entries. Each entry is tamper-evident via SHA-256 checksum.
  */
 
+import { createHmac } from "node:crypto";
 import { sha256hex } from "../../core/crypto-utils.js";
 import type { Database } from "../../utils/db.js";
 import { createLogger } from "../../core/logger.js";
@@ -39,6 +40,21 @@ export interface AppendWALInput {
   data: string | Record<string, unknown>;
 }
 
+
+/**
+ * The HMAC key for WAL entry integrity.
+ * Read from SIDJUA_WAL_HMAC_KEY environment variable. When present, new entries
+ * use HMAC-SHA256 (more tamper-evident than plain SHA-256). When absent, falls
+ * back to legacy SHA-256 for backward compatibility with existing entries.
+ *
+ * The prefix "$hmac$" in the checksum column distinguishes HMAC entries from
+ * legacy SHA-256 entries, enabling seamless migration.
+ */
+const WAL_HMAC_PREFIX = "$hmac$";
+
+function getWalHmacKey(): string | undefined {
+  return process.env["SIDJUA_WAL_HMAC_KEY"];
+}
 
 export class WALManager {
   constructor(private readonly db: Database) {}
@@ -145,14 +161,14 @@ export class WALManager {
    * Returns true if the entry is unmodified.
    */
   verifyEntry(entry: WALEntry): boolean {
-    const expected = this._computeChecksum(
+    return this._verifyChecksum(
       entry.sequence,
       entry.agent_id,
       entry.timestamp,
       entry.operation,
       entry.data_json,
+      entry.checksum,
     );
-    return expected === entry.checksum;
   }
 
   // ---------------------------------------------------------------------------
@@ -166,6 +182,35 @@ export class WALManager {
     operation: string,
     dataJson: string,
   ): string {
-    return sha256hex(`${seq}:${agentId}:${timestamp}:${operation}:${dataJson}`);
+    const payload = `${seq}:${agentId}:${timestamp}:${operation}:${dataJson}`;
+    const hmacKey = getWalHmacKey();
+    if (hmacKey !== undefined && hmacKey !== "") {
+      const mac = createHmac("sha256", hmacKey).update(payload).digest("hex");
+      return `${WAL_HMAC_PREFIX}${mac}`;
+    }
+    return sha256hex(payload);
+  }
+
+  /** Verify a single WAL entry checksum. Handles both HMAC and legacy SHA-256. */
+  private _verifyChecksum(
+    seq: number,
+    agentId: string,
+    timestamp: string,
+    operation: string,
+    dataJson: string,
+    stored: string,
+  ): boolean {
+    const payload = `${seq}:${agentId}:${timestamp}:${operation}:${dataJson}`;
+    if (stored.startsWith(WAL_HMAC_PREFIX)) {
+      const hmacKey = getWalHmacKey();
+      if (hmacKey === undefined || hmacKey === "") {
+        // HMAC entry but no key configured — cannot verify; treat as mismatch.
+        return false;
+      }
+      const expected = `${WAL_HMAC_PREFIX}${createHmac("sha256", hmacKey).update(payload).digest("hex")}`;
+      return expected === stored;
+    }
+    // Legacy SHA-256 entry
+    return sha256hex(payload) === stored;
   }
 }

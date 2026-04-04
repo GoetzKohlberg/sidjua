@@ -15,6 +15,7 @@
 
 import {
   existsSync,
+  lstatSync,
   statSync,
   statfsSync,
   readdirSync,
@@ -87,10 +88,14 @@ function walkDir(dir: string, out: { count: number; bytes: number }): void {
     const full = join(dir, name);
     let st;
     try {
-      st = statSync(full);
+      // Use lstatSync (not statSync) to avoid following symlinks — prevents
+      // symlink traversal attacks where a symlink points outside the workspace.
+      st = lstatSync(full);
     } catch (_e) {
       continue;
     }
+    // Skip symlinks entirely — do not count or descend into them.
+    if (st.isSymbolicLink()) continue;
     if (st.isDirectory()) {
       walkDir(full, out);
     } else {

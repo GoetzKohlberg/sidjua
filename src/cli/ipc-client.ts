@@ -10,7 +10,7 @@
  */
 
 import { connect } from "node:net";
-import { existsSync, readFileSync, statSync } from "node:fs";
+import { existsSync, openSync, readSync, closeSync, statSync, constants as fsConstants } from "node:fs";
 import { dirname, join } from "node:path";
 import type { CLIRequest, CLIResponse } from "../orchestrator/orchestrator.js";
 import { IPC_TOKEN_FILENAME } from "../orchestrator/orchestrator.js";
@@ -23,9 +23,30 @@ function readIpcSecret(socketPath: string): string | undefined {
   const secretPath = join(dirname(socketPath), IPC_TOKEN_FILENAME);
   if (!existsSync(secretPath)) return undefined;
   try {
-    // On non-Windows: verify the token file has 0o600 permissions (owner-only).
-    // A world-readable token file would allow other processes to impersonate the CLI.
-    if (process.platform !== "win32") {
+    if (process.platform === "win32") {
+      // On Windows, O_NOFOLLOW is not available and symlink protection is limited.
+      // Log a warning so operators are aware that the TOCTOU check is skipped.
+      process.stderr.write(
+        `⚠ IPC token file permissions cannot be enforced on Windows — ensure ${secretPath} is protected by filesystem ACLs.\n`,
+      );
+      // Fall through to read the file (best-effort on Windows).
+    } else {
+      // Open with O_NOFOLLOW to prevent TOCTOU: if the path is a symlink,
+      // openSync throws ELOOP, which we catch and return undefined (refuse to use).
+      // This eliminates the race between statSync (permissions check) and readFileSync.
+      const O_NOFOLLOW = fsConstants.O_NOFOLLOW ?? 0o400000;  // 0o400000 = Linux fallback
+      const fd = openSync(secretPath, fsConstants.O_RDONLY | O_NOFOLLOW);
+      let content: string;
+      try {
+        // Read up to 512 bytes (secrets are short; reject oversized files)
+        const buf = Buffer.allocUnsafe(512);
+        const n   = readSync(fd, buf, 0, buf.length, 0);
+        content   = buf.slice(0, n).toString("utf-8");
+      } finally {
+        closeSync(fd);
+      }
+
+      // Verify permissions AFTER opening to eliminate TOCTOU.
       const mode = statSync(secretPath).mode & 0o777;
       if (mode !== 0o600) {
         process.stderr.write(
@@ -33,8 +54,31 @@ function readIpcSecret(socketPath: string): string | undefined {
         );
         return undefined;
       }
+      return content.trim();
     }
-    return readFileSync(secretPath, "utf-8").trim();
+  } catch (_e) {
+    return undefined;
+  }
+
+  // Windows path (no O_NOFOLLOW): best-effort read without symlink protection.
+  try {
+    const mode = statSync(secretPath).mode & 0o777;
+    if (mode !== 0o600) {
+      process.stderr.write(
+        `⚠ IPC token file has insecure permissions (${mode.toString(8)}, expected 600) — refusing to use\n`,
+      );
+      return undefined;
+    }
+    const buf = Buffer.allocUnsafe(512);
+    const fd  = openSync(secretPath, fsConstants.O_RDONLY);
+    let content: string;
+    try {
+      const n = readSync(fd, buf, 0, buf.length, 0);
+      content = buf.slice(0, n).toString("utf-8");
+    } finally {
+      closeSync(fd);
+    }
+    return content.trim();
   } catch (_e) {
     return undefined;
   }

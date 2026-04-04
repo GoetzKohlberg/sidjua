@@ -208,8 +208,20 @@ export class ProviderAuditLogger {
 
 /**
  * Serialize a ProviderCallRequest to JSON for storage.
- * API keys are never present in request objects — no redaction needed.
+ * API keys are never present in request objects.
+ *
+ * Content redaction: set SIDJUA_AUDIT_CONTENT=redact to replace message
+ * bodies and system prompts with "[REDACTED]" for privacy-sensitive deployments.
+ * Default (unset or any other value): full content is stored.
  */
 function serializeRequest(request: ProviderCallRequest): string {
+  if (process.env["SIDJUA_AUDIT_CONTENT"] === "redact") {
+    const redacted = {
+      ...request,
+      messages:     request.messages.map((m) => ({ ...m, content: "[REDACTED]" })),
+      ...(request.systemPrompt !== undefined ? { systemPrompt: "[REDACTED]" } : {}),
+    };
+    return JSON.stringify(redacted);
+  }
   return JSON.stringify(request);
 }

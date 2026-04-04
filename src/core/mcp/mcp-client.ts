@@ -34,6 +34,16 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 const MAX_RESTARTS = 3;
 const RESTART_DELAY_MS = 30_000;
 
+/** Maximum accumulated stdio buffer size before the connection is terminated (10 MiB). */
+const MAX_BUFFER_BYTES = 10 * 1024 * 1024;
+
+/**
+ * Safe default environment for MCP child processes.
+ * Includes only the minimal set of variables needed for typical CLI tools.
+ * API keys and sensitive SIDJUA_* variables are explicitly excluded.
+ */
+const SAFE_ENV_KEYS = ["PATH", "HOME", "USER", "LOGNAME", "TMPDIR", "TEMP", "TMP", "LANG", "LC_ALL"];
+
 // ---------------------------------------------------------------------------
 // Pending request descriptor
 // ---------------------------------------------------------------------------
@@ -158,8 +168,18 @@ export class McpClient {
     if (!this.config.command) {
       throw new Error(`STDIO transport requires 'command' for server: ${this.serverName}`);
     }
+    // Build child environment: safe minimum unless inherit_env is explicitly opted in.
+    // Default behaviour (inherit_env: false/undefined) prevents API key leakage into
+    // untrusted MCP server processes.
+    const baseEnv: Record<string, string> = this.config.inherit_env === true
+      ? { ...(process.env as Record<string, string>) }
+      : Object.fromEntries(
+          SAFE_ENV_KEYS
+            .filter((k) => process.env[k] !== undefined)
+            .map((k) => [k, process.env[k] as string]),
+        );
     const proc = spawn(this.config.command, this.config.args ?? [], {
-      env:   { ...process.env, ...(this.config.env ?? {}) },
+      env:   { ...baseEnv, ...(this.config.env ?? {}) },
       stdio: ["pipe", "pipe", "pipe"],
     });
 
@@ -202,6 +222,21 @@ export class McpClient {
     }
 
     proc.stdout.on("data", (chunk: Buffer) => {
+      // R3-M4: 10 MiB buffer cap — disconnect if exceeded to prevent memory exhaustion.
+      if (Buffer.byteLength(this.buffer, "utf8") + chunk.length > MAX_BUFFER_BYTES) {
+        logger.warn("mcp_buffer_overflow", "MCP stdout buffer exceeded 10 MiB — disconnecting", {
+          metadata: { server: this.serverName },
+        });
+        this.health = "unhealthy";
+        this.lastError = "stdout buffer overflow (>10 MiB)";
+        for (const [, pending] of this.pendingRequests) {
+          clearTimeout(pending.timer);
+          pending.reject(new Error("MCP buffer overflow — connection terminated"));
+        }
+        this.pendingRequests.clear();
+        proc.kill("SIGTERM");
+        return;
+      }
       this.buffer += chunk.toString();
       this.processBuffer();
     });

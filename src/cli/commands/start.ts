@@ -11,7 +11,7 @@
  * - background: forks a detached child, writes PID file
  */
 
-import { chmodSync, existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, realpathSync, writeFileSync } from "node:fs";
 import { join, extname, resolve as resolvePath } from "node:path";
 import { assertWithinDirectory } from "../../utils/path-utils.js";
 import { spawn } from "node:child_process";
@@ -188,7 +188,11 @@ export async function runStartCommand(opts: StartCommandOptions): Promise<number
       }
       if (!apiKey) {
         apiKey = randomBytes(32).toString("hex");
-        writeFileSync(keyFile, apiKey, { mode: 0o600 });
+        // Atomic write: write to a temp file then rename to prevent a crash
+        // mid-write from leaving a truncated/empty key file.
+        const tmpKeyFile = keyFile + ".tmp";
+        writeFileSync(tmpKeyFile, apiKey, { mode: 0o600 });
+        renameSync(tmpKeyFile, keyFile);
         logger.info("start", "Generated new server API key", { metadata: { keyFile } });
       }
     }
@@ -260,17 +264,26 @@ export async function runStartCommand(opts: StartCommandOptions): Promise<number
     if (db !== null) {
       try {
         const now = new Date().toISOString();
-        const result = db.prepare<[string], { changes: number }>(
+        // RUNNING tasks were actively executing — mark as FAILED (unrecoverable).
+        // ASSIGNED tasks were dispatched but not yet started — reset to PENDING so
+        // they can be retried by the orchestrator on the next loop iteration.
+        const failResult = db.prepare<[string], { changes: number }>(
           `UPDATE tasks SET status = 'FAILED', updated_at = ?, result_summary = 'Interrupted by unclean shutdown'
-           WHERE status IN ('RUNNING', 'ASSIGNED')`,
+           WHERE status = 'RUNNING'`,
         ).run(now);
-        const recovered = (result as unknown as { changes: number }).changes ?? 0;
+        const pendingResult = db.prepare<[string], { changes: number }>(
+          `UPDATE tasks SET status = 'PENDING', updated_at = ?
+           WHERE status = 'ASSIGNED'`,
+        ).run(now);
+        const failed   = (failResult   as unknown as { changes: number }).changes ?? 0;
+        const pending  = (pendingResult as unknown as { changes: number }).changes ?? 0;
+        const recovered = failed + pending;
         if (recovered > 0) {
           process.stdout.write(
             msg("cli.start.crash_recovery").replace("{tasks}", String(recovered)),
           );
-          logger.info("start", "Crash recovery: interrupted tasks marked as FAILED", {
-            metadata: { recovered },
+          logger.info("start", "Crash recovery: RUNNING tasks marked FAILED, ASSIGNED tasks reset to PENDING", {
+            metadata: { failed, pending },
           });
         }
       } catch (e: unknown) {

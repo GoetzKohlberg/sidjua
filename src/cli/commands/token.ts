@@ -21,6 +21,8 @@ import type { TokenScope }                             from "../../api/token-sto
 import { auditCliCommand }                             from "../cli-audit.js";
 
 const VALID_SCOPES: TokenScope[] = ["admin", "operator", "agent", "readonly"];
+/** Scopes that grant broad system access and require explicit --confirm acknowledgement. */
+const ELEVATED_SCOPES = new Set<TokenScope>(["admin", "operator"]);
 
 function out(msg: string): void {
   process.stdout.write(msg);
@@ -46,6 +48,7 @@ export function registerTokenCommands(program: Command): void {
     .option("--division <division>",     "Bind token to a specific division")
     .option("--agent-id <agentId>",      "Bind token to a specific agent")
     .option("--expires-at <iso>",        "Expiry date (ISO-8601 string, e.g. 2027-01-01T00:00:00Z)")
+    .option("--confirm",                 "Confirm creation of elevated-scope (admin/operator) tokens")
     .action((opts: {
       scope:     string;
       label:     string;
@@ -53,9 +56,21 @@ export function registerTokenCommands(program: Command): void {
       division?: string;
       agentId?:  string;
       expiresAt?: string;
+      confirm?:  boolean;
     }) => {
       if (!VALID_SCOPES.includes(opts.scope as TokenScope)) {
         err(`Invalid scope: "${opts.scope}". Valid scopes: ${VALID_SCOPES.join(", ")}`);
+        process.exit(1);
+      }
+
+      // Elevated scopes (admin, operator) require explicit --confirm acknowledgement
+      // to prevent accidental broad-access token creation.
+      if (ELEVATED_SCOPES.has(opts.scope as TokenScope) && opts.confirm !== true) {
+        err(
+          `Creating a "${opts.scope}" token grants broad system access.\n` +
+          `Re-run with --confirm to acknowledge and proceed.\n` +
+          `  Example: sidjua token create --scope ${opts.scope} --label "..." --confirm`,
+        );
         process.exit(1);
       }
 

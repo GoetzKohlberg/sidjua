@@ -158,21 +158,34 @@ export class ProviderRegistry {
           response.costUsd,
         );
       } catch (finalizeErr) {
-        // Fallback: cancel the reservation and record cost directly
-        this.costTracker.cancelReservation(reservationId);
-        this.costTracker.recordCost(
-          request.divisionCode,
-          request.agentId,
-          response.provider,
-          response.model,
-          response.usage,
-          response.costUsd,
-          request.taskId,
-        );
+        // Fallback: cancel the reservation then record cost directly.
+        // If cancelReservation throws (e.g. DB error), skip recordCost to
+        // prevent double-counting (the reservation row may still exist).
         const errMsg = finalizeErr instanceof Error ? finalizeErr.message : String(finalizeErr);
-        this.logger.warn("finalize_reservation_failed", "finalizeReservation failed — cost recorded via fallback", {
-          metadata: { callId, error: errMsg },
-        });
+        let cancelOk = true;
+        try {
+          this.costTracker.cancelReservation(reservationId);
+        } catch (cancelErr) {
+          cancelOk = false;
+          const cancelMsg = cancelErr instanceof Error ? cancelErr.message : String(cancelErr);
+          this.logger.warn("cancel_reservation_failed", "cancelReservation failed — skipping recordCost to prevent double-count", {
+            metadata: { callId, cancelError: cancelMsg, finalizeError: errMsg },
+          });
+        }
+        if (cancelOk) {
+          this.costTracker.recordCost(
+            request.divisionCode,
+            request.agentId,
+            response.provider,
+            response.model,
+            response.usage,
+            response.costUsd,
+            request.taskId,
+          );
+          this.logger.warn("finalize_reservation_failed", "finalizeReservation failed — cost recorded via fallback", {
+            metadata: { callId, error: errMsg },
+          });
+        }
       }
     } else {
       this.costTracker.recordCost(
@@ -350,8 +363,22 @@ export class ProviderRegistry {
     const fallback = this.resolveProvider(fallbackName);
     const failoverRequest: ProviderCallRequest = { ...request, provider: fallbackName };
 
+    // Budget check for the failover call: the primary reservation was already
+    // cancelled above, so we must create a new one for the fallback provider.
+    // Without this check, a failover call could bypass division budget limits.
+    let failoverReservationId: number | null = null;
     try {
-      return await this.retryHandler.withRetry(
+      failoverReservationId = this.checkBudgetAndReserve(failoverRequest, fallback, fallbackName);
+    } catch (budgetErr) {
+      // Failover blocked by budget — log and re-throw the original primary error
+      this.logger.warn("failover_budget_blocked", "Failover call blocked by budget enforcement", {
+        metadata: { callId: request.callId, fallbackProvider: fallbackName },
+      });
+      throw budgetErr;
+    }
+
+    try {
+      const failoverResponse = await this.retryHandler.withRetry(
         () => fallback.call(failoverRequest),
         {
           provider: fallbackName,
@@ -359,8 +386,31 @@ export class ProviderRegistry {
           ...(maxAttempts !== undefined ? { maxAttemptsOverride: maxAttempts } : {}),  // xAI-ARCH-H3
         },
       );
+      // Finalize the failover reservation
+      if (failoverReservationId !== null) {
+        try {
+          this.costTracker.finalizeReservation(
+            failoverReservationId,
+            failoverResponse.provider,
+            failoverResponse.model,
+            failoverResponse.usage,
+            failoverResponse.costUsd,
+          );
+        } catch (finalizeErr) {
+          try { this.costTracker.cancelReservation(failoverReservationId); } catch (_err) { /* best-effort */ }
+          this.costTracker.recordCost(
+            request.divisionCode, request.agentId,
+            failoverResponse.provider, failoverResponse.model,
+            failoverResponse.usage, failoverResponse.costUsd, request.taskId,
+          );
+        }
+      }
+      return failoverResponse;
     } catch (fallbackErr) {
-      // Both primary and fallback failed — log the original request as errored
+      // Both primary and fallback failed — cancel failover reservation and log
+      if (failoverReservationId !== null) {
+        try { this.costTracker.cancelReservation(failoverReservationId); } catch (_err) { /* best-effort */ }
+      }
       const latencyMs = Date.now() - startTime;
       const fallbackError = fallbackErr instanceof Error ? fallbackErr : new Error(String(fallbackErr));
       this.auditLogger.logError(request, fallbackError, latencyMs);

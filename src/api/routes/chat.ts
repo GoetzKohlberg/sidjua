@@ -226,11 +226,22 @@ export function restoreChatState(db: Database): number {
 /**
  * Evict the oldest conversation when the store is at capacity.
  * Map insertion order is FIFO — the first entry is the oldest.
+ *
+ * The evicted conversation is persisted to SQLite BEFORE removal from memory
+ * so that it survives the LRU eviction and can be replayed on request.
+ * If no db is provided, the conversation is silently lost on eviction.
  */
-function evictOldestIfNeeded(): void {
+function evictOldestIfNeeded(db?: Database | null): void {
   if (_conversations.size < MAX_CONVERSATIONS) return;
   const oldest = _conversations.keys().next().value;
   if (oldest !== undefined) {
+    // Archive to SQLite before evicting from memory
+    if (db !== null && db !== undefined) {
+      const conv = _conversations.get(oldest);
+      if (conv !== undefined) {
+        persistSingleConversation(db, conv);
+      }
+    }
     _conversations.delete(oldest);
     for (const [agentId, convId] of _agentConversation.entries()) {
       if (convId === oldest) { _agentConversation.delete(agentId); break; }
@@ -238,11 +249,11 @@ function evictOldestIfNeeded(): void {
   }
 }
 
-function getOrCreateConversation(agentId: string, conversationId?: string): Conversation {
+function getOrCreateConversation(agentId: string, conversationId?: string, db?: Database | null): Conversation {
   const id = conversationId ?? _agentConversation.get(agentId) ?? randomUUID();
   let conv = _conversations.get(id);
   if (!conv) {
-    evictOldestIfNeeded();
+    evictOldestIfNeeded(db);
     conv = { conversation_id: id, agent_id: agentId, messages: [] };
     _conversations.set(id, conv);
   }
@@ -466,7 +477,7 @@ export function registerChatRoutes(app: Hono, services: ChatRouteServices = {}):
     const conversationId    = typeof conversationIdRaw === "string" ? conversationIdRaw : undefined;
 
     // Get or create conversation
-    const conversation  = getOrCreateConversation(agentId, conversationId);
+    const conversation  = getOrCreateConversation(agentId, conversationId, chatDb);
     const convId        = conversation.conversation_id;
 
     // Enforce per-conversation size limit
