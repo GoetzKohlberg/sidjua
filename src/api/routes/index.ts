@@ -77,6 +77,9 @@ import { registerMcpRoutes }             from "./mcp-routes.js";
 import type { McpRegistry }             from "../../core/mcp/mcp-registry.js";
 import { registerStreamRoutes }          from "./stream-routes.js";
 export type { StreamRouteServices }      from "./stream-routes.js";
+import { registerWebhookRoutes }         from "./webhook-routes.js";
+export type { WebhookRouteServices }     from "./webhook-routes.js";
+import { WebhookTokenStore }             from "../../core/webhook/webhook-token-store.js";
 
 import type { AgentRegistryLike }   from "./agents.js";
 import type { SecretRouteServices }    from "./secrets.js";
@@ -158,6 +161,8 @@ export interface AllRouteServices {
   heartbeat?: HeartbeatMonitor | null;
   /** P374: MCP registry — optional; MCP routes return 503 if absent. */
   mcpRegistry?: McpRegistry | null;
+  /** P378: Webhook token store — optional; created from db if absent. */
+  webhookTokenStore?: WebhookTokenStore | null;
 }
 
 
@@ -320,6 +325,14 @@ export function registerAllRoutes(app: Hono, services: AllRouteServices = {}): v
     workDir,
     db,
   });
+
+  // P378: Webhook inbound endpoint
+  if (db !== null) {
+    registerWebhookRoutes(app, {
+      db,
+      ...(services.webhookTokenStore != null ? { webhookTokenStore: services.webhookTokenStore } : {}),
+    });
+  }
 
   // Blue/Green update routes
   registerUpdaterRoutes(app);

@@ -47,6 +47,7 @@ import { reconcileOnStartup }    from "../core/agents/reconcile.js";
 import { runMigrations, getSchemaVersion } from "../core/updater/migrations/index.js";
 import { McpRegistry } from "../core/mcp/mcp-registry.js";
 import { scanModules, buildModuleConfigMap } from "../core/modules/index.js";
+import { WebhookTokenStore } from "../core/webhook/webhook-token-store.js";
 
 const logger = createLogger("api-server-cli");
 
@@ -343,12 +344,13 @@ export async function runServerStart(
     secrets:          null,
     integration:      null,
     tokenStore,
-    getApiKey:        getActiveKey,
+    getApiKey:          getActiveKey,
     uploadStore,
     fileStorage,
     extractionService,
     activityEmitter,
     mcpRegistry,
+    webhookTokenStore:  db !== null ? new WebhookTokenStore(db) : null,
   });
 
   // ── GUI static file serving ───────────────────────────────────────────────

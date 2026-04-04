@@ -53,6 +53,7 @@ import { registerDaemonCommands }          from "./cli/commands/daemon.js";
 import { registerMessagingCommands }       from "./cli/commands/messaging.js";
 import { registerScheduleCommands }        from "./cli/commands/schedule.js";
 import { registerTokenCommands }           from "./cli/commands/token.js";
+import { registerWebhookCommands }         from "./cli/commands/cmd-webhook.js";
 import { registerDelegationCommands }      from "./cli/commands/delegation.js";
 import { registerActivityCommands }        from "./cli/commands/activity.js";
 import { performStartupCheck }             from "./core/update/update-check.js";
@@ -228,6 +229,7 @@ registerDelegationCommands(program);
 
 
 registerTokenCommands(program);
+registerWebhookCommands(program);
 
 
 registerActivityCommands(program);

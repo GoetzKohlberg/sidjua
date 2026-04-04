@@ -62,6 +62,7 @@ import { restoreChatState, persistChatState }            from "../../api/routes/
 import { restoreRateLimiterState, persistRateLimiterState } from "../../api/middleware/rate-limiter.js";
 import { CostTracker }                                   from "../../provider/cost-tracker.js";
 import { TokenStore }                                    from "../../api/token-store.js";
+import { WebhookTokenStore }                              from "../../core/webhook/webhook-token-store.js";
 
 const logger = createLogger("start-cmd");
 
@@ -491,6 +492,7 @@ export async function runStartCommand(opts: StartCommandOptions): Promise<number
       ...messagingRouteServices,
       ...(registry !== undefined ? { registry } : {}),
       mcpRegistry,
+      webhookTokenStore: db !== null ? new WebhookTokenStore(db) : null,
     };
     registerAllRoutes(server.app, routeServices);
 

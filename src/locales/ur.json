@@ -842,5 +842,11 @@
   "gui.start_over.label_size": "[UR] Size",
   "gui.start_over.learn_body_1": "[UR] Your old workspace contains everything — what worked and what didn’t. When your new setup is running, point an agent to this backup:",
   "gui.start_over.learn_body_2": "[UR] Let it figure out what went wrong. Learn from your experiments before you repeat them.",
-  "gui.start_over.wipe_warning": "[UR] This will remove the current workspace and start a fresh initialization."
+  "gui.start_over.wipe_warning": "[UR] This will remove the current workspace and start a fresh initialization.",
+  "cli.webhook.create_success": "Webhook token created.",
+  "cli.webhook.create_token_label": "Token (shown ONCE — copy it now):",
+  "cli.webhook.create_header_label": "Use as:  X-Sidjua-Token:",
+  "cli.webhook.list_empty": "No webhook tokens found.",
+  "cli.webhook.revoke_success": "Webhook token {id} revoked.",
+  "cli.webhook.revoke_not_found": "Error: no webhook token found with ID {id}"
 }

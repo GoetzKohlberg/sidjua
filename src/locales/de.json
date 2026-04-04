@@ -842,5 +842,11 @@
   "update.progress.step": "{{step}}",
   "update.progress.title": "SIDJUA wird aktualisiert",
   "update.readonly_error": "System wird aktualisiert — Änderungen kurz pausiert",
-  "update.rollback": "Zurückrollen"
+  "update.rollback": "Zurückrollen",
+  "cli.webhook.create_success": "Webhook-Token erstellt.",
+  "cli.webhook.create_token_label": "Token (wird nur einmal angezeigt — jetzt kopieren):",
+  "cli.webhook.create_header_label": "Verwenden als:  X-Sidjua-Token:",
+  "cli.webhook.list_empty": "Keine Webhook-Tokens gefunden.",
+  "cli.webhook.revoke_success": "Webhook-Token {id} widerrufen.",
+  "cli.webhook.revoke_not_found": "Fehler: Kein Webhook-Token mit der ID {id} gefunden"
 }

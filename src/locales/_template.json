@@ -843,5 +843,11 @@
   "update.progress.step": "",
   "update.progress.title": "",
   "update.readonly_error": "",
-  "update.rollback": ""
+  "update.rollback": "",
+  "cli.webhook.create_success": "",
+  "cli.webhook.create_token_label": "",
+  "cli.webhook.create_header_label": "",
+  "cli.webhook.list_empty": "",
+  "cli.webhook.revoke_success": "",
+  "cli.webhook.revoke_not_found": ""
 }
