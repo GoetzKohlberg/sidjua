@@ -81,6 +81,9 @@ import { registerWebhookRoutes }         from "./webhook-routes.js";
 export type { WebhookRouteServices }     from "./webhook-routes.js";
 import { WebhookTokenStore }             from "../../core/webhook/webhook-token-store.js";
 import { registerMetricsRoutes }         from "./metrics-routes.js";
+import { registerReportRoutes }          from "./report-routes.js";
+import type { ReportRouteServices }      from "./report-routes.js";
+export type { ReportRouteServices };
 
 import type { AgentRegistryLike }   from "./agents.js";
 import type { SecretRouteServices }    from "./secrets.js";
@@ -164,6 +167,8 @@ export interface AllRouteServices {
   mcpRegistry?: McpRegistry | null;
   /** P378: Webhook token store — optional; created from db if absent. */
   webhookTokenStore?: WebhookTokenStore | null;
+  /** P382: MCP registry for Puppeteer PDF rendering — reuses mcpRegistry if omitted. */
+  reportMcpRegistry?: ReportRouteServices["mcpRegistry"];
 }
 
 
@@ -337,6 +342,15 @@ export function registerAllRoutes(app: Hono, services: AllRouteServices = {}): v
 
   // P379: Prometheus metrics endpoints
   registerMetricsRoutes(app);
+
+  // P382: Report generation endpoints
+  if (db !== null) {
+    registerReportRoutes(app, {
+      db,
+      workDir,
+      mcpRegistry: services.reportMcpRegistry ?? services.mcpRegistry ?? null,
+    });
+  }
 
   // Blue/Green update routes
   registerUpdaterRoutes(app);

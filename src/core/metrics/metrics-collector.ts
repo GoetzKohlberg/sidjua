@@ -69,6 +69,13 @@ class Counter {
     return lines.join("\n");
   }
 
+  /** Sum of all counter values across all label sets. */
+  getTotal(): number {
+    let total = 0;
+    for (const entry of this.entries.values()) total += entry.value;
+    return total;
+  }
+
   /** Reset all counters — used in tests. */
   reset(): void {
     this.entries.clear();
@@ -114,6 +121,17 @@ class Gauge {
       lines.push(`${this.name}${formatLabels(entry.labels)} ${entry.value}`);
     }
     return lines.join("\n");
+  }
+
+  /** Get the value for a specific label set. Returns 0 if not found. */
+  getValue(labels: Record<string, string>): number {
+    const key = labelsToKey(labels);
+    return this.entries.get(key)?.value ?? 0;
+  }
+
+  /** Return all entries as an array of {labels, value} pairs. */
+  getAllEntries(): Array<{ labels: Record<string, string>; value: number }> {
+    return Array.from(this.entries.values()).map((e) => ({ labels: e.labels, value: e.value }));
   }
 
   /** Reset all gauges — used in tests. */
