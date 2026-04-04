@@ -1,0 +1,15 @@
+servers:
+  filesystem:
+    module: "@sidjua/mcp-filesystem"
+    version: "latest"
+    config:
+      root: "${SIDJUA_WORK_DIR}"
+      allow_write: true
+      allow_delete: false
+
+  github:
+    module: "@sidjua/mcp-github"
+    version: "latest"
+    config:
+      token: "${secrets:github_token}"
+      allow_push: false

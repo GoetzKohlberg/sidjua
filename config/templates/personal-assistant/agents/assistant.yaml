@@ -1,0 +1,22 @@
+id: assistant
+name: Personal Assistant
+tier: 3
+division: ops
+model: anthropic/claude-sonnet-4-20250514
+capabilities:
+  - writing
+  - research
+  - scheduling
+  - summarization
+mcp_servers:
+  - filesystem
+budget:
+  daily_usd: 2.00
+  per_task_usd: 0.50
+governance:
+  classification_ceiling: INTERNAL
+  requires_human_approval:
+    - file_delete
+    - external_send
+skills:
+  - assistant

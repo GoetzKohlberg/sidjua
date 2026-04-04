@@ -1,0 +1,20 @@
+version: "1.0"
+rules:
+  - id: block-delete
+    description: Require approval before deleting files
+    match:
+      tool: file_delete
+    action: require_approval
+
+  - id: block-budget-increase
+    description: Require approval before increasing budgets
+    match:
+      tool: budget_increase
+    action: require_approval
+
+  - id: workers-no-delegation
+    description: T3 workers cannot delegate tasks
+    match:
+      agent_tier: 3
+      tool: delegate_task
+    action: block

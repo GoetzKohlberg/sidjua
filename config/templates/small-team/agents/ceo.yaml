@@ -1,0 +1,28 @@
+id: ceo
+name: CEO Assistant
+tier: 1
+division: management
+model: anthropic/claude-sonnet-4-20250514
+capabilities:
+  - planning
+  - delegation
+  - reporting
+  - synthesis
+mcp_servers:
+  - grafana
+  - filesystem
+budget:
+  daily_usd: 10.00
+  per_task_usd: 2.00
+governance:
+  classification_ceiling: CONFIDENTIAL
+  requires_human_approval:
+    - budget_increase
+    - agent_create
+    - agent_remove
+can_delegate_to:
+  - hr
+  - ops-worker-1
+  - ops-worker-2
+skills:
+  - ceo-core

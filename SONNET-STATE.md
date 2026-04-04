@@ -78,8 +78,8 @@ src/core/update/migration-framework.ts — MigrationRunner + MigrationRegistry
 tests/api/update-system.test.ts — drain/readonly/lifecycle/updater proxy tests (23 tests total)
 
 ## CURRENT
-Version: 1.0.1 | Build: 85 | Tests: 8242 pass, 0 fail (3 pre-existing flaky: gui-smoke+tls+multi-agent), 18 skipped
-Last commit: (P380 OpenClaw Import Parser + Mapper)
+Version: 1.0.1 | Build: 86 | Tests: 8272 pass, 0 fail (3 pre-existing flaky: gui-smoke+tls+multi-agent), 18 skipped
+Last commit: P381 Agent Definitions + Skills + Templates (pending commit)
 Deadline V1.0.2: 2026-04-20 | V1.0.3: 2026-05-01 | V1.1: 2026-05-15
 
 ## NOTES FOR NEXT SESSION
@@ -136,6 +136,29 @@ P375 integration in reasoning-loop.ts:
   use_tool dispatch: getServerForTool() → callTool() direct (bypasses dispatchTool for MCP tools)
   ToolCall.id now preserved in AnthropicAdapter + OpenAICompatibleAdapter parseToolResponse()
   ActivitySeverity: "warning" (not "warn") — matches activity-types.ts
+
+P381 — Agent Definitions + Skills + Templates — COMPLETE (30 new tests):
+  agents/definitions/ceo-assistant.yaml — T1 management, can_delegate_to: [hr-manager, it-manager]
+  agents/definitions/hr-manager.yaml — T2 hr, budget 5.00/1.00
+  agents/definitions/it-manager.yaml — T2 it, budget 5.00/1.00
+  agents/skills/ceo-assistant-core.md — delegation table, synthesis workflow, German chat/English docs
+  agents/skills/ceo-assistant-reporting.md — monthly/compliance/ad-hoc reports, PDF+Grafana workflow
+  agents/skills/hr-core.md — internal tools, workforce analytics
+  agents/skills/hr-import-openclaw.md — 5-step import workflow (German), error handling
+  agents/skills/hr-agent-onboarding.md — interactive agent creation flow
+  agents/skills/it-core.md — available tools, delegation response format
+  agents/skills/it-grafana-management.md — MCP tool table, standard metrics, PromQL examples
+  agents/skills/it-health-monitoring.md — alert thresholds, anomaly reporting format
+  agents/skills/it-mcp-management.md — lifecycle commands, "Add a new tool" workflow, troubleshooting runbook
+  src/core/delegation/delegation-protocol.ts — DelegationRequest/DelegationResult, validateDelegationRbac(), DelegationManager, DELEGATE_TASK_TOOL
+  src/core/delegation/index.ts — barrel export
+  src/core/agents/definition-loader.ts — loadAgentDefinitions() + loadSkillContent() (basename safety)
+  config/templates/personal-assistant/ — 1 T3 agent, README, mcp-servers, governance
+  config/templates/small-team/ — CEO(T1)+HR(T2)+2×worker(T3), skill MDs, README, mcp-servers, governance
+  config/templates/developer-workspace/ — dev-assistant T3 with filesystem+github, README
+  config/templates/research-lab/ — research-lead(T2)+3×researcher(T3), web-search, README
+  config/templates/governance-demo/ — ceo-demo(T1)+worker-demo(T3), demo-mode.yaml, README
+  tests: delegation-protocol(12), definition-loader(8), template-validation(10)
 
 P377a-ADDON — Docs Cleanup + CLI SSE Migration + README Roadmap — COMPLETE (commit b9f109e)
 P380 — OpenClaw Import Parser + Mapper — COMPLETE (41 new tests):

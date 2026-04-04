@@ -1,0 +1,16 @@
+servers:
+  filesystem:
+    module: "@sidjua/mcp-filesystem"
+    version: "latest"
+    config:
+      root: "${SIDJUA_WORK_DIR}/research"
+      allow_write: true
+      allow_delete: false
+
+  web-search:
+    module: "@sidjua/mcp-web-search"
+    version: "latest"
+    config:
+      provider: brave
+      api_key: "${secrets:brave_search_api_key}"
+      max_results: 10

@@ -1,0 +1,15 @@
+servers:
+  filesystem:
+    module: "@sidjua/mcp-filesystem"
+    version: "latest"
+    config:
+      root: "${SIDJUA_WORK_DIR}/files"
+      allow_write: true
+      allow_delete: false
+
+  grafana:
+    module: "@sidjua/mcp-grafana"
+    version: "latest"
+    config:
+      url: "${GRAFANA_URL}"
+      api_key: "${secrets:grafana_api_key}"

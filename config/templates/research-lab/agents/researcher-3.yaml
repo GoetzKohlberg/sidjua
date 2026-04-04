@@ -1,0 +1,20 @@
+id: researcher-3
+name: Researcher 3
+tier: 3
+division: ops
+model: anthropic/claude-sonnet-4-20250514
+capabilities:
+  - research
+  - writing
+  - summarization
+  - citation-management
+mcp_servers:
+  - filesystem
+  - web-search
+budget:
+  daily_usd: 4.00
+  per_task_usd: 0.75
+governance:
+  classification_ceiling: INTERNAL
+skills:
+  - researcher

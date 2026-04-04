@@ -1,0 +1,25 @@
+id: research-lead
+name: Research Lead
+tier: 2
+division: ops
+model: anthropic/claude-sonnet-4-20250514
+capabilities:
+  - research
+  - planning
+  - synthesis
+  - delegation
+  - writing
+mcp_servers:
+  - filesystem
+  - web-search
+budget:
+  daily_usd: 8.00
+  per_task_usd: 2.00
+governance:
+  classification_ceiling: CONFIDENTIAL
+can_delegate_to:
+  - researcher-1
+  - researcher-2
+  - researcher-3
+skills:
+  - research-lead

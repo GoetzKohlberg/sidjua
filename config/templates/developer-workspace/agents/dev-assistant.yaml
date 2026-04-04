@@ -1,0 +1,25 @@
+id: dev-assistant
+name: Developer Assistant
+tier: 3
+division: ops
+model: anthropic/claude-sonnet-4-20250514
+capabilities:
+  - coding
+  - code-review
+  - debugging
+  - documentation
+  - testing
+mcp_servers:
+  - filesystem
+  - github
+budget:
+  daily_usd: 5.00
+  per_task_usd: 1.00
+governance:
+  classification_ceiling: INTERNAL
+  requires_human_approval:
+    - git_push
+    - file_delete
+    - external_send
+skills:
+  - dev-assistant

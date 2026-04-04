@@ -1,0 +1,13 @@
+version: "1.0"
+rules:
+  - id: block-delete
+    description: Require approval before deleting files
+    match:
+      tool: file_delete
+    action: require_approval
+
+  - id: block-external-send
+    description: Require approval before sending to external services
+    match:
+      tool: external_send
+    action: require_approval

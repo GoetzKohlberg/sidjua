@@ -1,0 +1,26 @@
+version: "1.0"
+rules:
+  - id: block-delete
+    description: Demo — block all file deletions
+    match:
+      tool: file_delete
+    action: block
+
+  - id: block-secret-classification
+    description: Demo — block SECRET-classified data access
+    match:
+      classification: SECRET
+    action: block
+
+  - id: budget-increase-approval
+    description: Demo — require approval for budget increases
+    match:
+      tool: budget_increase
+    action: require_approval
+
+  - id: workers-no-delegation
+    description: Demo — T3 workers cannot delegate
+    match:
+      agent_tier: 3
+      tool: delegate_task
+    action: block

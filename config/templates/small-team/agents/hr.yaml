@@ -1,0 +1,22 @@
+id: hr
+name: HR Manager
+tier: 2
+division: hr
+model: anthropic/claude-sonnet-4-20250514
+capabilities:
+  - onboarding
+  - scheduling
+  - writing
+  - data-analysis
+mcp_servers:
+  - filesystem
+budget:
+  daily_usd: 5.00
+  per_task_usd: 1.00
+governance:
+  classification_ceiling: CONFIDENTIAL
+can_delegate_to:
+  - ops-worker-1
+  - ops-worker-2
+skills:
+  - hr-core

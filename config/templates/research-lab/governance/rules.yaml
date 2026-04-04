@@ -1,0 +1,22 @@
+version: "1.0"
+rules:
+  - id: researchers-no-delegation
+    description: T3 researchers cannot delegate tasks
+    match:
+      agent_tier: 3
+      tool: delegate_task
+    action: block
+
+  - id: block-delete
+    description: Require approval before deleting research files
+    match:
+      tool: file_delete
+    action: require_approval
+
+  - id: rate-limit-search
+    description: Cap web searches per task to avoid runaway costs
+    match:
+      tool: web_search
+    action: rate_limit
+    config:
+      max_calls_per_task: 20

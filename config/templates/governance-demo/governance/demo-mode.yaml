@@ -1,0 +1,12 @@
+version: "1.0"
+
+# Demo mode configuration — enables verbose governance logging
+# and synthetic rule violations for demonstration purposes.
+
+demo_mode:
+  enabled: true
+  verbose_audit: true
+  # Inject synthetic block events every N tool calls for demo purposes
+  synthetic_block_interval: 5
+  # Show governance decision details in agent responses
+  expose_rule_names: true
