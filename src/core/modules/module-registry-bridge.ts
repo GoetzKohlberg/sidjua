@@ -41,8 +41,15 @@ export function moduleToMcpConfig(module: InstalledModule): McpServerConfig {
 
   if (mcp.transport === "stdio") {
     const command = mcp.command ?? "node";
-    // Resolve relative command paths against module directory
-    const resolvedCommand = command.startsWith("/") ? command : join(module.path, command);
+    // C7: Only resolve EXPLICITLY relative paths (./ prefix) to the module directory.
+    // Bare executables (npx, node, python…) must not be prefixed — they are
+    // resolved via PATH at runtime. Prefixing them would break execution because
+    // the module directory never contains binaries named "npx" or "node".
+    const resolvedCommand = command.startsWith("/")
+      ? command                       // absolute — pass through unchanged
+      : command.startsWith("./")
+        ? join(module.path, command)  // explicit relative → module-local binary
+        : command;                    // bare executable → resolved via PATH
 
     return {
       transport:   "stdio",

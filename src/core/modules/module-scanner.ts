@@ -23,6 +23,21 @@ const MODULE_YAML    = "module.yaml";
 const NAME_PATTERN   = /^[a-z0-9][a-z0-9-]{0,62}[a-z0-9]$/;
 
 /**
+ * M15: Characters forbidden in stdio command/args strings.
+ * Null bytes, line terminators, and shell metacharacters are all rejected
+ * so a crafted module.yaml cannot achieve command injection or argument splitting.
+ */
+// eslint-disable-next-line no-control-regex
+const UNSAFE_CMD_CHARS = /[\0\r\n\u2028\u2029`$(){}|;&<>]/;
+
+/**
+ * M15: Characters forbidden in env values declared inside module.yaml.
+ * Same set as UNSAFE_CMD_CHARS — env values may be passed to child processes.
+ */
+// eslint-disable-next-line no-control-regex
+const UNSAFE_ENV_VALUE_CHARS = /[\r\n\u2028\u2029`$(){}|;&<>]/;
+
+/**
  * Scan the modules directory and return all valid installed modules.
  * Returns an empty array if the directory does not exist.
  */
@@ -96,6 +111,22 @@ export function scanModules(modulesDir: string): InstalledModule[] {
 // Validation
 // ---------------------------------------------------------------------------
 
+/**
+ * M15: Validate env key/value pairs declared in module.yaml.
+ * Throws if any value contains characters that could enable injection attacks.
+ */
+function validateModuleEnvValues(rawEnv: Record<string, unknown>): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const [k, v] of Object.entries(rawEnv)) {
+    const val = String(v);
+    if (UNSAFE_ENV_VALUE_CHARS.test(val)) {
+      throw new Error(`Unsafe characters in env value for key "${k}"`);
+    }
+    result[k] = val;
+  }
+  return result;
+}
+
 /** Strictly validate a parsed module.yaml object. Throws on any violation. */
 function validateModuleDefinition(raw: unknown, dirName: string): ModuleDefinition {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
@@ -145,7 +176,7 @@ function validateModuleDefinition(raw: unknown, dirName: string): ModuleDefiniti
     throw new Error(`SSE transport requires a "url" field`);
   }
 
-  // Path traversal check on command/args
+  // M15: Path traversal + injection check on command/args
   if (mcpObj["transport"] === "stdio") {
     const command = String(mcpObj["command"]);
     const rawArgs = mcpObj["args"];
@@ -153,6 +184,9 @@ function validateModuleDefinition(raw: unknown, dirName: string): ModuleDefiniti
     for (const part of [command, ...args]) {
       if (part.includes("..")) {
         throw new Error(`Path traversal detected in command/args: "${part}"`);
+      }
+      if (UNSAFE_CMD_CHARS.test(part)) {
+        throw new Error(`Unsafe characters in command/args: "${part}"`);
       }
     }
   }
@@ -199,9 +233,7 @@ function validateModuleDefinition(raw: unknown, dirName: string): ModuleDefiniti
       ...(Array.isArray(rawArgs)                ? { args: rawArgs.map(String) }   : {}),
       ...(typeof mcpObj["url"] === "string"     ? { url: mcpObj["url"] }          : {}),
       ...(rawEnv !== null && typeof rawEnv === "object" && !Array.isArray(rawEnv)
-        ? { env: Object.fromEntries(
-              Object.entries(rawEnv as Record<string, unknown>).map(([k, v]) => [k, String(v)])
-            ) }
+        ? { env: validateModuleEnvValues(rawEnv as Record<string, unknown>) }
         : {}),
     },
     governance_defaults: {

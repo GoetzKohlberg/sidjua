@@ -227,17 +227,22 @@ export function validateEnvName(name: string): string {
 /**
  * Sanitize an environment variable value for safe writing to a .env file.
  *
- * Values containing `\n` or `\r` can inject additional env var
- * declarations into a .env file (e.g. `TOK=real\nMALICIOUS=injected`).
+ * M24: Reject a broad set of characters that enable injection attacks:
+ *   - Newlines / line terminators (\r \n \u2028 \u2029) — .env line injection
+ *   - Shell metacharacters (` $ ( ) { } | ; & < >) — command/eval injection
+ *     when the .env is sourced by a shell or passed to spawn()
+ *
  * Values with spaces, `#`, or `=` are wrapped in double-quotes.
  *
- * @throws SidjuaError SEC-012 if the value contains newline characters
+ * @throws SidjuaError SEC-012 if the value contains dangerous characters
  */
 export function sanitizeEnvValue(value: string): string {
-  if (/[\n\r]/.test(value)) {
+  // eslint-disable-next-line no-control-regex
+  if (/[\r\n\u2028\u2029`$(){}|;&<>]/.test(value)) {
     throw SidjuaError.from(
       "SEC-012",
-      "Environment variable value contains newline/carriage-return characters — possible injection attempt",
+      "Environment variable value contains characters that could enable injection attacks " +
+      "(newlines, shell metacharacters: ` $ ( ) { } | ; & < >)",
     );
   }
 
