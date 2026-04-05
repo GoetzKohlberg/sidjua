@@ -18,13 +18,13 @@
  * Throughput comes from agents working in parallel, not from parallel event handling.
  *
  * No LLM calls — pure coordination logic.
+ *
+ * Event handlers: orchestrator-event-handlers.ts
+ * IPC server:     orchestrator-ipc.ts
  */
 
-import { createServer, type Server as NetServer, type Socket } from "node:net";
-import { existsSync, mkdirSync, unlinkSync, chmodSync, writeFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { randomBytes } from "node:crypto";
-import { timingSafeCompare } from "../core/crypto-utils.js";
 import type { Database } from "../utils/db.js";
 import type { TaskEvent } from "../tasks/types.js";
 import { TaskStore } from "../tasks/store.js";
@@ -36,7 +36,6 @@ import { EscalationManager } from "./escalation.js";
 import { PeerRouter } from "./peer-router.js";
 import { TaskTreeManager } from "./tree-manager.js";
 import { TaskPipeline } from "../pipeline/task-pipeline.js";
-import { TaskPriority, AckState } from "../pipeline/types.js";
 import { createSandboxProvider } from "../core/sandbox/sandbox-factory.js";
 import { BubblewrapProvider } from "../core/sandbox/bubblewrap-provider.js";
 import { startViolationLogger } from "../core/sandbox/violation-logger.js";
@@ -46,7 +45,6 @@ import type {
   OrchestratorState,
   OrchestratorStatus,
   AgentInstance,
-  EscalationReason,
   PHASE9_SCHEMA_SQL as _Schema,
 } from "./types.js";
 import { PHASE9_SCHEMA_SQL } from "./types.js";
@@ -55,48 +53,42 @@ import type { AgentDaemonManager } from "../agent-lifecycle/daemon-manager.js";
 import type { InboundMessageGateway } from "../messaging/inbound-gateway.js";
 import type { AdapterRegistry } from "../messaging/adapter-registry.js";
 import type { UserMappingStore } from "../messaging/user-mapping.js";
+import type { AdapterInstanceConfig } from "../messaging/types.js";
 import { CronScheduler } from "../scheduler/cron-scheduler.js";
 import { DeadlineWatcher } from "../scheduler/deadline-watcher.js";
 import { loadSchedulingGovernance } from "../scheduler/config-loader.js";
+import {
+  OrchestratorIpcServer,
+} from "./orchestrator-ipc.js";
+import type { OrchestratorIpcDelegate, CLIRequest, CLIResponse } from "./orchestrator-ipc.js";
+import {
+  handleNewTask,
+  handleResultReady,
+  handleTaskFailed,
+  handleEscalation,
+  handleConsultation,
+  handleAgentCrash,
+  handleAgentRecovery,
+  handleBudgetExceeded,
+  handleHeartbeatTimeout,
+} from "./orchestrator-event-handlers.js";
+import type { EventHandlerContext } from "./orchestrator-event-handlers.js";
+
+// Re-export IPC types for backwards compatibility — ipc-client.ts imports these
+export type { CLIRequest, CLIResponse } from "./orchestrator-ipc.js";
+export { IPC_TOKEN_FILENAME } from "./orchestrator-ipc.js";
 
 const _coreLogger = createLogger("orchestrator");
 
 
-/** Filename for the IPC authentication token, placed alongside the socket file. */
-export const IPC_TOKEN_FILENAME = "ipc.token";
-
-export interface CLIRequest {
-  command:    "stop" | "shutdown" | "pause" | "resume" | "submit_task" | "decide" | "health" |
-              "daemon_status" | "daemon_start" | "daemon_stop" | "daemon_restart" |
-              "messaging_status" | "messaging_start" | "messaging_stop" | "messaging_reload" |
-              "messaging_adapters" | "messaging_map" | "messaging_unmap" | "messaging_mappings" |
-              "delegation_status" | "delegation_history";
-  payload:    Record<string, unknown>;
-  request_id: string;
-  /** IPC authentication token — must match the token in {socketDir}/ipc.token. */
-  token?:     string;
-}
-
-export interface CLIResponse {
-  request_id: string;
-  success:    boolean;
-  data:       Record<string, unknown>;
-  error?:     string;
-}
-
-
-export class OrchestratorProcess {
+export class OrchestratorProcess implements OrchestratorIpcDelegate {
   private _state: OrchestratorState = "STOPPED";
   private _startedAt: Date | null   = null;
   private _loopRunning              = false;
   private _loopPromise: Promise<void> | null = null;
 
-  /** Phase 10: Unix domain socket server for CLI IPC. */
-  private _socketServer: NetServer | null = null;
-  /** Phase 10: Path to socket file (set when socketPath passed to startSocketServer). */
-  private _socketPath: string | null = null;
-  /** IPC secret (64-char hex, 32 bytes). Written to ipc.token; null until startSocketServer(). */
-  private _ipcSecret: string | null = null;
+  /** Phase 10: IPC server (socket + command dispatch). */
+  private readonly _ipcServer: OrchestratorIpcServer;
 
   // In-memory agent registry (source of truth at runtime)
   readonly agents = new Map<string, AgentInstance>();
@@ -120,7 +112,7 @@ export class OrchestratorProcess {
   private _messagingGateway:    InboundMessageGateway | null = null;
   private _messagingRegistry:   AdapterRegistry | null = null;
   private _userMappingStore:    UserMappingStore | null = null;
-  private _messagingConfigs:    import("../messaging/types.js").AdapterInstanceConfig[] | null = null;
+  private _messagingConfigs:    AdapterInstanceConfig[] | null = null;
   /** V1.1 CronScheduler + DeadlineWatcher (instantiated in constructor when DB available). */
   private readonly _cronScheduler:    CronScheduler;
   private readonly _deadlineWatcher:  DeadlineWatcher;
@@ -163,7 +155,23 @@ export class OrchestratorProcess {
     const budgetPassthrough = { canAfford: () => true }; // orchestrator-level: defer to per-schedule governance
     this._cronScheduler   = new CronScheduler(db, budgetPassthrough, schedulingGov);
     this._deadlineWatcher = new DeadlineWatcher(this.store, schedulingGov);
+
+    // Phase 10: IPC server — wires back into this orchestrator via delegate interface
+    this._ipcServer = new OrchestratorIpcServer(this);
   }
+
+  // ---------------------------------------------------------------------------
+  // OrchestratorIpcDelegate accessors
+  // ---------------------------------------------------------------------------
+
+  /** Current orchestrator state (also satisfies IpcDelegate.state). */
+  get state(): OrchestratorState { return this._state; }
+
+  get daemonManager():    AgentDaemonManager | null        { return this._daemonManager; }
+  get messagingGateway(): InboundMessageGateway | null     { return this._messagingGateway; }
+  get messagingRegistry(): AdapterRegistry | null          { return this._messagingRegistry; }
+  get messagingConfigs(): AdapterInstanceConfig[] | null   { return this._messagingConfigs; }
+  get userMappingStore(): UserMappingStore | null          { return this._userMappingStore; }
 
   // ---------------------------------------------------------------------------
   // Lifecycle
@@ -452,231 +460,28 @@ export class OrchestratorProcess {
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Event Handlers
-  // ---------------------------------------------------------------------------
-
-  private async handleNewTask(event: TaskEvent): Promise<void> {
-    const task = this.store.get(event.task_id);
-    if (task === null) return;
-
-    // Skip already-assigned/running tasks
-    if (task.status !== "CREATED" && task.status !== "PENDING") return;
-
-    // Phase 9.5: Use TaskPipeline if configured
-    if (this.pipeline !== null) {
-      const producerId = event.agent_from ?? "orchestrator";
-      // Derive priority from task type / tier
-      const priority   = task.tier === 1 ? TaskPriority.URGENT : TaskPriority.REGULAR;
-      this.pipeline.submit(task, priority, producerId);
-      // Pipeline handles assignment, IPC, and ACK tracking
-      return;
-    }
-
-    // Phase 9 direct assignment (no pipeline)
-    const agents     = [...this.agents.values()];
-    const assignment = this.distributor.assignTask(task, agents);
-
-    if (assignment === null) {
-      // No agent available — stay PENDING, retry on next loop
-      this.store.update(task.id, { status: "PENDING" });
-      _coreLogger.debug("task_queued_no_agent", "Task queued: no agent available", {
-        metadata: { task_id: task.id, tier: task.tier },
-      });
-      return;
-    }
-
-    // Assign task in DB
-    this.store.update(task.id, {
-      status:        "ASSIGNED",
-      assigned_agent: assignment.agent_id,
-    });
-
-    // Update in-memory agent tracking
-    const inst = this.agents.get(assignment.agent_id);
-    if (inst !== undefined) {
-      inst.active_task_count++;
-      inst.status = inst.active_task_count >= inst.definition.max_concurrent_tasks
-        ? "overloaded"
-        : "busy";
-
-      // IPC: send task to agent subprocess
-      inst.process.send({ type: "TASK_ASSIGNED", task_id: task.id });
-    }
-
-    _coreLogger.info("task_assigned", "Task assigned", {
-      metadata: { task_id: task.id, agent_id: assignment.agent_id, reason: assignment.reason },
-    });
+  // Private wrapper methods — delegate to free functions in orchestrator-event-handlers.ts.
+  // Kept as methods so that tests that call priv(orch).handleXxx() continue to work.
+  private ctx(): EventHandlerContext {
+    return {
+      store:              this.store,
+      agents:             this.agents,
+      distributor:        this.distributor,
+      synthesisCollector: this.synthesisCollector,
+      escalationManager:  this.escalationManager,
+      peerRouter:         this.peerRouter,
+      pipeline:           this.pipeline,
+    };
   }
-
-  private async handleResultReady(event: TaskEvent): Promise<void> {
-    const task = this.store.get(event.task_id);
-    if (task === null) return;
-
-    const now = new Date().toISOString();
-
-    // Update task to DONE if not already
-    if (task.status !== "DONE") {
-      this.store.update(task.id, {
-        status:       "DONE",
-        completed_at: task.completed_at ?? now,
-      });
-    }
-
-    // Update agent tracking
-    const agentId = task.assigned_agent;
-    if (agentId !== null) {
-      const inst = this.agents.get(agentId);
-      if (inst !== undefined) {
-        inst.active_task_count   = Math.max(0, inst.active_task_count - 1);
-        inst.total_tasks_completed++;
-        inst.status              = inst.active_task_count === 0 ? "idle" : "busy";
-      }
-    }
-
-    // Phase 9.5: notify pipeline of COMPLETED state
-    if (this.pipeline !== null && agentId !== null) {
-      this.pipeline.handleAck(task.id, AckState.COMPLETED, agentId);
-    }
-
-    if (task.parent_id === null) {
-      // Root task complete — user will be notified by Phase 10/11
-      _coreLogger.info("root_task_complete", "Root task complete", { metadata: { task_id: task.id } });
-      return;
-    }
-
-    // Child task: check if parent is ready for synthesis
-    const completedTask = this.store.get(task.id) ?? task;
-    const synthStatus   = this.synthesisCollector.registerResult({
-      ...completedTask,
-      status: "DONE",
-    });
-
-    if (synthStatus.ready) {
-      await this.synthesisCollector.triggerParentSynthesis(
-        synthStatus.parent_task_id,
-        synthStatus.child_summaries,
-      );
-    }
-  }
-
-  private async handleTaskFailed(event: TaskEvent): Promise<void> {
-    const task = this.store.get(event.task_id);
-    if (task === null) return;
-
-    // Update agent tracking
-    const agentId = task.assigned_agent;
-    if (agentId !== null) {
-      const inst = this.agents.get(agentId);
-      if (inst !== undefined) {
-        inst.active_task_count = Math.max(0, inst.active_task_count - 1);
-        inst.status            = inst.active_task_count === 0 ? "idle" : "busy";
-      }
-
-      // Phase 9.5: notify pipeline of FAILED state
-      if (this.pipeline !== null) {
-        this.pipeline.handleAck(task.id, AckState.FAILED, agentId);
-      }
-    }
-
-    if (task.retry_count < task.max_retries) {
-      // Retry: reset to PENDING, increment counter
-      this.store.update(task.id, {
-        status:        "PENDING",
-        retry_count:   task.retry_count + 1,
-        assigned_agent: null,
-      });
-      _coreLogger.info("task_queued_for_retry", "Task queued for retry", {
-        metadata: { task_id: task.id, retry: task.retry_count + 1, max: task.max_retries },
-      });
-    } else {
-      // Retries exhausted → escalate
-      this.store.update(task.id, { status: "FAILED" });
-      const refreshed = this.store.get(task.id) ?? task;
-      this.escalationManager.escalate(refreshed, "max_retries_exceeded");
-    }
-  }
-
-  private async handleEscalation(event: TaskEvent): Promise<void> {
-    const task = this.store.get(event.task_id);
-    if (task === null) return;
-
-    const reason = (event.data["reason"] as string ?? "agent_requested") as EscalationReason;
-    this.escalationManager.escalate(task, reason);
-  }
-
-  private async handleConsultation(event: TaskEvent): Promise<void> {
-    const task = this.store.get(event.task_id);
-    if (task === null) return;
-
-    this.peerRouter.route(task);
-  }
-
-  private async handleAgentCrash(event: TaskEvent): Promise<void> {
-    const agentId = event.agent_from;
-    if (agentId === null) return;
-
-    const inst = this.agents.get(agentId);
-    if (inst !== undefined) {
-      inst.status = "crashed";
-    }
-
-    // Tasks assigned to crashed agent — without checkpoint: reset to PENDING
-    const activeTasks = this.store.getByAgent(agentId);
-    for (const task of activeTasks) {
-      if (task.status === "RUNNING" || task.status === "ASSIGNED") {
-        if (task.checkpoint === null) {
-          this.store.update(task.id, {
-            status:        "PENDING",
-            assigned_agent: null,
-            retry_count:   task.retry_count + 1,
-          });
-        }
-        // Tasks with checkpoint: agent will resume after ITBootstrapAgent restarts it
-      }
-    }
-
-    _coreLogger.warn("agent_crashed", "Agent crashed", {
-      metadata: { agent_id: agentId, tasks_affected: activeTasks.length },
-    });
-  }
-
-  private async handleAgentRecovery(event: TaskEvent): Promise<void> {
-    const agentId = event.agent_from;
-    if (agentId === null) return;
-
-    const inst = this.agents.get(agentId);
-    if (inst !== undefined) {
-      inst.status = inst.active_task_count > 0 ? "busy" : "idle";
-    }
-
-    _coreLogger.info("agent_recovered", "Agent recovered", { metadata: { agent_id: agentId } });
-  }
-
-  private async handleBudgetExceeded(event: TaskEvent): Promise<void> {
-    const task = this.store.get(event.task_id);
-    if (task === null) return;
-
-    this.escalationManager.escalate(task, "budget_exceeded");
-  }
-
-  private async handleHeartbeatTimeout(event: TaskEvent): Promise<void> {
-    // ITBootstrapAgent (Phase 8) handles the actual process health check and restart.
-    // Orchestrator just logs and marks the agent as potentially unhealthy.
-    const agentId = (event.data["agent_id"] as string | undefined) ?? event.agent_to;
-
-    _coreLogger.warn("heartbeat_timeout", "Heartbeat timeout — delegating to ITBootstrapAgent", {
-      metadata: { agent_id: agentId, task_id: event.task_id },
-    });
-
-    if (agentId !== null) {
-      const inst = this.agents.get(agentId);
-      if (inst !== undefined && inst.status !== "crashed") {
-        inst.last_heartbeat = new Date().toISOString();
-        // ITBootstrapAgent will emit AGENT_CRASHED if process is confirmed dead
-      }
-    }
-  }
+  private async handleNewTask(event: TaskEvent):        Promise<void> { return handleNewTask(this.ctx(), event); }
+  private async handleResultReady(event: TaskEvent):    Promise<void> { return handleResultReady(this.ctx(), event); }
+  private async handleTaskFailed(event: TaskEvent):     Promise<void> { return handleTaskFailed(this.ctx(), event); }
+  private async handleEscalation(event: TaskEvent):     Promise<void> { return handleEscalation(this.ctx(), event); }
+  private async handleConsultation(event: TaskEvent):   Promise<void> { return handleConsultation(this.ctx(), event); }
+  private async handleAgentCrash(event: TaskEvent):     Promise<void> { return handleAgentCrash(this.ctx(), event); }
+  private async handleAgentRecovery(event: TaskEvent):  Promise<void> { return handleAgentRecovery(this.ctx(), event); }
+  private async handleBudgetExceeded(event: TaskEvent): Promise<void> { return handleBudgetExceeded(this.ctx(), event); }
+  private async handleHeartbeatTimeout(event: TaskEvent): Promise<void> { return handleHeartbeatTimeout(this.ctx(), event); }
 
   // ---------------------------------------------------------------------------
   // Recovery
@@ -699,8 +504,8 @@ export class OrchestratorProcess {
     for (const task of runningTasks) {
       if (task.checkpoint === null) {
         this.store.update(task.id, {
-          status:        "PENDING",
-          retry_count:   task.retry_count + 1,
+          status:         "PENDING",
+          retry_count:    task.retry_count + 1,
           assigned_agent: null,
         });
       }
@@ -745,7 +550,7 @@ export class OrchestratorProcess {
       const inst = this.agents.get(agentId);
       if (inst === undefined || inst.status === "crashed") {
         this.store.update(task.id, {
-          status:        "PENDING",
+          status:         "PENDING",
           assigned_agent: null,
         });
       }
@@ -810,7 +615,7 @@ export class OrchestratorProcess {
   }
 
   // ---------------------------------------------------------------------------
-  // V1.1: Daemon manager
+  // V1.1: Daemon manager + Messaging
   // ---------------------------------------------------------------------------
 
   /**
@@ -829,7 +634,7 @@ export class OrchestratorProcess {
     gateway:     InboundMessageGateway,
     registry:    AdapterRegistry,
     userMapping: UserMappingStore,
-    configs:     import("../messaging/types.js").AdapterInstanceConfig[],
+    configs:     AdapterInstanceConfig[],
   ): void {
     this._messagingGateway  = gateway;
     this._messagingRegistry = registry;
@@ -883,434 +688,26 @@ export class OrchestratorProcess {
     this.agents.delete(agentId);
   }
 
-  /** Current orchestrator state. */
-  get state(): OrchestratorState {
-    return this._state;
-  }
-
   // ---------------------------------------------------------------------------
-  // Phase 10: Unix socket IPC
+  // Phase 10: Unix socket IPC (delegated to OrchestratorIpcServer)
   // ---------------------------------------------------------------------------
 
   /**
    * Start the Unix domain socket server for CLI IPC.
    * Call this after start() to enable CLI commands (stop, pause, resume, health, decide).
-   *
-   * @param socketPath Filesystem path for the socket file (e.g. `.system/orchestrator.sock`)
    */
   startSocketServer(socketPath: string): void {
-    // Remove stale socket file if present
-    if (existsSync(socketPath)) {
-      try { unlinkSync(socketPath); } catch (e: unknown) { void e; /* cleanup-ignore: socket file cleanup is best-effort */ }
-    }
-
-    // Ensure socket directory exists with owner-only (0o700) permissions.
-    // For Unix domain sockets the containing directory's permissions control access —
-    // other local users cannot connect to the socket if they cannot traverse the dir.
-    const socketDir = dirname(socketPath);
-    mkdirSync(socketDir, { recursive: true, mode: 0o700 });
-    try { chmodSync(socketDir, 0o700); } catch (e: unknown) { void e; /* cleanup-ignore: chmod socket dir best-effort */ }
-
-    // Generate a 32-byte IPC secret and write it to {socketDir}/ipc.token
-    // (mode 0o600). The CLI client reads this secret and includes it in every
-    // request so unauthenticated local processes cannot control the orchestrator.
-    const secretHex = randomBytes(32).toString("hex");
-    this._ipcSecret  = secretHex;
-    const tokenFilePath = join(socketDir, IPC_TOKEN_FILENAME);
-    try {
-      writeFileSync(tokenFilePath, secretHex, { encoding: "utf-8", mode: 0o600 });
-      try { chmodSync(tokenFilePath, 0o600); } catch (_e) { /* best-effort */ }
-    } catch (e: unknown) {
-      _coreLogger.warn("ipc_secret_write_failed", "Failed to write IPC secret file — IPC auth disabled", {
-        metadata: { error: e instanceof Error ? e.message : String(e) },
-      });
-      this._ipcSecret = null; // disable auth if secret write failed
-    }
-
-    // Allowed IPC command types — reject unknown commands before processing.
-    const ALLOWED_IPC_COMMANDS = new Set<CLIRequest["command"]>([
-      "stop", "pause", "resume", "submit_task", "decide", "health",
-      "daemon_status", "daemon_start", "daemon_stop", "daemon_restart",
-      "messaging_status", "messaging_start", "messaging_stop", "messaging_reload",
-      "messaging_adapters", "messaging_map", "messaging_unmap", "messaging_mappings",
-      "delegation_status", "delegation_history",
-    ]);
-
-    this._socketPath   = socketPath;
-    this._socketServer = createServer((socket: Socket) => {
-      let buf = "";
-
-      // Log each new connection to the audit trail so unexpected
-      // connections from other local processes are visible in logs.
-      _coreLogger.info("ipc_connection", "ipc_connection", { metadata: { socketPath } });
-
-      socket.on("data", (chunk: Buffer) => {
-        buf += chunk.toString("utf8");
-        const nl = buf.indexOf("\n");
-        if (nl === -1) return;
-
-        const line = buf.slice(0, nl);
-        buf        = buf.slice(nl + 1);
-
-        let req: CLIRequest;
-        try {
-          req = JSON.parse(line) as CLIRequest;
-        } catch (e: unknown) {
-          _coreLogger.warn("orchestrator", "Invalid JSON from IPC client — skipping request", { metadata: { error: e instanceof Error ? e.message : String(e) } });
-          const errResp: CLIResponse = {
-            request_id: "unknown",
-            success:    false,
-            data:       {},
-            error:      "Invalid JSON",
-          };
-          socket.write(JSON.stringify(errResp) + "\n");
-          return;
-        }
-
-        // Verify the IPC secret using the canonical constant-time comparison
-        // from crypto-utils (SHA-256 hash normalisation prevents length-based
-        // timing leaks when secrets differ — never log the provided value).
-        if (this._ipcSecret !== null) {
-          const providedToken = typeof req.token === "string" ? req.token : "";
-          const tokenOk = timingSafeCompare(this._ipcSecret, providedToken);
-          if (!tokenOk) {
-            _coreLogger.warn("orchestrator", "IPC authentication failed — rejecting request", {
-              metadata: { command: req.command, request_id: req.request_id ?? "unknown" },
-            });
-            const authErr: CLIResponse = {
-              request_id: req.request_id ?? "unknown",
-              success:    false,
-              data:       {},
-              error:      "IPC_AUTH_FAILED",
-            };
-            socket.write(JSON.stringify(authErr) + "\n");
-            socket.destroy();
-            return;
-          }
-        }
-
-        // Validate command type against whitelist before processing.
-        if (!ALLOWED_IPC_COMMANDS.has(req.command)) {
-          _coreLogger.warn("ipc_unknown_command", "ipc_unknown_command", { metadata: { command: req.command } });
-          const errResp: CLIResponse = {
-            request_id: req.request_id ?? "unknown",
-            success:    false,
-            data:       {},
-            error:      `Unknown IPC command: ${req.command}`,
-          };
-          socket.write(JSON.stringify(errResp) + "\n");
-          return;
-        }
-
-        this.handleSocketRequest(req).then((resp) => {
-          socket.write(JSON.stringify(resp) + "\n");
-        }).catch((err: unknown) => {
-          const errResp: CLIResponse = {
-            request_id: req.request_id,
-            success:    false,
-            data:       {},
-            error:      String(err),
-          };
-          socket.write(JSON.stringify(errResp) + "\n");
-        });
-      });
-
-      socket.on("error", () => {
-        // ignore client disconnect errors
-      });
-    });
-
-    // P272 Task 2: Set umask to 0o177 before creating the socket file so it is
-    // created with mode 0o600 (0o777 & ~0o177 = 0o600) from the start, closing
-    // the race window between listen() and the chmod in the callback.
-    const prevUmask = process.umask(0o177);
-    this._socketServer.listen(socketPath, () => {
-      process.umask(prevUmask); // restore immediately after socket is created
-      // Belt-and-suspenders: chmod in case the OS ignored umask
-      try { chmodSync(socketPath, 0o600); } catch (_e) { /* best-effort on platforms without chmod */ }
-      _coreLogger.info("ipc_socket_listening", "IPC socket listening", { metadata: { path: socketPath } });
-    });
+    this._ipcServer.startSocketServer(socketPath);
   }
 
   /** Stop the Unix domain socket server and remove the socket file. */
   stopSocketServer(): void {
-    if (this._socketServer !== null) {
-      this._socketServer.close();
-      this._socketServer = null;
-    }
-    if (this._socketPath !== null && existsSync(this._socketPath)) {
-      try { unlinkSync(this._socketPath); } catch (e: unknown) { void e; /* cleanup-ignore: socket file cleanup best-effort */ }
-      this._socketPath = null;
-    }
+    this._ipcServer.stopSocketServer();
   }
 
-  /** Handle an incoming IPC request from the CLI. */
-  private async handleSocketRequest(req: CLIRequest): Promise<CLIResponse> {
-    switch (req.command) {
-      case "health": {
-        const status = this.getStatus();
-        return { request_id: req.request_id, success: true, data: { status } };
-      }
-
-      case "stop": {
-        // Kick off stop in background; respond immediately
-        void this.stop().finally(() => this.stopSocketServer());
-        return { request_id: req.request_id, success: true, data: { message: "stopping" } };
-      }
-
-      case "shutdown": {
-        // Graceful shutdown: drain in-flight tasks, flush WAL, then stop.
-        const drainTimeout = (req.payload["drain_timeout"] as number | undefined) ?? 30;
-        void this.gracefulShutdown(drainTimeout).finally(() => this.stopSocketServer());
-        return { request_id: req.request_id, success: true, data: { message: "shutting_down" } };
-      }
-
-      case "pause": {
-        await this.pause();
-        return { request_id: req.request_id, success: true, data: { state: this._state } };
-      }
-
-      case "resume": {
-        await this.resume();
-        return { request_id: req.request_id, success: true, data: { state: this._state } };
-      }
-
-      case "decide": {
-        const taskId  = req.payload["task_id"] as string | undefined;
-        const action  = req.payload["action"]  as string | undefined;
-        const guidance = req.payload["guidance"] as string | undefined;
-        const agentId  = req.payload["agent_id"] as string | undefined;
-        const result   = req.payload["result"]  as string | undefined;
-
-        if (taskId === undefined || action === undefined) {
-          return {
-            request_id: req.request_id,
-            success:    false,
-            data:       {},
-            error:      "decide requires task_id and action",
-          };
-        }
-
-        const task = this.store.get(taskId);
-        if (task === null) {
-          return {
-            request_id: req.request_id,
-            success:    false,
-            data:       {},
-            error:      `Task not found: ${taskId}`,
-          };
-        }
-
-        const decision: import("./types.js").HumanDecision = {
-          action: action as import("./types.js").HumanDecision["action"],
-        };
-        if (guidance !== undefined) decision.guidance     = guidance;
-        if (agentId  !== undefined) decision.target_agent = agentId;
-        if (result   !== undefined) decision.result       = result;
-
-        this.escalationManager.handleHumanDecision(taskId, decision);
-
-        return {
-          request_id: req.request_id,
-          success:    true,
-          data:       { task_id: taskId, action },
-        };
-      }
-
-      case "submit_task": {
-        // Basic task submission via IPC (full impl in run.ts CLI command)
-        return {
-          request_id: req.request_id,
-          success:    false,
-          data:       {},
-          error:      "submit_task not implemented via IPC in V1 — use TaskStore directly",
-        };
-      }
-
-      case "daemon_status": {
-        if (this._daemonManager === null) {
-          return { request_id: req.request_id, success: true, data: { daemons: [] } };
-        }
-        const agentId = req.payload["agent_id"] as string | undefined;
-        const daemons = agentId !== undefined
-          ? (() => { const s = this._daemonManager!.getStatus(agentId); return s !== undefined ? [s] : []; })()
-          : this._daemonManager.getAllStatuses();
-        return { request_id: req.request_id, success: true, data: { daemons } };
-      }
-
-      case "daemon_start": {
-        const agentId = req.payload["agent_id"] as string | undefined;
-        if (agentId === undefined) {
-          return { request_id: req.request_id, success: false, data: {}, error: "daemon_start requires agent_id" };
-        }
-        if (this._daemonManager === null) {
-          return { request_id: req.request_id, success: false, data: {}, error: "Daemon manager not configured" };
-        }
-        const started = this._daemonManager.startAgent(agentId);
-        if (!started) {
-          return { request_id: req.request_id, success: false, data: {}, error: `Daemon already running for agent '${agentId}'` };
-        }
-        return { request_id: req.request_id, success: true, data: { agent_id: agentId, action: "started" } };
-      }
-
-      case "daemon_stop": {
-        const agentId = req.payload["agent_id"] as string | undefined;
-        if (agentId === undefined) {
-          return { request_id: req.request_id, success: false, data: {}, error: "daemon_stop requires agent_id" };
-        }
-        if (this._daemonManager === null) {
-          return { request_id: req.request_id, success: false, data: {}, error: "Daemon manager not configured" };
-        }
-        const stopped = await this._daemonManager.stopAgent(agentId);
-        if (!stopped) {
-          return { request_id: req.request_id, success: false, data: {}, error: `No daemon running for agent '${agentId}'` };
-        }
-        return { request_id: req.request_id, success: true, data: { agent_id: agentId, action: "stopped" } };
-      }
-
-      case "daemon_restart": {
-        const agentId = req.payload["agent_id"] as string | undefined;
-        if (agentId === undefined) {
-          return { request_id: req.request_id, success: false, data: {}, error: "daemon_restart requires agent_id" };
-        }
-        if (this._daemonManager === null) {
-          return { request_id: req.request_id, success: false, data: {}, error: "Daemon manager not configured" };
-        }
-        const restarted = await this._daemonManager.restartAgent(agentId);
-        if (!restarted) {
-          return { request_id: req.request_id, success: false, data: {}, error: `Agent '${agentId}' not found in registry` };
-        }
-        return { request_id: req.request_id, success: true, data: { agent_id: agentId, action: "restarted" } };
-      }
-
-      case "messaging_adapters": {
-        if (this._messagingRegistry === null) {
-          return { request_id: req.request_id, success: true, data: { adapters: [] } };
-        }
-        const adapters = this._messagingRegistry.getAvailableAdapters();
-        return { request_id: req.request_id, success: true, data: { adapters } };
-      }
-
-      case "messaging_status": {
-        if (this._messagingRegistry === null) {
-          return { request_id: req.request_id, success: true, data: { instances: [] } };
-        }
-        const instanceId = req.payload["instance_id"] as string | undefined;
-        if (instanceId !== undefined) {
-          const inst = this._messagingRegistry.getInstance(instanceId);
-          const instances = inst !== undefined
-            ? [{ instanceId, channel: inst.channel, healthy: inst.isHealthy() }]
-            : [];
-          return { request_id: req.request_id, success: true, data: { instances } };
-        }
-        const instances = this._messagingRegistry.getAllInstances();
-        return { request_id: req.request_id, success: true, data: { instances } };
-      }
-
-      case "messaging_start": {
-        const instanceId = req.payload["instance_id"] as string | undefined;
-        if (instanceId === undefined) {
-          return { request_id: req.request_id, success: false, data: {}, error: "messaging_start requires instance_id" };
-        }
-        if (this._messagingRegistry === null) {
-          return { request_id: req.request_id, success: false, data: {}, error: "Messaging not configured" };
-        }
-        try {
-          await this._messagingRegistry.startInstance(instanceId);
-          return { request_id: req.request_id, success: true, data: { instance_id: instanceId, action: "started" } };
-        } catch (e: unknown) {
-          return { request_id: req.request_id, success: false, data: {}, error: String(e) };
-        }
-      }
-
-      case "messaging_stop": {
-        const instanceId = req.payload["instance_id"] as string | undefined;
-        if (instanceId === undefined) {
-          return { request_id: req.request_id, success: false, data: {}, error: "messaging_stop requires instance_id" };
-        }
-        if (this._messagingRegistry === null) {
-          return { request_id: req.request_id, success: false, data: {}, error: "Messaging not configured" };
-        }
-        try {
-          await this._messagingRegistry.stopInstance(instanceId);
-          return { request_id: req.request_id, success: true, data: { instance_id: instanceId, action: "stopped" } };
-        } catch (e: unknown) {
-          return { request_id: req.request_id, success: false, data: {}, error: String(e) };
-        }
-      }
-
-      case "messaging_reload": {
-        if (this._messagingGateway === null) {
-          return { request_id: req.request_id, success: false, data: {}, error: "Messaging not configured" };
-        }
-        // Stop all current instances, then restart with fresh config
-        try {
-          await this._messagingGateway.stop();
-          if (this._messagingConfigs !== null) {
-            await this._messagingGateway.start(this._messagingConfigs);
-          }
-          return { request_id: req.request_id, success: true, data: { reloaded: true } };
-        } catch (e: unknown) {
-          return { request_id: req.request_id, success: false, data: {}, error: String(e) };
-        }
-      }
-
-      case "messaging_map": {
-        if (this._userMappingStore === null) {
-          return { request_id: req.request_id, success: false, data: {}, error: "Messaging not configured" };
-        }
-        const { instance_id, platform_user_id, sidjua_user_id, role } = req.payload as {
-          instance_id?: string; platform_user_id?: string; sidjua_user_id?: string; role?: string;
-        };
-        if (!instance_id || !platform_user_id || !sidjua_user_id) {
-          return { request_id: req.request_id, success: false, data: {}, error: "messaging_map requires instance_id, platform_user_id, sidjua_user_id" };
-        }
-        const validRole = (["admin", "user", "viewer"] as const).includes(role as "admin" | "user" | "viewer")
-          ? (role as "admin" | "user" | "viewer") : "user";
-        await this._userMappingStore.mapUser(sidjua_user_id, instance_id, platform_user_id, validRole);
-        return { request_id: req.request_id, success: true, data: { mapped: true } };
-      }
-
-      case "messaging_unmap": {
-        if (this._userMappingStore === null) {
-          return { request_id: req.request_id, success: false, data: {}, error: "Messaging not configured" };
-        }
-        const { instance_id, platform_user_id } = req.payload as {
-          instance_id?: string; platform_user_id?: string;
-        };
-        if (!instance_id || !platform_user_id) {
-          return { request_id: req.request_id, success: false, data: {}, error: "messaging_unmap requires instance_id, platform_user_id" };
-        }
-        await this._userMappingStore.unmapUser(instance_id, platform_user_id);
-        return { request_id: req.request_id, success: true, data: { removed: true } };
-      }
-
-      case "messaging_mappings": {
-        if (this._userMappingStore === null) {
-          return { request_id: req.request_id, success: true, data: { mappings: [] } };
-        }
-        const sidjuaId = req.payload["sidjua_user_id"] as string | undefined;
-        const mappings  = this._userMappingStore.listMappings(sidjuaId);
-        return { request_id: req.request_id, success: true, data: { mappings } };
-      }
-
-      case "delegation_status": {
-        return { request_id: req.request_id, success: true, data: { delegations: [] } };
-      }
-
-      case "delegation_history": {
-        return { request_id: req.request_id, success: true, data: { delegations: [] } };
-      }
-
-      default: {
-        return {
-          request_id: req.request_id,
-          success:    false,
-          data:       {},
-          error:      `Unknown command: ${(req as CLIRequest).command}`,
-        };
-      }
-    }
+  /** Exposed for tests that call priv(orch).handleSocketRequest(req). */
+  private handleSocketRequest(req: CLIRequest): Promise<CLIResponse> {
+    return this._ipcServer.handleSocketRequest(req);
   }
 
   // ---------------------------------------------------------------------------
