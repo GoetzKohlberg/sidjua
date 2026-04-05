@@ -20,13 +20,16 @@
  * chatWithTools() response is yielded as a single text_delta event.
  */
 
-import { createHash }          from "node:crypto";
 import { createLogger }        from "../logger.js";
 import { activityEmitter }     from "../activity/activity-emitter.js";
-import { governToolCall }      from "./mcp-governance-hook.js";
 import { selectRelevantTools } from "./tool-selector.js";
 import { estimateTokens, compressContext } from "./context-budget.js";
-import { verifyMemoryReferences } from "./memory-verifier.js";
+import {
+  flattenContent,
+  mcpSchemaToParams,
+  extractTaskText,
+  executeSingleToolCall,
+} from "./tool-executor-core.js";
 import type { McpRegistry }    from "./mcp-registry.js";
 import type { GovernanceContext } from "./types.js";
 import {
@@ -51,41 +54,6 @@ import type {
 export type { McpMessage, ToolLoopContext };
 
 const logger = createLogger("mcp-tool-executor-streaming");
-
-// ---------------------------------------------------------------------------
-// Internal helpers (re-implemented locally to avoid export coupling)
-// ---------------------------------------------------------------------------
-
-function flattenContent(content: string | Array<{ type: string; text?: string; content?: string }>): string {
-  if (typeof content === "string") return content;
-  return content
-    .map((b) => {
-      if (b.type === "text")        return b.text ?? "";
-      if (b.type === "tool_result") return b.content ?? "";
-      return JSON.stringify(b);
-    })
-    .join("\n");
-}
-
-function mcpSchemaToParams(schema: Record<string, unknown>): import("../../providers/types.js").ToolParameterSchema {
-  const properties = schema["properties"];
-  const required   = schema["required"];
-  return {
-    type:       "object",
-    properties: (typeof properties === "object" && properties !== null)
-      ? properties as Record<string, { type: string; description?: string; enum?: string[] }>
-      : {},
-    ...(Array.isArray(required) ? { required: required as string[] } : {}),
-  };
-}
-
-function extractTaskText(messages: McpMessage[]): string {
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const m = messages[i]!;
-    if (m.role === "user") return flattenContent(m.content as string | Array<{ type: string; text?: string; content?: string }>);
-  }
-  return "";
-}
 
 // ---------------------------------------------------------------------------
 // Streaming helpers
@@ -229,7 +197,6 @@ export async function* executeWithToolLoopStreaming(
       }
 
       // Process tool calls (governance + execution)
-      const toolResultParts: string[] = [];
       const govCtx: GovernanceContext = {
         agentId:         ctx.agentId,
         division:        ctx.division,
@@ -239,9 +206,8 @@ export async function* executeWithToolLoopStreaming(
         ...(ctx.taskClassification !== undefined ? { taskClassification: ctx.taskClassification } : {}),
       };
 
+      const toolResultParts: string[] = [];
       for (const tc of pendingCalls.values()) {
-        const toolName = tc.name;
-
         // Parse accumulated JSON — fail-safe to empty args
         let args: Record<string, unknown> = {};
         try {
@@ -251,97 +217,15 @@ export async function* executeWithToolLoopStreaming(
           }
         } catch (err) {
           logger.warn("mcp_stream_tool_arg_parse", "Tool arg JSON parse failed — using empty args", {
-            metadata: { tool: toolName, error: err instanceof Error ? err.message : String(err) },
+            metadata: { tool: tc.name, error: err instanceof Error ? err.message : String(err) },
           });
         }
 
-        const argsHash = createHash("sha256")
-          .update(JSON.stringify(args))
-          .digest("hex")
-          .slice(0, 16);
-
-        // Memory reference verification
-        if (ctx.workDir !== undefined) {
-          let verified: { valid: boolean; invalidRefs: string[] };
-          try {
-            verified = await verifyMemoryReferences(args, ctx.workDir);
-          } catch (err) {
-            verified = { valid: false, invalidRefs: ["verification-error"] };
-            logger.warn("mcp_stream_verify_error", "Memory reference verification threw", {
-              metadata: { tool: toolName, error: err instanceof Error ? err.message : String(err) },
-            });
-          }
-          if (!verified.valid) {
-            activityEmitter.emit({
-              event_type: "mcp.tool.error",
-              category:   "agent",
-              agent_id:   ctx.agentId,
-              title:      `MCP tool ${toolName} — invalid file reference`,
-              severity:   "warning",
-              details:    { tool: toolName, refs: verified.invalidRefs },
-            });
-            toolResultParts.push(`[Tool: ${toolName}] Error: invalid file reference — ${verified.invalidRefs.join(", ")}`);
-            continue;
-          }
-        }
-
-        // Governance check
-        const serverInfo = registry.getServerForTool(toolName);
-        if (serverInfo === undefined) {
-          toolResultParts.push(`[Tool: ${toolName}] Error: tool not registered`);
-          continue;
-        }
-
-        const decision = await governToolCall(toolName, args, serverInfo.name, serverInfo.governance, govCtx);
-        if (!decision.allowed) {
-          activityEmitter.emit({
-            event_type: "mcp.tool.blocked",
-            category:   "agent",
-            agent_id:   ctx.agentId,
-            title:      `MCP tool ${toolName} blocked (stage ${decision.stage ?? "?"})`,
-            severity:   "warning",
-            details:    { tool: toolName, stage: decision.stage, reason: decision.reason, args_hash: argsHash },
-          });
-          toolResultParts.push(`[Tool: ${toolName}] Blocked: ${decision.reason ?? "governance policy"}`);
-          continue;
-        }
-
-        // Call tool
-        activityEmitter.emit({
-          event_type: "mcp.tool.called",
-          category:   "agent",
-          agent_id:   ctx.agentId,
-          title:      `MCP tool ${toolName} called`,
-          severity:   "info",
-          details:    { tool: toolName, server: serverInfo.name, args_hash: argsHash },
+        const part = await executeSingleToolCall(tc.name, args, registry, govCtx, {
+          agentId: ctx.agentId,
+          ...(ctx.workDir !== undefined ? { workDir: ctx.workDir } : {}),
         });
-
-        try {
-          const result     = await registry.callTool(toolName, args);
-          const resultText = result.content.map((b) => b.type === "text" ? b.text : "").join("\n");
-
-          activityEmitter.emit({
-            event_type: "mcp.tool.success",
-            category:   "agent",
-            agent_id:   ctx.agentId,
-            title:      `MCP tool ${toolName} succeeded`,
-            severity:   "info",
-            details:    { tool: toolName, server: serverInfo.name },
-          });
-
-          toolResultParts.push(`[Tool: ${toolName}]\n${resultText}`);
-        } catch (err) {
-          const errMsg = err instanceof Error ? err.message : String(err);
-          activityEmitter.emit({
-            event_type: "mcp.tool.error",
-            category:   "agent",
-            agent_id:   ctx.agentId,
-            title:      `MCP tool ${toolName} error`,
-            severity:   "error",
-            details:    { tool: toolName, server: serverInfo.name, error: errMsg },
-          });
-          toolResultParts.push(`[Tool: ${toolName}] Error: ${errMsg}`);
-        }
+        toolResultParts.push(part);
       }
 
       // Append assistant turn + tool results to conversation, then loop
@@ -378,8 +262,7 @@ export async function* executeWithToolLoopStreaming(
       return;
     }
 
-    // Process tool calls
-    const toolResultParts: string[] = [];
+    // Process tool calls (fallback path — no streaming accumulation needed)
     const govCtx: GovernanceContext = {
       agentId:         ctx.agentId,
       division:        ctx.division,
@@ -389,84 +272,13 @@ export async function* executeWithToolLoopStreaming(
       ...(ctx.taskClassification !== undefined ? { taskClassification: ctx.taskClassification } : {}),
     };
 
+    const toolResultParts: string[] = [];
     for (const tc of res.toolCalls) {
-      const toolName = tc.name;
-      const args     = tc.input;
-
-      const argsHash = createHash("sha256")
-        .update(JSON.stringify(args))
-        .digest("hex")
-        .slice(0, 16);
-
-      if (ctx.workDir !== undefined) {
-        let verified: { valid: boolean; invalidRefs: string[] };
-        try {
-          verified = await verifyMemoryReferences(args, ctx.workDir);
-        } catch (err) {
-          verified = { valid: false, invalidRefs: ["verification-error"] };
-          logger.warn("mcp_stream_verify_error_fallback", "Memory reference verification threw", {
-            metadata: { tool: toolName, error: err instanceof Error ? err.message : String(err) },
-          });
-        }
-        if (!verified.valid) {
-          toolResultParts.push(`[Tool: ${toolName}] Error: invalid file reference — ${verified.invalidRefs.join(", ")}`);
-          continue;
-        }
-      }
-
-      const serverInfo = registry.getServerForTool(toolName);
-      if (serverInfo === undefined) {
-        toolResultParts.push(`[Tool: ${toolName}] Error: tool not registered`);
-        continue;
-      }
-
-      const decision = await governToolCall(toolName, args, serverInfo.name, serverInfo.governance, govCtx);
-      if (!decision.allowed) {
-        activityEmitter.emit({
-          event_type: "mcp.tool.blocked",
-          category:   "agent",
-          agent_id:   ctx.agentId,
-          title:      `MCP tool ${toolName} blocked`,
-          severity:   "warning",
-          details:    { tool: toolName, reason: decision.reason, args_hash: argsHash },
-        });
-        toolResultParts.push(`[Tool: ${toolName}] Blocked: ${decision.reason ?? "governance policy"}`);
-        continue;
-      }
-
-      activityEmitter.emit({
-        event_type: "mcp.tool.called",
-        category:   "agent",
-        agent_id:   ctx.agentId,
-        title:      `MCP tool ${toolName} called`,
-        severity:   "info",
-        details:    { tool: toolName, server: serverInfo.name, args_hash: argsHash },
+      const part = await executeSingleToolCall(tc.name, tc.input as Record<string, unknown>, registry, govCtx, {
+        agentId: ctx.agentId,
+        ...(ctx.workDir !== undefined ? { workDir: ctx.workDir } : {}),
       });
-
-      try {
-        const result     = await registry.callTool(toolName, args);
-        const resultText = result.content.map((b) => b.type === "text" ? b.text : "").join("\n");
-        activityEmitter.emit({
-          event_type: "mcp.tool.success",
-          category:   "agent",
-          agent_id:   ctx.agentId,
-          title:      `MCP tool ${toolName} succeeded`,
-          severity:   "info",
-          details:    { tool: toolName, server: serverInfo.name },
-        });
-        toolResultParts.push(`[Tool: ${toolName}]\n${resultText}`);
-      } catch (err) {
-        const errMsg = err instanceof Error ? err.message : String(err);
-        activityEmitter.emit({
-          event_type: "mcp.tool.error",
-          category:   "agent",
-          agent_id:   ctx.agentId,
-          title:      `MCP tool ${toolName} error`,
-          severity:   "error",
-          details:    { tool: toolName, server: serverInfo.name, error: errMsg },
-        });
-        toolResultParts.push(`[Tool: ${toolName}] Error: ${errMsg}`);
-      }
+      toolResultParts.push(part);
     }
 
     const assistantText = res.textContent.length > 0 ? res.textContent : "Calling tools…";
