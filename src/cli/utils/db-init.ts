@@ -46,6 +46,7 @@
 import { existsSync } from "node:fs";
 import { join }       from "node:path";
 import { openDatabase }      from "../../utils/db.js";
+import { openSafeDatabase }  from "../../core/db/safe-open.js";
 import { PHASE9_SCHEMA_SQL } from "../../orchestrator/types.js";
 import { TOKEN_SCHEMA_SQL }  from "../../api/token-store.js";
 import { runKnowledgeMigrations } from "../../knowledge-pipeline/migration.js";
@@ -83,17 +84,14 @@ export function openCliDatabase(opts: CliDbOptions): InstanceType<typeof Databas
     return null;
   }
 
+  // openDatabase() already calls enforceSQLiteSafety() (WAL, busy_timeout, etc.)
   const db = openDatabase(dbFile);
-  db.pragma("journal_mode = WAL");
-  // Set busy_timeout so concurrent CLI processes wait instead of
-  // immediately throwing SQLITE_BUSY when another process holds a write lock.
-  db.pragma("busy_timeout = 5000");
 
   if (opts.queryOnly) {
     // Open a separate read-only connection instead of toggling query_only on an
     // existing read-write connection — toggling has known reliability issues with WAL.
     db.close();
-    return new Database(dbFile, { readonly: true });
+    return openSafeDatabase(dbFile, { readonly: true });
   }
 
   // Fast-path: if both schema families are already present, skip the exclusive

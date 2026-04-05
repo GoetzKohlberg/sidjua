@@ -10,7 +10,7 @@
 
 import { existsSync, statSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import Database from "better-sqlite3";
+import { openSafeDatabase } from "../../core/db/safe-open.js";
 import { validateWorkDir } from "../../utils/path-utils.js";
 import { hasTable } from "../utils/db-init.js";
 import { TaskStore } from "../../tasks/store.js";
@@ -93,7 +93,7 @@ export function runHealthCommand(opts: HealthCommandOptions): number {
 
       // Open a read-only connection — toggling query_only on an existing
       // read-write connection has known reliability issues with WAL.
-      const db = new Database(dbFile, { readonly: true });
+      const db = openSafeDatabase(dbFile, { readonly: true });
 
       // Agent rows — guard with hasTable() to avoid "no such table"; inner try/catch handles
       // "no such column: tier" on DBs that predate Phase 10.5 migrations.
