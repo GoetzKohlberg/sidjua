@@ -19,6 +19,7 @@ import type { TokenStore, TokenScope } from "../token-store.js";
 import { requireScope, scopeAtLeast, CALLER_CONTEXT_KEY } from "../middleware/require-scope.js";
 import type { CallerContext } from "../caller-context.js";
 import { createLogger } from "../../core/logger.js";
+import { apiHandler } from "../utils/route-helpers.js";
 
 const logger = createLogger("api-tokens");
 
@@ -48,34 +49,20 @@ export function registerTokenRoutes(app: Hono, services: TokenRouteServices): vo
   const { tokenStore } = services;
 
   // ── GET /api/v1/tokens ───────────────────────────────────────────────────
-  app.get("/api/v1/tokens", requireScope("admin"), (c) => {
-    try {
-      const tokens = tokenStore.listTokens();
-      return c.json({ tokens });
-    } catch (e: unknown) {
-      logger.error("token_list_error", "Failed to list tokens", {
-        metadata: { error: e instanceof Error ? e.message : String(e) },
-      });
-      return c.json({ error: { code: "SYS-500", message: "Internal error" } }, 500);
-    }
-  });
+  app.get("/api/v1/tokens", requireScope("admin"), apiHandler("token_list_error", (c) => {
+    const tokens = tokenStore.listTokens();
+    return c.json({ tokens });
+  }));
 
   // ── GET /api/v1/tokens/:id ───────────────────────────────────────────────
-  app.get("/api/v1/tokens/:id", requireScope("admin"), (c) => {
-    const id = c.req.param("id");
-    try {
-      const token = tokenStore.getToken(id);
-      if (token === null) {
-        return c.json({ error: { code: "TOKEN-404", message: "Token not found" } }, 404);
-      }
-      return c.json({ token });
-    } catch (e: unknown) {
-      logger.error("token_get_error", "Failed to get token", {
-        metadata: { id, error: e instanceof Error ? e.message : String(e) },
-      });
-      return c.json({ error: { code: "SYS-500", message: "Internal error" } }, 500);
+  app.get("/api/v1/tokens/:id", requireScope("admin"), apiHandler("token_get_error", (c) => {
+    const id    = c.req.param("id");
+    const token = tokenStore.getToken(id);
+    if (token === null) {
+      return c.json({ error: { code: "TOKEN-404", message: "Token not found" } }, 404);
     }
-  });
+    return c.json({ token });
+  }));
 
   // ── POST /api/v1/tokens ──────────────────────────────────────────────────
   // bootstrap role is allowed here for the initial-setup flow (first token creation).
@@ -156,19 +143,12 @@ export function registerTokenRoutes(app: Hono, services: TokenRouteServices): vo
   });
 
   // ── DELETE /api/v1/tokens/:id ────────────────────────────────────────────
-  app.delete("/api/v1/tokens/:id", requireScope("admin"), (c) => {
-    const id = c.req.param("id");
-    try {
-      const revoked = tokenStore.revokeToken(id);
-      if (!revoked) {
-        return c.json({ error: { code: "TOKEN-404", message: "Token not found or already revoked" } }, 404);
-      }
-      return c.json({ ok: true, id, revoked: true });
-    } catch (e: unknown) {
-      logger.error("token_revoke_error", "Failed to revoke token", {
-        metadata: { id, error: e instanceof Error ? e.message : String(e) },
-      });
-      return c.json({ error: { code: "SYS-500", message: "Internal error" } }, 500);
+  app.delete("/api/v1/tokens/:id", requireScope("admin"), apiHandler("token_revoke_error", (c) => {
+    const id      = c.req.param("id");
+    const revoked = tokenStore.revokeToken(id);
+    if (!revoked) {
+      return c.json({ error: { code: "TOKEN-404", message: "Token not found or already revoked" } }, 404);
     }
-  });
+    return c.json({ ok: true, id, revoked: true });
+  }));
 }

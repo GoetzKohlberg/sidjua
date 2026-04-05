@@ -22,6 +22,7 @@ import { SidjuaError }     from "../../core/error-codes.js";
 import { createLogger }    from "../../core/logger.js";
 import { reqId }           from "../utils/request-id.js";
 import { notFound }        from "../utils/responses.js";
+import { parsePagination } from "../utils/route-helpers.js";
 import { requireScope } from "../middleware/require-scope.js";
 import type { Task, CreateTaskInput, TaskStatus } from "../../tasks/types.js";
 
@@ -37,9 +38,6 @@ const VALID_STATUSES = new Set<string>([
   "CREATED", "PENDING", "ASSIGNED", "RUNNING", "WAITING",
   "REVIEW", "DONE", "FAILED", "ESCALATED", "CANCELLED",
 ]);
-
-const DEFAULT_LIMIT = 50;
-const MAX_LIMIT     = 100;
 
 /** Parse metadata JSON for rows returned from raw SQL (not via TaskStore). */
 function parseTaskRow(row: Record<string, unknown>): Task {
@@ -81,17 +79,6 @@ function parseTaskRow(row: Record<string, unknown>): Task {
     recurring_schedule_id: (row["recurring_schedule_id"] as string | null | undefined) ?? null,
     is_recurring:          Boolean(row["is_recurring"]),
   };
-}
-
-function parsePagination(
-  limitStr: string | undefined,
-  offsetStr: string | undefined,
-): { limit: number; offset: number } | { error: string } {
-  const limit  = parseInt(limitStr  ?? String(DEFAULT_LIMIT), 10);
-  const offset = parseInt(offsetStr ?? "0", 10);
-  if (isNaN(limit)  || limit  < 1 || limit  > MAX_LIMIT) return { error: `limit must be 1–${MAX_LIMIT}` };
-  if (isNaN(offset) || offset < 0)                        return { error: "offset must be ≥ 0" };
-  return { limit, offset };
 }
 
 
