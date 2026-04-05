@@ -1,5 +1,5 @@
 # SONNET STATE — `cat` THIS FIRST, EVERY PROMPT
-# Updated: 2026-04-03 07:45 PHT | Sonnet T2
+# Updated: 2026-04-05 15:30 PHT | Sonnet T2
 
 ## HARD GATES (run before code)
 Gate0: cat SONNET-STATE.md (this file)
@@ -9,6 +9,7 @@ Gate3: npm test → 0 failed
 Gate4: docker compose up -d --build → OK
 Gate5: package.json version check
 Gate6: no internal data in staged files
+Gate7: git add -A && git commit -m "type: description" — MANDATORY at end of EVERY prompt run. No uncommitted work. Use COMMIT FORMAT below. NEVER git push without CEO approval.
 
 ## BANS — ZERO TOLERANCE
 catch {}: ALWAYS name error → catch (err) or catch (_err)
@@ -78,8 +79,8 @@ src/core/update/migration-framework.ts — MigrationRunner + MigrationRegistry
 tests/api/update-system.test.ts — drain/readonly/lifecycle/updater proxy tests (23 tests total)
 
 ## CURRENT
-Version: 1.0.1 | Build: 92 | Tests: 8350 pass, 0 fail (pre-existing flaky: parallel-execution timing), 18 skipped
-Last commit: 7b01631 — agent runtime benchmark suite (mock factory, 5 scenarios, failure injector, P387)
+Version: 1.0.1 | Build: 93 | Tests: 8971 pass, 0 fail, 18 skipped
+Last commit: 8d5c1f1 — security: P397-P408 gate-4 audit fixes
 Deadline V1.0.2: 2026-04-20 | V1.0.3: 2026-05-01 | V1.1: 2026-05-15
 
 ## NOTES FOR NEXT SESSION
