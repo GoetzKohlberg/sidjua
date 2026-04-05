@@ -92,12 +92,15 @@ export const csrfMiddleware: MiddlewareHandler = async (c, next) => {
   //   - Authorization: <token>         — API-key / Bearer auth
   //   - Content-Type: application/json — browsers use urlencoded/multipart for forms
   //   - X-Requested-With: <any>        — non-safelisted header; requires pre-flight
-  const hasAuth       = c.req.header("authorization") !== undefined;
-  const contentType   = c.req.header("content-type") ?? "";
-  const isJson        = contentType.includes("application/json");
-  const hasXRW        = c.req.header("x-requested-with") !== undefined;
+  const hasAuth          = c.req.header("authorization") !== undefined;
+  const contentType      = c.req.header("content-type") ?? "";
+  const isJson           = contentType.includes("application/json");
+  const hasXRW           = c.req.header("x-requested-with") !== undefined;
+  // Custom SIDJUA marker — browsers can't set this cross-origin without a CORS preflight.
+  // API clients (CLI, SDK) explicitly add it; browser extensions cannot forge it.
+  const hasSidjuaHeader  = c.req.header("x-sidjua-request") !== undefined;
 
-  if (hasAuth || isJson || hasXRW) {
+  if (hasAuth || isJson || hasXRW || hasSidjuaHeader) {
     return next();
   }
 

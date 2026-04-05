@@ -34,6 +34,7 @@ const VALID_TOOL_TYPES = new Set([
   "computer_use",
   "adb",
   "composite",
+  "internal",
 ]);
 
 const TOOL_ID_PATTERN = /^[a-z0-9_-]+$/;
@@ -171,6 +172,16 @@ export class ToolValidator {
           );
         }
         break;
+      }
+
+      case "internal": {
+        // Internal tools are registered at startup, not via CreateToolInput.
+        // Reaching this case means the caller passed type="internal" directly,
+        // which is not permitted through the DB-backed registration path.
+        throw new ToolValidationError(
+          "type",
+          "Internal tools cannot be registered via the tool validator — they are bootstrapped at startup",
+        );
       }
     }
   }

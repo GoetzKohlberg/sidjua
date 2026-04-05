@@ -220,10 +220,11 @@ export class ShellAdapter implements ToolAdapter {
     // Validate all tokens for shell metacharacters before execution
     for (const token of tokens) {
       if (SHELL_METACHAR_PATTERN.test(token)) {
-        throw SidjuaError.from(
-          "SHELL-SEC-001",
-          `Shell metacharacter detected in argument: ${token.slice(0, 50)}`,
-        );
+        return {
+          success: false,
+          error:   `Shell metacharacter detected in argument: ${token.slice(0, 50)}`,
+          duration_ms: Date.now() - start,
+        };
       }
     }
 
@@ -325,6 +326,14 @@ export class ShellAdapter implements ToolAdapter {
     // Allowlist: command must be explicitly permitted
     if (!this.allowedSet.has(firstToken)) {
       throw new Error(`Command not in allowed list: ${firstToken}`);
+    }
+
+    // Reject shell metacharacters in each token — defence-in-depth for cases where
+    // shell-quote normalises an injection pattern into a string token.
+    for (const token of tokens) {
+      if (SHELL_METACHAR_PATTERN.test(token)) {
+        throw new Error(`Shell metacharacter detected in argument: ${token.slice(0, 50)}`);
+      }
     }
   }
 

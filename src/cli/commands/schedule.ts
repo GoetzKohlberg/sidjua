@@ -173,6 +173,31 @@ export function registerScheduleCommands(program: Command): void {
         process.exit(1);
       }
 
+      // Pre-creation budget check — fail-closed: if the budget system is
+      // unavailable, block schedule creation rather than allowing unbounded spending.
+      if (opts.budget !== undefined && opts.budget > 0) {
+        const budgetDb = openDatabase(join(opts.workDir, ".system", "sidjua.db"));
+        try {
+          const bt     = new BudgetTracker(budgetDb);
+          const result = bt.costTracker.checkBudget(division, opts.budget);
+          if (!result.allowed) {
+            process.stdout.write(
+              `Error: Budget limit exceeded for division '${division}': ` +
+              `${result.reason ?? "daily/monthly limit reached"}\n`,
+            );
+            process.exit(1);
+          }
+        } catch (e: unknown) {
+          process.stdout.write(
+            `Error: Budget check failed — schedule creation blocked (fail-closed). ` +
+            `${e instanceof Error ? e.message : String(e)}\n`,
+          );
+          process.exit(1);
+        } finally {
+          budgetDb.close();
+        }
+      }
+
       auditCliCommand("schedule", "create");
       const { scheduler, close } = openScheduler(opts.workDir);
       try {

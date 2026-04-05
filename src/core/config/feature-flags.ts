@@ -20,6 +20,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { createLogger } from "../logger.js";
 import type Database from "better-sqlite3";
+import { ensureWorkspaceConfigTable } from "../../api/workspace-config-migration.js";
 
 const logger = createLogger("feature-flags");
 
@@ -113,6 +114,13 @@ export class FeatureFlagManager {
    * Requires a DB connection — no-op if DB is null.
    */
   setDbOverride(key: string, value: boolean, db?: InstanceType<typeof Database>): void {
+    // Reject unknown flags to prevent typo-silently-creating-orphan entries in the DB.
+    if (!Object.prototype.hasOwnProperty.call(this._flags, key)) {
+      logger.warn("feature_flag_unknown", `Unknown feature flag "${key}" — setDbOverride ignored`, {
+        metadata: { key },
+      });
+      return;
+    }
     const target = db ?? this._db;
     if (target === null) {
       logger.warn("feature_flag_set", "No DB available — cannot persist flag override", { metadata: { key } });
@@ -203,13 +211,7 @@ export class FeatureFlagManager {
   }
 
   private _ensureWorkspaceConfigTable(db: InstanceType<typeof Database>): void {
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS workspace_config (
-        key        TEXT PRIMARY KEY,
-        value      TEXT NOT NULL,
-        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-      );
-    `);
+    ensureWorkspaceConfigTable(db);
   }
 }
 

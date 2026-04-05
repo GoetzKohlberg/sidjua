@@ -25,6 +25,7 @@ const logger = createLogger("delegation-service");
 export interface TaskStoreLike {
   get(taskId: string): {
     id: string;
+    root_id: string | null;
     cost_budget: number;
     cost_used: number;
     token_budget: number;
@@ -112,6 +113,22 @@ export class DelegationService {
     subtask_id?: string;
     error?:     string;
   }> {
+    // 0. Self-delegation guard — an agent cannot delegate to itself
+    if (request.source_agent_id === request.target_agent_id) {
+      logger.warn("delegation-service", "Self-delegation rejected", {
+        metadata: { agent: request.source_agent_id },
+      });
+      return { success: false, error: "self_delegation_not_allowed" };
+    }
+
+    // 0b. Circular delegation guard — prevent A→B→A cycles
+    if (this._wouldCreateCycle(request.source_agent_id, request.target_agent_id)) {
+      logger.warn("delegation-service", "Circular delegation rejected", {
+        metadata: { source: request.source_agent_id, target: request.target_agent_id },
+      });
+      return { success: false, error: "circular_delegation_not_allowed" };
+    }
+
     // 1. Policy check
     const check = this.policyResolver.canDelegate(
       request.source_agent_id,
@@ -126,8 +143,17 @@ export class DelegationService {
       return { success: false, error: reason };
     }
 
-    // 2. Depth limit — V1.0 enforces max_depth=1 (subtasks cannot delegate)
-    if (this.config.max_depth < 1) {
+    // 2. Depth limit — reject if the chain from root to this point already
+    //    equals or exceeds the configured max_depth.
+    const currentDepth = this._computeChainDepth(request.parent_task_id);
+    if (currentDepth >= this.config.max_depth) {
+      logger.warn("delegation-service", "Delegation depth limit exceeded", {
+        metadata: {
+          parent_task_id: request.parent_task_id,
+          current_depth:  currentDepth,
+          max_depth:      this.config.max_depth,
+        },
+      });
       return { success: false, error: "max_depth_exceeded" };
     }
 
@@ -180,7 +206,7 @@ export class DelegationService {
     const subtask = this.taskStore.create({
       type:              "delegation",
       parent_id:         request.parent_task_id,
-      root_id:           parentTask.id, // parent is root for depth=1
+      root_id:           parentTask.root_id ?? parentTask.id, // propagate root for nested delegations
       division:          parentTask.division,
       tier:              Math.min(parentTask.tier + 1, 3) as 1 | 2 | 3,
       title:             request.description.slice(0, 80),
@@ -344,6 +370,58 @@ export class DelegationService {
   /** Generate unique delegation request ID. */
   static newRequestId(): string {
     return randomUUID();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Private helpers
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Returns true if delegating from sourceAgent to targetAgent would create
+   * a cycle in the active delegation graph (A→B→A, A→B→C→A, etc.).
+   *
+   * Walks the in-memory active delegations from targetAgent outward: if any
+   * reachable target is sourceAgent, the delegation would be circular.
+   */
+  private _wouldCreateCycle(sourceAgent: string, targetAgent: string): boolean {
+    const visited = new Set<string>();
+    const queue = [targetAgent];
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      if (current === sourceAgent) return true;
+      if (visited.has(current)) continue;
+      visited.add(current);
+      for (const d of this._active.values()) {
+        if (d.status === "pending" && d.request.source_agent_id === current) {
+          queue.push(d.request.target_agent_id);
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Count how many delegation hops separate parentTaskId from the root task.
+   *
+   * Walks the active delegation map upward: if parentTaskId is itself the
+   * subtask_id of a delegation, it is one hop below its parent, and so on.
+   * Stops when no matching delegation is found (reached root).
+   */
+  private _computeChainDepth(parentTaskId: string): number {
+    let depth = 0;
+    let currentId: string | null = parentTaskId;
+    const seen = new Set<string>();
+
+    while (currentId !== null && !seen.has(currentId)) {
+      seen.add(currentId);
+      const parentDelegation = [...this._active.values()].find(
+        (d) => d.subtask_id === currentId,
+      );
+      if (parentDelegation === undefined) break; // reached root task
+      depth++;
+      currentId = parentDelegation.request.parent_task_id;
+    }
+    return depth;
   }
 
   // ---------------------------------------------------------------------------

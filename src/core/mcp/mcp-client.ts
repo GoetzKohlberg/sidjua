@@ -37,6 +37,15 @@ const RESTART_DELAY_MS = 30_000;
 /** Maximum accumulated stdio buffer size before the connection is terminated (10 MiB). */
 const MAX_BUFFER_BYTES = 10 * 1024 * 1024;
 
+/** Pause stdout reads when buffer grows above this threshold (5 MiB). */
+const BACKPRESSURE_HIGH_BYTES = 5 * 1024 * 1024;
+
+/** Resume stdout reads once buffer drains below this threshold (1 MiB). */
+const BACKPRESSURE_LOW_BYTES  = 1 * 1024 * 1024;
+
+/** Disconnect if a non-empty buffer contains no complete line for this long (30 s). */
+const STALL_TIMEOUT_MS = 30_000;
+
 /**
  * Safe default environment for MCP child processes.
  * Includes only the minimal set of variables needed for typical CLI tools.
@@ -71,6 +80,8 @@ export class McpClient {
   private restartCount = 0;
   private lastError: string | undefined;
   private buffer = "";
+  private stdoutPaused = false;
+  private stallTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(serverName: string, config: McpServerConfig) {
     this.serverName = serverName;
@@ -118,7 +129,17 @@ export class McpClient {
     return result as McpToolResult;
   }
 
+  private _clearStallTimer(): void {
+    if (this.stallTimer !== null) {
+      clearTimeout(this.stallTimer);
+      this.stallTimer = null;
+    }
+  }
+
   async disconnect(): Promise<void> {
+    this._clearStallTimer();
+    this.stdoutPaused = false;
+
     // Reject all pending requests
     for (const [, pending] of this.pendingRequests) {
       clearTimeout(pending.timer);
@@ -222,13 +243,14 @@ export class McpClient {
     }
 
     proc.stdout.on("data", (chunk: Buffer) => {
-      // R3-M4: 10 MiB buffer cap — disconnect if exceeded to prevent memory exhaustion.
+      // 10 MiB hard cap — disconnect if exceeded to prevent memory exhaustion.
       if (Buffer.byteLength(this.buffer, "utf8") + chunk.length > MAX_BUFFER_BYTES) {
         logger.warn("mcp_buffer_overflow", "MCP stdout buffer exceeded 10 MiB — disconnecting", {
           metadata: { server: this.serverName },
         });
         this.health = "unhealthy";
         this.lastError = "stdout buffer overflow (>10 MiB)";
+        this._clearStallTimer();
         for (const [, pending] of this.pendingRequests) {
           clearTimeout(pending.timer);
           pending.reject(new Error("MCP buffer overflow — connection terminated"));
@@ -237,8 +259,52 @@ export class McpClient {
         proc.kill("SIGTERM");
         return;
       }
+
       this.buffer += chunk.toString();
+
+      // Backpressure: pause reads when buffer grows above the high watermark.
+      if (!this.stdoutPaused && Buffer.byteLength(this.buffer, "utf8") > BACKPRESSURE_HIGH_BYTES) {
+        proc.stdout!.pause();
+        this.stdoutPaused = true;
+        logger.debug("mcp_bp_pause", "MCP stdout paused (buffer high watermark)", {
+          metadata: { server: this.serverName },
+        });
+      }
+
       this.processBuffer();
+
+      // Resume once the buffer drains below the low watermark.
+      if (this.stdoutPaused && Buffer.byteLength(this.buffer, "utf8") < BACKPRESSURE_LOW_BYTES) {
+        proc.stdout!.resume();
+        this.stdoutPaused = false;
+        logger.debug("mcp_bp_resume", "MCP stdout resumed (buffer low watermark)", {
+          metadata: { server: this.serverName },
+        });
+      }
+
+      // Stall timeout: if the buffer still holds incomplete data (no trailing newline)
+      // after processing, start a timer.  Cancel it once the buffer empties.
+      if (this.buffer.length > 0) {
+        if (this.stallTimer === null) {
+          this.stallTimer = setTimeout(() => {
+            this.stallTimer = null;
+            logger.warn("mcp_stall_timeout", "MCP stdout stall timeout — incomplete message, disconnecting", {
+              metadata: { server: this.serverName },
+            });
+            this.buffer = "";
+            this.health = "unhealthy";
+            this.lastError = "stdout stall timeout (incomplete message >30 s)";
+            for (const [, pending] of this.pendingRequests) {
+              clearTimeout(pending.timer);
+              pending.reject(new Error("MCP stall timeout — incomplete message"));
+            }
+            this.pendingRequests.clear();
+            proc.kill("SIGTERM");
+          }, STALL_TIMEOUT_MS);
+        }
+      } else {
+        this._clearStallTimer();
+      }
     });
 
     // Initialize handshake

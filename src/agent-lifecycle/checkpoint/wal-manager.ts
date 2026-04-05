@@ -52,8 +52,56 @@ export interface AppendWALInput {
  */
 const WAL_HMAC_PREFIX = "$hmac$";
 
+/** Minimum required length for the HMAC key (32 bytes = 256-bit). */
+const WAL_HMAC_MIN_KEY_BYTES = 32;
+
 function getWalHmacKey(): string | undefined {
   return process.env["SIDJUA_WAL_HMAC_KEY"];
+}
+
+/** Suppress duplicate "HMAC key not set" log entries within a single process run. */
+let _hmacFallbackWarned = false;
+
+/**
+ * Validate WAL HMAC key configuration at startup.
+ *
+ * - Production (NODE_ENV=production): throws if key is absent or too short.
+ *   Silent SHA-256 fallback is not permitted in production — it is not
+ *   tamper-proof and would allow WAL entries to be silently forged.
+ * - Development / test: logs a one-time warning and continues.
+ *
+ * Call once during application startup (e.g. in cli-server.ts).
+ */
+export function assertWalHmacKeyConfigured(): void {
+  const key = getWalHmacKey();
+  const isProduction = process.env["NODE_ENV"] === "production";
+
+  if (key === undefined || key === "") {
+    if (isProduction) {
+      throw new Error(
+        "WAL integrity error: SIDJUA_WAL_HMAC_KEY must be set in production. " +
+        "Without it WAL entries are signed with plain SHA-256, which is not tamper-proof. " +
+        "Generate a key with: openssl rand -hex 32",
+      );
+    }
+    if (!_hmacFallbackWarned) {
+      _hmacFallbackWarned = true;
+      _walLogger.warn(
+        "wal_hmac_fallback",
+        "SIDJUA_WAL_HMAC_KEY not configured — using SHA-256 fallback (not tamper-proof). " +
+        "Set SIDJUA_WAL_HMAC_KEY in production.",
+      );
+    }
+    return;
+  }
+
+  const keyBytes = Buffer.byteLength(key, "utf-8");
+  if (keyBytes < WAL_HMAC_MIN_KEY_BYTES) {
+    throw new Error(
+      `SIDJUA_WAL_HMAC_KEY is too short (${keyBytes} bytes; minimum ${WAL_HMAC_MIN_KEY_BYTES}). ` +
+      "Generate a secure key with: openssl rand -hex 32",
+    );
+  }
 }
 
 export class WALManager {
@@ -187,6 +235,13 @@ export class WALManager {
     if (hmacKey !== undefined && hmacKey !== "") {
       const mac = createHmac("sha256", hmacKey).update(payload).digest("hex");
       return `${WAL_HMAC_PREFIX}${mac}`;
+    }
+    if (!_hmacFallbackWarned) {
+      _hmacFallbackWarned = true;
+      _walLogger.warn(
+        "wal_hmac_fallback",
+        "SIDJUA_WAL_HMAC_KEY not configured — using SHA-256 fallback (not tamper-proof).",
+      );
     }
     return sha256hex(payload);
   }

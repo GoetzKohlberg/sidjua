@@ -18,6 +18,7 @@ import { createLogger } from "../logger.js";
 import type Database from "better-sqlite3";
 import type { ConsolidationResult, PendingApproval, ApprovalStatus } from "./types.js";
 import { runAuditMigrations } from "../audit/audit-migrations.js";
+import { ensureWorkspaceConfigTable } from "../../api/workspace-config-migration.js";
 
 const logger = createLogger("memory-governance");
 
@@ -171,13 +172,7 @@ export class MemoryGovernance {
   }
 
   private _ensureWorkspaceConfig(): void {
-    this._db.exec(`
-      CREATE TABLE IF NOT EXISTS workspace_config (
-        key        TEXT PRIMARY KEY,
-        value      TEXT NOT NULL,
-        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-      );
-    `);
+    ensureWorkspaceConfigTable(this._db);
   }
 
   private _writeAuditEvent(

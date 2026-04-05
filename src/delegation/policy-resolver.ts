@@ -78,10 +78,11 @@ export class DelegationPolicyResolver {
       };
     }
 
-    // T1/T2 can delegate to active agents with tier >= source tier (equal or lower)
+    // T1/T2 can delegate to active agents in the same division with tier >= source tier.
+    // Cross-division delegation is not allowed (division isolation boundary).
     const candidates = this.agentRegistry
       .list({ status: "active" })
-      .filter((a) => a.id !== agentId && a.tier >= agent.tier);
+      .filter((a) => a.id !== agentId && a.tier >= agent.tier && a.division === agent.division);
 
     return {
       agent_id:         agentId,

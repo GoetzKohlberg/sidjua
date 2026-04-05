@@ -305,6 +305,8 @@ export function AppConfigProvider({ children }: { children: ReactNode }) {
     if (config.apiKey) return;  // already have a key
 
     const injected = (window as WindowWithBootstrap).__SIDJUA_BOOTSTRAP__;
+    // Delete immediately — prevents browser extensions from reading the key later
+    try { delete (window as WindowWithBootstrap).__SIDJUA_BOOTSTRAP__; } catch (_) { /* non-fatal */ }
     if (typeof injected?.api_key === 'string' && injected.api_key) {
       const serverUrl = injected.server_url || config.serverUrl || window.location.origin;
       void (async () => {

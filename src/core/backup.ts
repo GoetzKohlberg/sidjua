@@ -224,13 +224,12 @@ async function checkpointDatabase(dbPath: string): Promise<void> {
       }
     }
   }
-  // All retries exhausted — proceed with best-effort backup (WAL is still readable)
-  logger.warn("backup_wal_checkpoint_exhausted", `WAL checkpoint failed after ${WAL_CHECKPOINT_MAX_RETRIES} attempts for ${basename(dbPath)} — backup proceeds with current WAL state`, {
-    metadata: {
-      db_path: dbPath,
-      error:   lastErr instanceof Error ? lastErr.message : String(lastErr),
-    },
+  // All retries exhausted — fail-closed: do NOT proceed with a potentially dirty WAL.
+  const errMsg = lastErr instanceof Error ? lastErr.message : String(lastErr);
+  logger.error("backup_wal_checkpoint_exhausted", `WAL checkpoint failed after ${WAL_CHECKPOINT_MAX_RETRIES} attempts for ${basename(dbPath)} — aborting backup`, {
+    metadata: { db_path: dbPath, error: errMsg },
   });
+  throw new Error(`WAL checkpoint failed after ${WAL_CHECKPOINT_MAX_RETRIES} attempts: ${basename(dbPath)} — ${errMsg}`);
 }
 
 
@@ -1017,6 +1016,9 @@ export async function restoreBackup(options: RestoreOptions): Promise<RestoreRes
         // relPath within the databases/ dir (e.g., "data/agent.db" or "agent.db")
         const relInDatabases = relative(dbSrc, dbFile);
         const destPath       = join(workDir, relInDatabases);
+        // Containment check BEFORE creating directories — guards against symlink
+        // escape via crafted archive entries that survived extraction checks.
+        assertWithinDirectoryReal(destPath, workDir);
         mkdirSync(dirname(destPath), { recursive: true });
         await backupDatabase(dbFile, destPath);
       }

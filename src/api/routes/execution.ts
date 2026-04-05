@@ -50,6 +50,21 @@ const DESCRIPTION_MAX_LEN = 10_000;
 const DESCRIPTION_MAX_TOKENS = 8_000;
 
 /**
+ * Patterns indicating HTML/script injection in a task description.
+ * These payloads are meaningless for task execution and may indicate
+ * stored-XSS attempts against the GUI.
+ */
+const HTML_INJECTION_RE =
+  /<\s*script|javascript\s*:|on\w+\s*=\s*["']?[^"'>]+|<\s*iframe|<\s*object\b|<\s*embed\b|data\s*:[a-z]+\/[a-z]/i;
+
+/** Throw INPUT-001 if the text contains HTML/script injection patterns. */
+function rejectHtmlInjection(text: string): void {
+  if (HTML_INJECTION_RE.test(text)) {
+    throw SidjuaError.from("INPUT-001", "Task description contains disallowed HTML or script content");
+  }
+}
+
+/**
  * Validate the POST /api/v1/tasks/run request body.
  * Returns a typed subset of the body on success; throws SidjuaError on error.
  *
@@ -94,6 +109,9 @@ function validateTaskRunBody(body: Record<string, unknown>): {
       `description estimated token count (${estimatedTokens}) exceeds limit (${DESCRIPTION_MAX_TOKENS})`,
     );
   }
+
+  // HTML/script injection check
+  rejectHtmlInjection(description);
 
   // priority — optional number
   const priority = body["priority"];

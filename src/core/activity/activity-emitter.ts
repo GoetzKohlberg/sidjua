@@ -55,6 +55,27 @@ function safeStringify(value: unknown, maxBytes = JSON_MAX_BYTES): string {
   return JSON.stringify({ _truncated: true, _original_bytes: byteLen });
 }
 
+/**
+ * Parse a JSON string from the database with a size guard.
+ *
+ * Returns a truncation sentinel when the input exceeds 1 MiB to prevent a
+ * crafted large-JSON value stored by a privileged writer from exhausting heap
+ * memory when read back (JSON bomb).
+ *
+ * For inputs within the size limit, delegates to JSON.parse and lets it
+ * throw on malformed input — the per-row try/catch in query() will skip
+ * the row and emit an `activity_row_malformed` warning, which is the
+ * established behaviour for malformed rows.
+ */
+const JSON_PARSE_MAX_BYTES = 1_048_576; // 1 MiB
+function _safeJsonParse(raw: string): Record<string, unknown> {
+  if (Buffer.byteLength(raw, "utf-8") > JSON_PARSE_MAX_BYTES) {
+    return { _truncated: true, _original_bytes: Buffer.byteLength(raw, "utf-8") };
+  }
+  // Let JSON.parse throw for malformed input (caller's per-row catch skips it).
+  return JSON.parse(raw) as Record<string, unknown>;
+}
+
 
 export class ActivityEmitter {
   private db: InstanceType<typeof Database> | null = null;
@@ -273,7 +294,19 @@ export class ActivityEmitter {
     try {
       const { sql, params } = this._buildQuery(filters);
       const rows = this.db.prepare<unknown[], Record<string, unknown>>(sql).all(...params);
-      return rows.map(this._rowToRecord);
+      const records: ActivityRecord[] = [];
+      for (const row of rows) {
+        try {
+          records.push(this._rowToRecord(row));
+        } catch (_parseErr) {
+          logger.warn(
+            "activity_row_malformed",
+            `Malformed activity row skipped (id=${String(row["id"] ?? "unknown")})`,
+            { metadata: { id: row["id"] } },
+          );
+        }
+      }
+      return records;
     } catch (err: unknown) {
       logger.warn(
         "activity_query_failed",
@@ -390,8 +423,8 @@ export class ActivityEmitter {
       user_id:    (row["user_id"] as string | null) ?? undefined,
       severity:   row["severity"] as ActivityRecord["severity"],
       title:      row["title"] as string,
-      details:    JSON.parse((row["details"] as string) || "{}") as Record<string, unknown>,
-      metadata:   JSON.parse((row["metadata"] as string) || "{}") as Record<string, unknown>,
+      details:    _safeJsonParse((row["details"] as string) || "{}"),
+      metadata:   _safeJsonParse((row["metadata"] as string) || "{}"),
       source:     row["source"] as ActivityRecord["source"],
       parent_id:  (row["parent_id"] as string | null) ?? undefined,
       session_id: (row["session_id"] as string | null) ?? undefined,
@@ -421,8 +454,8 @@ export class ActivityEmitter {
       return { sql: `SELECT COUNT(*) AS cnt FROM activity_events ${where}`, params };
     }
 
-    const limit  = filters.limit  ?? 100;
-    const offset = filters.offset ?? 0;
+    const limit  = Math.max(1, Math.min(filters.limit  ?? 100, 1_000));
+    const offset = Math.max(0, Math.min(filters.offset ?? 0,   10_000));
     return {
       sql:    `SELECT * FROM activity_events ${where} ORDER BY timestamp DESC LIMIT ? OFFSET ?`,
       params: [...params, limit, offset],

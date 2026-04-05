@@ -31,7 +31,8 @@ export default defineConfig({
     target: process.env['TAURI_ENV_PLATFORM'] === 'windows' ? 'chrome105' : 'safari13',
     // Don't minify in debug builds
     minify: process.env['TAURI_ENV_DEBUG'] ? false : 'esbuild',
-    // Produce sourcemaps only in debug mode
-    sourcemap: !!process.env['TAURI_ENV_DEBUG'],
+    // Produce sourcemaps only in explicit debug mode — never in production builds.
+    // TAURI_ENV_DEBUG must be the literal string 'true' to enable sourcemaps.
+    sourcemap: process.env['TAURI_ENV_DEBUG'] === 'true',
   },
 });

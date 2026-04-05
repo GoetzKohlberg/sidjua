@@ -169,7 +169,10 @@ export class OverrideManager {
       }
     }
 
-    // 4. Re-submit with override flag
+    // 4. Re-submit with full governance bypass flag.
+    //    bypass_all: true signals that the entire governance pipeline is skipped
+    //    for this submission — this is not a rule-scoped exception but a complete
+    //    override authorised by the user above.
     const taskWithOverride: UserTaskInput = {
       ...override.original_task,
       governance_override: {
@@ -177,6 +180,7 @@ export class OverrideManager {
         override_at:           new Date().toISOString(),
         original_block_reason: override.block_reason,
         original_block_rule:   override.block_rule,
+        bypass_all:            true,
       },
     };
 

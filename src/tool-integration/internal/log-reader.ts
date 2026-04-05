@@ -79,7 +79,8 @@ export const logReaderTool: InternalToolDef = {
     let logLines   = content.split("\n").slice(-lines);
 
     if (filter) {
-      const regex = new RegExp(filter, "i");
+      const safePattern = filter.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(safePattern, "i");
       logLines = logLines.filter((l: string) => regex.test(l));
     }
 

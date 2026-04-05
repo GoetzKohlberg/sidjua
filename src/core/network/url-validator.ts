@@ -180,11 +180,18 @@ export async function validateOutboundUrlAsync(raw: string): Promise<void> {
 
   let addresses: string[];
   try {
-    const results = await dnsLookup(hostname, { all: true });
-    addresses = results.map((r) => r.address);
+    // Race DNS lookup against a 2 s timeout — slow/unreachable DNS is non-fatal
+    // so that transient outages do not block outbound requests.
+    const lookupResult = await Promise.race<Awaited<ReturnType<typeof dnsLookup>>>([
+      dnsLookup(hostname, { all: true }),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("DNS lookup timeout")), 2_000),
+      ),
+    ]);
+    addresses = lookupResult.map((r) => r.address);
   } catch (_e) {
-    // DNS failure is non-fatal here; let the downstream fetch fail with a
-    // meaningful error rather than blocking on a transient DNS outage.
+    // DNS failure or timeout is non-fatal; let the downstream fetch fail with a
+    // meaningful network error rather than blocking on a transient DNS outage.
     return;
   }
 
@@ -197,6 +204,21 @@ export async function validateOutboundUrlAsync(raw: string): Promise<void> {
     }
   }
 }
+
+/**
+ * Alias for validateOutboundUrlAsync.
+ *
+ * Resolves the URL hostname via DNS before allowing the connection, providing
+ * protection against DNS rebinding attacks.  All outbound code paths that make
+ * server-side HTTP(S) requests MUST call this (or validateOutboundUrlAsync)
+ * before opening a connection.
+ *
+ * @throws SidjuaError SSRF-001 on scheme violation or invalid URL
+ * @throws SidjuaError SSRF-002 on private/loopback host (static check)
+ * @throws SidjuaError SSRF-003 on private/loopback DNS resolution
+ */
+export const resolveAndValidateUrl = validateOutboundUrlAsync;
+
 
 /**
  * Validate that an SSH host is safe to connect to.

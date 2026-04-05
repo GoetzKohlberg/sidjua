@@ -15,7 +15,8 @@ export type ToolType =
   | "database"
   | "computer_use"
   | "adb"
-  | "composite";
+  | "composite"
+  | "internal";
 
 export type ToolStatus = "active" | "inactive" | "error" | "starting" | "stopping";
 

@@ -251,6 +251,14 @@ export class ToolManager {
         return new CompositeAdapter(tool.id, compositeConfig, subAdaptersMap, caps);
       }
 
+      case "internal": {
+        // Internal tools are bootstrapped at startup via registerInternalTool(),
+        // not loaded from the DB.  This case is unreachable in normal operation.
+        throw new Error(
+          `ToolManager: type "internal" cannot be loaded from DB — use registerInternalTool() instead`,
+        );
+      }
+
       default: {
         // Exhaustiveness guard — TypeScript will flag unhandled ToolType values
         const exhaustiveCheck: never = tool.type;

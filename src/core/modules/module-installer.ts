@@ -11,7 +11,7 @@
  * from running arbitrary code.
  */
 
-import { execSync }                                   from "node:child_process";
+import { execFileSync }                               from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { join }                                        from "node:path";
 import Database                                        from "better-sqlite3";
@@ -23,6 +23,14 @@ const NPM_TIMEOUT_MS = 120_000; // 2 minutes
 
 /** Allowed module name pattern: lowercase alphanumeric with hyphens, 2-64 chars. */
 const NAME_PATTERN = /^[a-z0-9][a-z0-9-]{0,62}[a-z0-9]$/;
+
+/**
+ * Allowed npm package name pattern.
+ * Supports scoped (@org/pkg) and unscoped packages, with optional version specifier.
+ * Validates before passing packageName to execFileSync to prevent command injection.
+ */
+const PACKAGE_NAME_PATTERN =
+  /^(@[a-z0-9][a-z0-9-]*\/)?[a-z0-9._-]+(@[a-zA-Z0-9._^~*-]+)?$/;
 
 export interface InstallResult {
   success:     boolean;
@@ -56,6 +64,17 @@ export interface InstallOptions {
 export function installModule(packageName: string, modulesDir: string, opts?: InstallOptions): InstallResult {
   const moduleName = deriveModuleName(packageName);
   const modulePath = join(modulesDir, moduleName);
+
+  // Validate package name before any shell/exec operation
+  if (!PACKAGE_NAME_PATTERN.test(packageName)) {
+    return {
+      success:   false,
+      moduleName,
+      path:      modulePath,
+      error:     `Invalid package name: "${packageName}". ` +
+                 `Must follow npm naming rules (e.g. my-package, @scope/name).`,
+    };
+  }
 
   if (existsSync(modulePath)) {
     return {
@@ -102,16 +121,17 @@ export function installModule(packageName: string, modulesDir: string, opts?: In
       "utf-8",
     );
 
-    // SECURITY: --ignore-scripts prevents postinstall from running arbitrary code
-    const cmd = `npm install --ignore-scripts --save ${packageName}`;
+    // SECURITY: --ignore-scripts prevents postinstall from running arbitrary code.
+    // execFileSync with shell:false prevents command injection via packageName.
     logger.info("module_installing", "Installing MCP module via npm", {
       metadata: { package: packageName, path: modulePath },
     });
 
-    execSync(cmd, {
+    execFileSync("npm", ["install", "--ignore-scripts", "--save", packageName], {
       cwd:     modulePath,
       timeout: NPM_TIMEOUT_MS,
       stdio:   "pipe",
+      shell:   false,
       env: {
         ...process.env,
         npm_config_fund:  "false",

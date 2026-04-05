@@ -251,7 +251,7 @@ export class CostTracker {
   /**
    * Atomically check the budget and insert an estimated-cost reservation.
    *
-   * Uses BEGIN IMMEDIATE so no other write transaction can interleave between
+   * Uses BEGIN EXCLUSIVE so no reader or writer can interleave between
    * the current-spend read and the reservation insert.  Concurrent callers
    * that arrive while this transaction holds the write lock will see the
    * reserved cost when they run their own check, preventing double-allocation.
@@ -287,7 +287,7 @@ export class CostTracker {
       return { result, reservationId: Number(info.lastInsertRowid) };
     });
 
-    return txFn.immediate();
+    return txFn.exclusive();
   }
 
   /**

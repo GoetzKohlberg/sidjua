@@ -20,7 +20,6 @@ import { existsSync, statfsSync } from "node:fs";
 import { join }                   from "node:path";
 import type { Database }          from "better-sqlite3";
 import { createLogger }           from "../logger.js";
-import { isReadOnlyMode }         from "../../api/middleware/readonly.js";
 import { SIDJUA_VERSION }         from "../../version.js";
 
 const logger = createLogger("deep-health");
@@ -40,17 +39,19 @@ export interface DeepHealthResult {
 /**
  * Perform a comprehensive health check.
  *
- * @param db      Open SQLite database handle (null = DB unavailable)
- * @param dataDir Data directory path (for disk space check)
- * @param workDir Working directory (for .update-in-progress marker check)
+ * @param db       Open SQLite database handle (null = DB unavailable)
+ * @param dataDir  Data directory path (for disk space check)
+ * @param workDir  Working directory (for .update-in-progress marker check)
+ * @param readOnly When true the DB write check is skipped (e.g. during blue/green update)
  */
 export async function checkDeepHealth(
-  db:      Database | null,
-  dataDir: string,
-  workDir: string,
+  db:       Database | null,
+  dataDir:  string,
+  workDir:  string,
+  readOnly: boolean = false,
 ): Promise<DeepHealthResult> {
   const dbRead   = checkDbRead(db);
-  const dbWrite  = isReadOnlyMode() ? false : checkDbWrite(db);
+  const dbWrite  = readOnly ? false : checkDbWrite(db);
   const diskOk   = checkDiskSpace(dataDir);
   const migOk    = checkMigrationComplete(workDir);
   const qdrant   = await checkQdrant();

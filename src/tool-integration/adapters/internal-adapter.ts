@@ -41,8 +41,8 @@ export interface InternalToolDef {
 
 export class InternalToolAdapter implements ToolAdapter {
   readonly id: string;
-  /** Reuse "composite" ToolType — internal tools are native TS function composites. */
-  readonly type: ToolType = "composite";
+  /** Native TypeScript function — does not use MCP, REST, shell, or composite sub-tools. */
+  readonly type: ToolType = "internal";
   /** Forwarded from InternalToolDef — undefined means no restriction. */
   readonly callerRestriction: "orchestrator" | undefined;
 

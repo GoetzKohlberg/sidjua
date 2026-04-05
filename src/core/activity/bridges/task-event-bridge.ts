@@ -35,7 +35,8 @@ export function initTaskEventBridge(bus: TaskEventBus): void {
     bus.subscribeAll((taskEvent) => {
       try {
         const eventType = taskEvent.event_type as string;
-        const isFailed  = eventType.includes("fail") || eventType.includes("error");
+        const lower     = eventType.toLowerCase();
+        const isFailed  = lower.includes("fail") || lower.includes("error") || lower.includes("crash");
 
         activityEmitter.emit({
           event_type: "task." + eventType,
@@ -48,7 +49,7 @@ export function initTaskEventBridge(bus: TaskEventBus): void {
             task_id:        taskEvent.task_id,
             parent_task_id: taskEvent.parent_task_id,
           },
-          severity: isFailed ? "warning" : "info",
+          severity: isFailed ? "error" : "info",
           source:   "internal",
         });
       } catch (_) { /* bridge must never break TaskEventBus */ }

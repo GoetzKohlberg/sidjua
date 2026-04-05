@@ -240,11 +240,17 @@ const REDACT_KEYS = /key|token|secret|password|credential|auth/i;
 const REDACT_VALUES = /sk-|Bearer |ghp_|glpat-/;
 const REDACTED = "[REDACTED]";
 
+/** Regex matching absolute Unix or Windows file paths in string context values. */
+const REDACT_PATHS_IN_CTX =
+  /(?:\/home\/|\/Users\/|\/root\/|\/var\/|\/tmp\/|\/etc\/|\/opt\/|\/app\/|\/srv\/)[^\s"',;)\]]+|[A-Za-z]:\\[^\s"',;)\]]+/g;
+const REDACTED_PATH = "<path>";
+
 /**
  * Sanitize error context before exposing it in debug output.
  *
  * Keys matching REDACT_KEYS (e.g. "apiKey", "password") are always redacted.
- * String values matching REDACT_VALUES (e.g. "sk-…", "Bearer …") are redacted.
+ * String values matching REDACT_VALUES (e.g. "sk-…", "Bearer …") are fully redacted.
+ * String values containing absolute file paths have the path segments replaced.
  * Non-string values and unmatched keys/values are passed through unchanged.
  */
 export function sanitizeErrorContext(ctx: Record<string, unknown>): Record<string, unknown> {
@@ -254,6 +260,9 @@ export function sanitizeErrorContext(ctx: Record<string, unknown>): Record<strin
       out[k] = REDACTED;
     } else if (typeof v === "string" && REDACT_VALUES.test(v)) {
       out[k] = REDACTED;
+    } else if (typeof v === "string") {
+      // Replace absolute path segments but keep surrounding context (e.g. error messages).
+      out[k] = v.replace(REDACT_PATHS_IN_CTX, REDACTED_PATH);
     } else {
       out[k] = v;
     }

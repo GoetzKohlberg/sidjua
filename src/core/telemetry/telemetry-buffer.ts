@@ -25,6 +25,7 @@ import { join }         from "node:path";
 import { openDatabase } from "../../utils/db.js";
 import type { Database } from "../../utils/db.js";
 import type { TelemetryEvent, StoredEvent } from "./telemetry-types.js";
+import { BoundedMap } from "../../utils/bounded-map.js";
 
 
 const MIGRATIONS = `
@@ -80,8 +81,14 @@ interface FingerprintRateState {
   windowStart: number;
 }
 
-/** Per-fingerprint event counters within the current rate-limit window. */
-const _fingerprintRateState = new Map<string, FingerprintRateState>();
+/**
+ * Per-fingerprint event counters within the current rate-limit window.
+ * Bounded to MAX_UNIQUE_FINGERPRINTS with LRU eviction: recently-seen
+ * fingerprints are retained while stale ones are evicted first.
+ */
+const _fingerprintRateState = new BoundedMap<string, FingerprintRateState>(
+  TELEMETRY_RATE_LIMITS.MAX_UNIQUE_FINGERPRINTS,
+);
 
 /** Interval for sweeping stale fingerprint entries (ms). */
 const FINGERPRINT_CLEANUP_INTERVAL_MS = 60_000;
@@ -136,8 +143,7 @@ export function stopTelemetryCleanup(): void {
  */
 function checkRateLimit(fingerprint: string): boolean {
   const now = Date.now();
-  const { RATE_LIMIT_WINDOW_MS, MAX_EVENTS_PER_FINGERPRINT, MAX_UNIQUE_FINGERPRINTS } =
-    TELEMETRY_RATE_LIMITS;
+  const { RATE_LIMIT_WINDOW_MS, MAX_EVENTS_PER_FINGERPRINT } = TELEMETRY_RATE_LIMITS;
 
   const existing = _fingerprintRateState.get(fingerprint);
 
@@ -156,15 +162,7 @@ function checkRateLimit(fingerprint: string): boolean {
     return true;
   }
 
-  // New fingerprint — if at cap, evict the oldest entry (FIFO) to make room.
-  // Maps preserve insertion order, so the first key is the oldest entry.
-  if (_fingerprintRateState.size >= MAX_UNIQUE_FINGERPRINTS) {
-    const oldestKey = _fingerprintRateState.keys().next().value;
-    if (oldestKey !== undefined) {
-      _fingerprintRateState.delete(oldestKey);
-    }
-  }
-
+  // New fingerprint — BoundedMap evicts the least-recently-used entry when at capacity.
   _fingerprintRateState.set(fingerprint, { count: 1, windowStart: now });
   return true;
 }

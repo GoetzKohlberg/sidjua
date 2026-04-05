@@ -193,7 +193,7 @@ export function registerProviderCommands(program: Command): void {
     .description("Test an endpoint's capabilities (auto-detect probe)")
     .requiredOption("--base-url <url>",  "Base URL of the OpenAI-compatible endpoint")
     .requiredOption("--model <model>",   "Model ID to test with")
-    .option("--api-key <key>",           "API key")
+    .option("--api-key <key>",           "[deprecated] API key — use SIDJUA_PROVIDER_KEY env variable instead")
     .option("--timeout <ms>",            "Timeout per probe step in ms", "15000")
     .action(async (opts: {
       baseUrl:  string;
@@ -201,6 +201,22 @@ export function registerProviderCommands(program: Command): void {
       apiKey?:  string;
       timeout:  string;
     }) => {
+      // Resolve effective API key.
+      // Priority: SIDJUA_PROVIDER_KEY env var (secure) > --api-key flag (deprecated).
+      const envKey = process.env["SIDJUA_PROVIDER_KEY"];
+      let effectiveKey: string | undefined;
+
+      if (envKey !== undefined && envKey !== "") {
+        effectiveKey = envKey;
+      } else if (opts.apiKey !== undefined) {
+        process.stderr.write(
+          "Warning: --api-key passes credentials via the command line, which is visible in\n" +
+          "process listings (ps, /proc) and shell history. Use the SIDJUA_PROVIDER_KEY\n" +
+          "environment variable instead: SIDJUA_PROVIDER_KEY=<key> sidjua provider test ...\n",
+        );
+        effectiveKey = opts.apiKey;
+      }
+
       const detector  = new ProviderAutoDetect(parseInt(opts.timeout, 10));
 
       process.stdout.write(`Probing ${opts.baseUrl}...\n\n`);
@@ -208,7 +224,7 @@ export function registerProviderCommands(program: Command): void {
       const result = await detector.probe({
         base_url: opts.baseUrl,
         model:    opts.model,
-        ...(opts.apiKey !== undefined && { api_key: opts.apiKey }),
+        ...(effectiveKey !== undefined && { api_key: effectiveKey }),
       });
 
       const tick = (v: boolean): string => (v ? "[ok]" : "[--]");

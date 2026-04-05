@@ -52,7 +52,41 @@ export const SSE_LIMITS = {
    * server-side buffers indefinitely between broadcasts.
    */
   WRITE_TIMEOUT_MS: 30_000,
+  /** Max SSE connection attempts per IP in the rate window. */
+  IP_RATE_LIMIT: 5,
+  /** Rate window for per-IP connection attempts (ms). */
+  IP_RATE_WINDOW_MS: 60_000,
 } as const;
+
+// ---------------------------------------------------------------------------
+// IP-based SSE connection rate limiting
+// Prevents a single IP from exhausting the MAX_CLIENTS pool even with valid
+// tickets — limits to IP_RATE_LIMIT connection attempts per IP_RATE_WINDOW_MS.
+// ---------------------------------------------------------------------------
+
+/** Timestamps of recent SSE connection attempts per IP address. */
+const _ipConnectAttempts = new Map<string, number[]>();
+
+/** Exported for test cleanup only. */
+export function clearSseIpRateLimitState(): void {
+  _ipConnectAttempts.clear();
+}
+
+/**
+ * Check and record an SSE connection attempt from the given IP.
+ *
+ * Returns true if the attempt is within limits, false if rate-limited.
+ * The attempt is always recorded (even when returning false) so that
+ * burst attempts do not reset the window.
+ */
+export function checkAndRecordSseIpAttempt(ip: string): boolean {
+  const now    = Date.now();
+  const cutoff = now - SSE_LIMITS.IP_RATE_WINDOW_MS;
+  const prev   = (_ipConnectAttempts.get(ip) ?? []).filter((t) => t > cutoff);
+  prev.push(now);
+  _ipConnectAttempts.set(ip, prev);
+  return prev.length <= SSE_LIMITS.IP_RATE_LIMIT;
+}
 
 // ---------------------------------------------------------------------------
 // SSE writable abstraction (implemented by Hono's SSEStreamingApi in prod,

@@ -120,7 +120,24 @@ const V1_8_TOOL_INTEGRATION: DbMigration = {
   `,
 };
 
-export const TOOL_MIGRATIONS: DbMigration[] = [V1_8_TOOL_INTEGRATION];
+/**
+ * V1.8a — Rename config_yaml → config_json in tool_definitions + environments.
+ * The columns always stored JSON (not YAML); renaming makes the schema self-documenting.
+ */
+const V1_8A_CONFIG_COLUMN_RENAME: DbMigration = {
+  version: "1.8a",
+  description: "Rename config_yaml → config_json in tool_definitions and environments",
+  up: `
+    ALTER TABLE tool_definitions RENAME COLUMN config_yaml TO config_json;
+    ALTER TABLE environments     RENAME COLUMN config_yaml TO config_json;
+  `,
+  down: `
+    ALTER TABLE tool_definitions RENAME COLUMN config_json TO config_yaml;
+    ALTER TABLE environments     RENAME COLUMN config_json TO config_yaml;
+  `,
+};
+
+export const TOOL_MIGRATIONS: DbMigration[] = [V1_8_TOOL_INTEGRATION, V1_8A_CONFIG_COLUMN_RENAME];
 
 export function runToolMigrations(db: Database): void {
   runMigrations(db, TOOL_MIGRATIONS);

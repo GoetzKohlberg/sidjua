@@ -460,3 +460,37 @@ export interface AgentTaskHistoryResponse {
   agent_id: string;
   tasks:    TaskHistoryEntry[];
 }
+
+
+// ---- Backup ----------------------------------------------------------------
+
+export interface BackupResult {
+  success:    true;
+  id:         string;
+  path:       string;
+  size_bytes: number;
+  warnings?:  string[];
+}
+
+// ---- Activity Stream -------------------------------------------------------
+
+export interface ActivityEvent {
+  id:         string;
+  timestamp:  string;
+  event_type: string;
+  category:   string;
+  severity:   'debug' | 'info' | 'warning' | 'error' | 'critical';
+  title:      string;
+  agent_id?:  string;
+  division:   string;
+  source:     string;
+  details:    Record<string, unknown>;
+  metadata:   Record<string, unknown>;
+}
+
+export interface ActivityStreamResponse {
+  events: ActivityEvent[];
+  total:  number;
+  limit:  number;
+  offset: number;
+}

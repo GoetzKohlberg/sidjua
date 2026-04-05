@@ -246,8 +246,14 @@ export function configureLogger(config: Partial<LoggerConfig>): void {
   }
 
   if (config.redactPatterns !== undefined) {
+    // Build a set of already-registered pattern sources to avoid accumulating
+    // duplicate RegExp objects when configureLogger() is called multiple times.
+    const existingSources = new Set(_redactPatterns.map((r) => r.source));
     for (const pat of config.redactPatterns) {
-      _redactPatterns.push(new RegExp(pat, "g"));
+      if (!existingSources.has(pat)) {
+        _redactPatterns.push(new RegExp(pat, "g"));
+        existingSources.add(pat);
+      }
     }
   }
 }

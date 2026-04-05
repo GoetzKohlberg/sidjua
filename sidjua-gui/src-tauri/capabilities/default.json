@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "SIDJUA Desktop — deny-by-default capability set. Only explicitly listed window management and internal event IPC permissions are granted. Tauri v2 denies all ungranted permissions automatically. No filesystem (fs:*), shell (shell:allow-*), clipboard, HTTP plugin, dialog, notification, process, or OS permissions are granted here. HTTP API access to the SIDJUA server is governed by the CSP connect-src directive, not the Tauri HTTP plugin.",
+  "description": "SIDJUA Desktop — deny-by-default capability set. Only explicitly listed window management and internal event IPC permissions are granted. Tauri v2 denies all ungranted permissions automatically. No filesystem (fs:*), shell (shell:allow-*), clipboard, HTTP plugin, dialog, notification, process, or OS permissions are granted here. HTTP API access to the SIDJUA server is governed by the CSP connect-src directive, not the Tauri HTTP plugin. Custom IPC commands (allowlisted): reveal_secret, create_token, shutdown_server — each enforces loopback-only server_url validation in the Rust backend.",
   "windows": [
     "main"
   ],

@@ -13,7 +13,12 @@ import { runToolMigrations } from "./migration.js";
 import { ToolRegistry } from "./tool-registry.js";
 import { ToolGovernance } from "./tool-governance.js";
 import { ToolManager } from "./tool-manager.js";
+import { ToolExecutionGateway } from "./tool-execution-gateway.js";
+import type { CallerContext } from "./tool-execution-gateway.js";
 import type { ToolAction } from "./types.js";
+import { createLogger } from "../core/logger.js";
+
+const logger = createLogger("cli-tool");
 
 
 /**
@@ -300,8 +305,8 @@ export function registerToolCommands(program: Command): void {
           };
 
           const registry = new ToolRegistry(db);
-        const manager = new ToolManager(db, registry);
-          const adapter = manager.getAdapter(toolId);
+          const manager  = new ToolManager(db, registry);
+          const adapter  = manager.getAdapter(toolId);
 
           if (adapter === undefined) {
             process.stderr.write(
@@ -311,7 +316,22 @@ export function registerToolCommands(program: Command): void {
             return;
           }
 
-          const result = await adapter.execute(action);
+          const governance = new ToolGovernance(db);
+          const gateway    = new ToolExecutionGateway(governance, db);
+          const callerCtx: CallerContext = {
+            agent_id:      opts.agent,
+            division:      "system",
+            tier:          1,
+            caller_source: "orchestrator", // CLI admin context
+          };
+
+          logger.warn(
+            "test_action_gateway",
+            "test-action routed through ToolExecutionGateway (admin/dev mode — apply governance rules to restrict)",
+            { metadata: { tool_id: toolId, capability, agent_id: opts.agent } },
+          );
+
+          const result = await gateway.execute(adapter, action, callerCtx);
           process.stdout.write(JSON.stringify(result, null, 2) + "\n");
           process.exit(result.success ? 0 : 1);
         } catch (err) {

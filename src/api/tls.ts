@@ -46,6 +46,20 @@ export function generateSelfSignedCert(opts: TlsGenerateOptions): void {
     validDays = 365,
   } = opts;
 
+  // Validate hostname before injecting into OpenSSL config content.
+  // Only alphanumeric, dots, and hyphens are safe in a SAN DNS value.
+  if (hostname !== "localhost") {
+    if (hostname.length > 253) {
+      throw new Error(`Hostname too long for TLS certificate: ${hostname.length} chars (max 253)`);
+    }
+    if (!/^[a-zA-Z0-9.-]+$/.test(hostname)) {
+      throw new Error(
+        `Invalid hostname for TLS certificate: "${hostname}". ` +
+        "Only alphanumeric characters, dots, and hyphens are allowed.",
+      );
+    }
+  }
+
   // Ensure output directories exist
   mkdirSync(dirname(certPath), { recursive: true });
   mkdirSync(dirname(keyPath),  { recursive: true });

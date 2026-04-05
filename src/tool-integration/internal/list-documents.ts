@@ -52,16 +52,20 @@ export const listDocumentsTool: InternalToolDef = {
         return { count: 0, documents: [], note: "knowledge_chunks table not found — run `sidjua apply`" };
       }
 
-      const wheres: string[] = [];
-      const values: unknown[] = [];
+      const whereFilters:  string[]  = [];
+      const whereValues:   unknown[] = [];
+      const havingFilters: string[]  = [];
+      const havingValues:  unknown[] = [];
 
-      if (params["collection_id"]) { wheres.push("collection_id = ?");         values.push(params["collection_id"]); }
-      if (params["source_file"])   { wheres.push("source_file LIKE ?");         values.push(`%${params["source_file"]}%`); }
-      if (params["since"])         { wheres.push("MIN(created_at) >= ?");        values.push(params["since"]); }
+      // Non-aggregate filters belong in WHERE (evaluated before GROUP BY).
+      if (params["collection_id"]) { whereFilters.push("collection_id = ?");    whereValues.push(params["collection_id"]); }
+      if (params["source_file"])   { whereFilters.push("source_file LIKE ?");   whereValues.push(`%${params["source_file"]}%`); }
+      // Aggregate filter — must stay in HAVING (evaluated after GROUP BY).
+      if (params["since"])         { havingFilters.push("MIN(created_at) >= ?"); havingValues.push(params["since"]); }
 
-      const whereClause = wheres.length > 0 ? "HAVING " + wheres.join(" AND ") : "";
+      const whereClause  = whereFilters.length  > 0 ? "WHERE "  + whereFilters.join(" AND ")  : "";
+      const havingClause = havingFilters.length > 0 ? "HAVING " + havingFilters.join(" AND ") : "";
       const limit = Math.min(Number(params["limit"]) || 50, 200);
-      values.push(limit);
 
       const rows = _db
         .prepare(
@@ -71,12 +75,13 @@ export const listDocumentsTool: InternalToolDef = {
                   SUM(token_count) AS total_tokens,
                   MIN(created_at) AS first_ingested
            FROM knowledge_chunks
-           GROUP BY source_file, collection_id
            ${whereClause}
+           GROUP BY source_file, collection_id
+           ${havingClause}
            ORDER BY first_ingested DESC
            LIMIT ?`,
         )
-        .all(...values);
+        .all(...whereValues, ...havingValues, limit);
 
       return { count: rows.length, documents: rows };
     } catch (err: unknown) {

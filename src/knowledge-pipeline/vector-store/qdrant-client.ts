@@ -21,7 +21,29 @@ interface QdrantSearchResponse {
 }
 
 export class QdrantClient {
-  constructor(private readonly baseUrl: string) {}
+  constructor(private readonly baseUrl: string) {
+    // Validate scheme — Qdrant is internal infrastructure so private IPs are
+    // allowed, but non-http/https schemes (e.g. file://, javascript://) are not.
+    const scheme = new URL(baseUrl).protocol;
+    if (scheme !== "http:" && scheme !== "https:") {
+      throw new Error(
+        `QdrantClient: unsupported URL scheme "${scheme}" — must be http or https`,
+      );
+    }
+  }
+
+  /**
+   * Build request headers.
+   * Adds `api-key` when SIDJUA_QDRANT_API_KEY env var is set (required for
+   * Qdrant Cloud and auth-enabled self-hosted instances).
+   */
+  private _headers(includeContentType = true): Record<string, string> {
+    const h: Record<string, string> = {};
+    if (includeContentType) h["Content-Type"] = "application/json";
+    const apiKey = process.env["SIDJUA_QDRANT_API_KEY"];
+    if (apiKey !== undefined && apiKey !== "") h["api-key"] = apiKey;
+    return h;
+  }
 
   /**
    * Ensure a Qdrant collection exists. Creates it with the given vector size
@@ -29,7 +51,7 @@ export class QdrantClient {
    */
   async ensureCollection(name: string, vectorSize: number): Promise<void> {
     const url = `${this.baseUrl}/collections/${encodeURIComponent(name)}`;
-    const checkRes = await fetch(url);
+    const checkRes = await fetch(url, { headers: this._headers(false) });
     if (checkRes.ok) return; // collection already exists
     if (checkRes.status !== 404) {
       throw new Error(
@@ -39,7 +61,7 @@ export class QdrantClient {
     // Create collection
     const createRes = await fetch(url, {
       method:  "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: this._headers(),
       body:    JSON.stringify({ vectors: { size: vectorSize, distance: "Cosine" } }),
     });
     if (!createRes.ok) {
@@ -63,7 +85,7 @@ export class QdrantClient {
       `${this.baseUrl}/collections/${encodeURIComponent(collectionName)}/points`,
       {
         method:  "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: this._headers(),
         body:    JSON.stringify({ points }),
       },
     );
@@ -88,7 +110,7 @@ export class QdrantClient {
       `${this.baseUrl}/collections/${encodeURIComponent(collectionName)}/points/search`,
       {
         method:  "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: this._headers(),
         body:    JSON.stringify({ vector, top: topK, with_payload: false }),
       },
     );
@@ -112,7 +134,7 @@ export class QdrantClient {
       `${this.baseUrl}/collections/${encodeURIComponent(collectionName)}/points/delete`,
       {
         method:  "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: this._headers(),
         body:    JSON.stringify({ points: ids }),
       },
     );

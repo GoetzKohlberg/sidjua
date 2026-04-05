@@ -395,11 +395,11 @@ export class ToolCallRouter {
     let compositePath: string | undefined;
     if (adapterType === "composite" && this.db !== null) {
       try {
-        const row = this.db.prepare<[string], { config_yaml: string }>(
-          "SELECT config_yaml FROM tool_definitions WHERE id = ?",
+        const row = this.db.prepare<[string], { config_json: string }>(
+          "SELECT config_json FROM tool_definitions WHERE id = ?",
         ).get(serverName);
         if (row !== undefined) {
-          const cfg = JSON.parse(row.config_yaml) as { sub_tools?: string[]; strategy?: string };
+          const cfg = JSON.parse(row.config_json) as { sub_tools?: string[]; strategy?: string };
           if (Array.isArray(cfg.sub_tools)) {
             compositePath = `${cfg.strategy ?? "fallback"}:${cfg.sub_tools.join("→")}`;
           }

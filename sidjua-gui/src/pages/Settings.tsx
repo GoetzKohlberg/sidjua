@@ -12,7 +12,7 @@ import { useTheme } from '../hooks/useTheme';
 import { useTranslation } from '../hooks/useTranslation';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
 import { useToast } from '../components/shared/Toast';
-import type { ApprovedProvider, ProviderConfigResponse } from '../api/types';
+import type { ApprovedProvider, ProviderConfigResponse, ActivityEvent } from '../api/types';
 import { StartOverModal } from '../components/overlay/StartOverModal';
 import { LanguageSelector } from '../components/shared/LanguageSelector';
 import { GUI_ERRORS, formatGuiError } from '../i18n/gui-errors';
@@ -754,6 +754,7 @@ export function Settings() {
   const [providerKey,   setProviderKey]   = useState(0); // force re-render on provider save
   const [showStartOver, setShowStartOver] = useState(false);
   const [showApiKey,    setShowApiKey]    = useState(false);
+  const [backupBusy,    setBackupBusy]    = useState(false);
 
   // Error logging toggle
   const loggingRes = useApi<LoggingStatus>((c) => c.loggingStatus());
@@ -761,6 +762,8 @@ export function Settings() {
   const [errorLoggingBusy,   setErrorLoggingBusy]   = useState(false);
   const [errorLoggingError,  setErrorLoggingError]  = useState<string | null>(null);
   const errorLoggingInitRef = useRef(false);
+  const [recentErrors,       setRecentErrors]       = useState<ActivityEvent[] | null>(null);
+  const [errorsLoading,      setErrorsLoading]      = useState(false);
 
   // Bouncer (security) settings
   const [bouncerEnabled,     setBouncerEnabled]     = useState<boolean | null>(null);
@@ -791,6 +794,24 @@ export function Settings() {
       setErrorLoggingBusy(false);
     }
   }
+
+  async function loadRecentErrors(): Promise<void> {
+    if (!client || errorsLoading) return;
+    setErrorsLoading(true);
+    try {
+      const res = await client.listErrorEvents(20);
+      setRecentErrors(res.events);
+    } catch (_err) {
+      setRecentErrors([]);
+    } finally {
+      setErrorsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (client && recentErrors === null) { void loadRecentErrors(); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [client]);
 
   // Load bouncer config on mount
   useEffect(() => {
@@ -893,6 +914,19 @@ export function Settings() {
       setLangError(formatGuiError(err));
     } finally {
       setLangBusy(false);
+    }
+  }
+
+  async function handleBackup(): Promise<void> {
+    if (!client || backupBusy) return;
+    setBackupBusy(true);
+    try {
+      const result = await client.createBackup();
+      toast.success(t('gui.settings.workspace_backup_success', { path: result.path }));
+    } catch (err: unknown) {
+      toast.error(formatGuiError(err));
+    } finally {
+      setBackupBusy(false);
     }
   }
 
@@ -1028,11 +1062,11 @@ export function Settings() {
           </p>
           <div className="page-settings--workspace-actions">
             <button
-              disabled
-              title={t('gui.settings.workspace_coming_soon')}
+              onClick={() => { void handleBackup(); }}
+              disabled={backupBusy || !client}
               className="page-settings--ws-btn-primary"
             >
-              {t('gui.settings.workspace_backup_button')}
+              {backupBusy ? t('gui.settings.workspace_backup_running') : t('gui.settings.workspace_backup_button')}
             </button>
             <button
               disabled
@@ -1233,6 +1267,63 @@ export function Settings() {
               {t('gui.settings.error_logging_retrieve')}{' '}
               <code style={{ fontSize: '11px' }}>{t('gui.settings.error_logging_retrieve_cmd')}</code>.
             </p>
+          </div>
+
+          {/* Recent Errors */}
+          <div style={{ marginTop: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text)' }}>
+                {t('gui.settings.recent_errors')}
+              </span>
+              <button
+                onClick={() => { void loadRecentErrors(); }}
+                disabled={errorsLoading}
+                style={{
+                  fontSize: '11px', padding: '2px 8px', borderRadius: '4px',
+                  border: '1px solid var(--color-border)', background: 'transparent',
+                  color: 'var(--color-text-secondary)', cursor: errorsLoading ? 'default' : 'pointer',
+                }}
+              >
+                {errorsLoading ? t('gui.settings.recent_errors_loading') : t('gui.settings.recent_errors_refresh')}
+              </button>
+            </div>
+            <div style={{
+              background:   'var(--color-bg-secondary)',
+              border:       '1px solid var(--color-border)',
+              borderRadius: 'var(--radius-md)',
+              maxHeight:    '200px',
+              overflowY:    'auto',
+              fontSize:     '12px',
+            }}>
+              {recentErrors === null || errorsLoading ? (
+                <div style={{ padding: '12px', color: 'var(--color-text-secondary)' }}>
+                  {t('gui.settings.recent_errors_loading')}
+                </div>
+              ) : recentErrors.length === 0 ? (
+                <div style={{ padding: '12px', color: 'var(--color-text-secondary)' }}>
+                  {t('gui.settings.recent_errors_empty')}
+                </div>
+              ) : recentErrors.map((e) => (
+                <div key={e.id} style={{
+                  padding:      '8px 12px',
+                  borderBottom: '1px solid var(--color-border)',
+                  display:      'flex',
+                  gap:          '8px',
+                  alignItems:   'flex-start',
+                }}>
+                  <span style={{ color: e.severity === 'critical' ? 'var(--color-danger)' : 'var(--color-warning)', flexShrink: 0, fontWeight: 700 }}>
+                    {e.severity.toUpperCase()}
+                  </span>
+                  <div>
+                    <div style={{ color: 'var(--color-text)', fontWeight: 500 }}>{e.title}</div>
+                    <div style={{ color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+                      {new Date(e.timestamp).toLocaleString()} · {e.event_type}
+                      {e.agent_id ? ` · ${e.agent_id}` : ''}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </section>
 

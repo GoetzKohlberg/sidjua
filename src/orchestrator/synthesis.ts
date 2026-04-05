@@ -78,8 +78,17 @@ export class SynthesisCollector {
       };
     }
 
-    // Increment sub_tasks_received on parent
-    const newReceived = parent.sub_tasks_received + 1;
+    // Count actual terminal children in the DB to cap the increment.
+    // Math.min(received + 1, terminalCount) achieves two goals simultaneously:
+    //   1. Sequential processing — each distinct child advances the counter by 1.
+    //   2. Idempotency — calling registerResult for the same child twice cannot
+    //      advance the counter beyond the actual number of terminal children,
+    //      preventing premature or duplicate synthesis triggering on event replay.
+    const allChildren    = this.store.getByParent(parent.id);
+    const terminalCount  = allChildren.filter(
+      (c) => c.status === "DONE" || c.status === "FAILED" || c.status === "CANCELLED",
+    ).length;
+    const newReceived    = Math.min(parent.sub_tasks_received + 1, terminalCount);
     this.store.update(parent.id, { sub_tasks_received: newReceived });
 
     const totalChildren   = parent.sub_tasks_expected;
@@ -94,8 +103,8 @@ export class SynthesisCollector {
     } });
 
     if (completedChildren >= totalChildren && totalChildren > 0) {
-      // All children done — collect summaries
-      const children = this.store.getByParent(parent.id);
+      // All children done — collect summaries (reuse the already-fetched list)
+      const children = allChildren;
       const summaries = children.map((c): ChildSummary => ({
         task_id:     c.id,
         title:       c.title,

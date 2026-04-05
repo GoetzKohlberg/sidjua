@@ -23,7 +23,7 @@ interface DbToolRow {
   id: string;
   name: string;
   type: string;
-  config_yaml: string;
+  config_json: string;
   status: string;
   pid: number | null;
   error_message: string | null;
@@ -61,7 +61,7 @@ export class ToolRegistry {
     this.db
       .prepare<[string, string, string, string, string, string], void>(
         `INSERT INTO tool_definitions
-           (id, name, type, config_yaml, status, created_at, updated_at)
+           (id, name, type, config_json, status, created_at, updated_at)
          VALUES (?, ?, ?, ?, 'inactive', ?, ?)`,
       )
       .run(input.id, input.name, input.type, configJson, now, now);
@@ -101,7 +101,7 @@ export class ToolRegistry {
   getById(id: string): ToolDefinition {
     const row = this.db
       .prepare<[string], DbToolRow>(
-        `SELECT id, name, type, config_yaml, status, pid, error_message,
+        `SELECT id, name, type, config_json, status, pid, error_message,
                 created_at, updated_at
          FROM tool_definitions WHERE id = ?`,
       )
@@ -127,7 +127,7 @@ export class ToolRegistry {
     if (statusFilter !== undefined) {
       rows = this.db
         .prepare<[string], DbToolRow>(
-          `SELECT id, name, type, config_yaml, status, pid, error_message,
+          `SELECT id, name, type, config_json, status, pid, error_message,
                   created_at, updated_at
            FROM tool_definitions WHERE status = ?`,
         )
@@ -135,7 +135,7 @@ export class ToolRegistry {
     } else {
       rows = this.db
         .prepare<[], DbToolRow>(
-          `SELECT id, name, type, config_yaml, status, pid, error_message,
+          `SELECT id, name, type, config_json, status, pid, error_message,
                   created_at, updated_at
            FROM tool_definitions`,
         )
@@ -216,7 +216,7 @@ export class ToolRegistry {
   // -------------------------------------------------------------------------
 
   private mapRow(row: DbToolRow): ToolDefinition {
-    const config = JSON.parse(row.config_yaml) as ToolConfig;
+    const config = JSON.parse(row.config_json) as ToolConfig;
 
     const def: ToolDefinition = {
       id: row.id,

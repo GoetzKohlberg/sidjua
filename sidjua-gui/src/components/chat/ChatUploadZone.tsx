@@ -63,15 +63,21 @@ export function ChatUploadZone({
       });
 
       if (!res.ok) {
-        const body = await res.json().catch(() => ({})) as { error?: { message?: string } };
-        throw new Error(body.error?.message ?? `Upload failed (${res.status})`);
+        // Use a generic message — don't surface internal server details (e.g. paths, status codes).
+        // 413 = file too large; 415 = unsupported type — provide hints without leaking internals.
+        const userMsg = res.status === 413
+          ? 'File is too large. Please upload a smaller file.'
+          : res.status === 415
+            ? 'Unsupported file type.'
+            : 'Upload failed. Please try again.';
+        throw new Error(userMsg);
       }
 
       const result = await res.json() as UploadResult;
       setUploadProgress(null);
       onUploadComplete?.(result);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Upload failed');
+      setError(err instanceof Error ? err.message : 'Upload failed. Please try again.');
       setUploadProgress(null);
     } finally {
       setUploading(false);

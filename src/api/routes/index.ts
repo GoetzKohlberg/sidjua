@@ -66,6 +66,7 @@ import { registerSystemLifecycleRoutes } from "./system-lifecycle.js";
 import type { BackpressureManager }      from "../../core/runtime/backpressure.js";
 import { setDeepHealthProvider }         from "./system.js";
 import { checkDeepHealth }              from "../../core/health/deep-health.js";
+import { isReadOnlyMode }               from "../middleware/readonly.js";
 import { registerUploadRoutes }          from "./upload.js";
 import type { UploadRouteServices }      from "./upload.js";
 import type { UploadStore }              from "../../uploads/upload-store.js";
@@ -195,7 +196,7 @@ export function registerAllRoutes(app: Hono, services: AllRouteServices = {}): v
   // Wire deep health provider when DB is available — enriches GET /api/v1/health
   // with fields the blue/green sidecar checks: healthy, migration_complete, db_read, etc.
   if (db !== null) {
-    setDeepHealthProvider(() => checkDeepHealth(db, workDir, workDir));
+    setDeepHealthProvider(() => checkDeepHealth(db, workDir, workDir, isReadOnlyMode()));
   }
 
   // DB-backed routes

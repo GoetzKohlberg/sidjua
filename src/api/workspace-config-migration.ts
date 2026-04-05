@@ -67,3 +67,20 @@ export const WORKSPACE_CONFIG_MIGRATIONS: DbMigration[] = [V2_1_WORKSPACE_CONFIG
 export function runWorkspaceConfigMigration(db: Database): void {
   runMigrations(db, WORKSPACE_CONFIG_MIGRATIONS);
 }
+
+/**
+ * Minimal CREATE TABLE IF NOT EXISTS for the workspace_config table.
+ *
+ * Use this in modules that need to read/write workspace_config rows without
+ * running the full migration chain (e.g. memory-trigger, feature-flags).
+ * Must be called OUTSIDE any transaction (DDL limitation).
+ */
+export function ensureWorkspaceConfigTable(db: { exec(sql: string): void }): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS workspace_config (
+      key        TEXT PRIMARY KEY,
+      value      TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+}

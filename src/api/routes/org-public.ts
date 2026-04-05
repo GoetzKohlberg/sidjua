@@ -25,6 +25,7 @@ import { readFileSync }     from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath }    from "node:url";
 import { createLogger }     from "../../core/logger.js";
+import { timingSafeCompare } from "../../core/crypto-utils.js";
 import { rateLimiter }      from "../middleware/rate-limiter.js";
 import type { RateLimitConfig } from "../middleware/rate-limiter.js";
 import { OrgChartStore }    from "../../org-chart/org-chart-store.js";
@@ -115,6 +116,43 @@ const GLASSCHEIBE_WIDGET_JS = readFileSync(
 // Route registrar
 // ---------------------------------------------------------------------------
 
+/**
+ * Secondary access gate for the public org-chart endpoints.
+ *
+ * If `public_org_chart_token` is configured in workspace_config, callers must
+ * supply a matching `X-Glasscheibe-Token` header (timing-safe compare).
+ *
+ * When no token is configured, only loopback requests are allowed (i.e. the
+ * Host header resolves to 127.0.0.1 / ::1 / localhost AND no X-Forwarded-For
+ * header is present — a proxy hop would indicate the request came from outside).
+ */
+function isOrgPublicAccessAllowed(
+  c: { req: { header: (name: string) => string | undefined } },
+  db: InstanceType<typeof Database>,
+): boolean {
+  const configuredToken = getWorkspaceConfig(db, "public_org_chart_token");
+
+  if (configuredToken !== null && configuredToken !== "") {
+    const provided = c.req.header("x-glasscheibe-token") ?? "";
+    return timingSafeCompare(provided, configuredToken);
+  }
+
+  // No token configured — restrict to loopback access only.
+  if (c.req.header("x-forwarded-for") !== undefined) {
+    return false; // request passed through a reverse proxy → not loopback
+  }
+  const host = c.req.header("host");
+  // No Host header → treat as an internal / direct socket connection (no proxy hop).
+  if (host === undefined || host === "") return true;
+  const hostname = host.split(":")[0] ?? "";
+  return (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "::1"       ||
+    hostname === "[::1]"
+  );
+}
+
 /** Read a workspace_config value — returns null on any error or missing row. */
 function getWorkspaceConfig(db: InstanceType<typeof Database>, key: string): string | null {
   try {
@@ -159,6 +197,9 @@ export function registerOrgPublicRoutes(
     if (getWorkspaceConfig(db, "public_org_chart_enabled") !== "true") {
       return c.json({ error: "public_org_chart_disabled", message: "The public org chart is disabled on this server." }, 404);
     }
+    if (!isOrgPublicAccessAllowed(c, db)) {
+      return c.json({ error: "org_public_access_denied", message: "Access denied." }, 403);
+    }
     for (const [k, v] of Object.entries(corsHeaders())) c.header(k, v);
     const internal = store.getTree();
     const pub      = toPublicTree(internal);
@@ -169,6 +210,9 @@ export function registerOrgPublicRoutes(
   app.get("/api/v1/org/public/live", rl, (c) => {
     if (getWorkspaceConfig(db, "public_org_chart_enabled") !== "true") {
       return c.json({ error: "public_org_chart_disabled", message: "The public org chart is disabled on this server." }, 404);
+    }
+    if (!isOrgPublicAccessAllowed(c, db)) {
+      return c.json({ error: "org_public_access_denied", message: "Access denied." }, 403);
     }
     for (const [k, v] of Object.entries(corsHeaders())) c.header(k, v);
 
@@ -218,6 +262,9 @@ export function registerOrgPublicRoutes(
   app.get("/widget/glasscheibe.js", (c) => {
     if (getWorkspaceConfig(db, "public_org_chart_enabled") !== "true") {
       return c.text("/* Public org chart is disabled on this server. */\n", 404);
+    }
+    if (!isOrgPublicAccessAllowed(c, db)) {
+      return c.text("/* Access denied. */\n", 403);
     }
     return c.body(GLASSCHEIBE_WIDGET_JS, 200, {
       "Content-Type":                 "application/javascript; charset=utf-8",

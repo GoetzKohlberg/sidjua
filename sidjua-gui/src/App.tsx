@@ -3,7 +3,7 @@
 // Dual licensed: AGPL-3.0 + SIDJUA Commercial License. See LICENSE.
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 
 import { ThemeProvider }    from './lib/theme';
 import { AppConfigProvider, useAppConfig } from './lib/config';
@@ -68,9 +68,9 @@ function AppWithFirstRunGate() {
   }, [config.serverUrl, config.apiKey]);
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <AppRoutes firstRunState={firstRunState} onDismiss={handleDismiss} onRetry={checkFirstRun} />
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 

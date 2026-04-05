@@ -519,6 +519,14 @@ export class ExecutionBridge {
       callerCtx.division !== undefined &&
       task.division !== callerCtx.division
     ) {
+      logger.warn("task_cancel_cross_division", "Task cancel blocked: cross-division attempt", {
+        metadata: {
+          taskId,
+          taskDivision:   task.division,
+          callerDivision: callerCtx.division,
+          callerRole:     callerCtx.role,
+        },
+      });
       throw SidjuaError.from(
         "EXEC-003",
         `Not allowed to cancel task in division "${task.division}" from division "${callerCtx.division}"`,

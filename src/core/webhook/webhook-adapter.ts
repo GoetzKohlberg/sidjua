@@ -25,13 +25,20 @@ export interface NormalizedWebhookPayload {
 }
 
 
+/** Keys that must never appear in the extracted output — prototype pollution vector. */
+const DANGEROUS_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
 /**
  * Extract only scalar (string/number/boolean) top-level values from an object.
  * Nested objects and arrays are dropped to prevent injection via structured data.
+ * Prototype-pollution keys (__proto__, constructor, prototype) are silently skipped.
  */
 export function extractSafeFields(obj: Record<string, unknown>): Record<string, string> {
-  const out: Record<string, string> = {};
+  // Object.create(null) produces a prototype-less object so even if a dangerous
+  // key slips through the DANGEROUS_KEYS check it cannot shadow Object.prototype.
+  const out = Object.create(null) as Record<string, string>;
   for (const [k, v] of Object.entries(obj)) {
+    if (DANGEROUS_KEYS.has(k)) continue;
     if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") {
       out[k] = String(v);
     }

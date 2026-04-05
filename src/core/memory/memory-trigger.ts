@@ -20,6 +20,7 @@ import { randomUUID } from "node:crypto";
 import type Database from "better-sqlite3";
 import type { ConsolidationLock } from "./types.js";
 import type { MemoryIndexManager } from "./memory-index.js";
+import { ensureWorkspaceConfigTable } from "../../api/workspace-config-migration.js";
 
 const logger = createLogger("memory-trigger");
 
@@ -49,54 +50,57 @@ export function acquireConsolidationLock(
   const expiresAt  = new Date(now.getTime() + LOCK_TTL_MS);
 
   try {
+    // DDL must run outside a transaction (CREATE TABLE IF NOT EXISTS).
     _ensureWorkspaceConfig(db);
 
-    // Check for existing lock
-    const existing = db.prepare<[string], { value: string }>(
-      "SELECT value FROM workspace_config WHERE key = ?",
-    ).get(LOCK_CONFIG_KEY);
+    // Wrap the read-check-write in an EXCLUSIVE transaction to prevent
+    // concurrent processes from both reading "no lock" and both writing a lock.
+    const txFn = db.transaction((): boolean => {
+      const existing = db.prepare<[string], { value: string }>(
+        "SELECT value FROM workspace_config WHERE key = ?",
+      ).get(LOCK_CONFIG_KEY);
 
-    if (existing !== undefined) {
-      // Parse existing lock
-      let lock: ConsolidationLock;
-      try {
-        lock = JSON.parse(existing.value) as ConsolidationLock;
-      } catch (_e) {
-        // Corrupt lock — treat as stale
-        lock = { holder: "unknown", acquired_at: "1970-01-01T00:00:00.000Z", expires_at: "1970-01-01T00:00:00.000Z" };
-      }
+      if (existing !== undefined) {
+        let lock: ConsolidationLock;
+        try {
+          lock = JSON.parse(existing.value) as ConsolidationLock;
+        } catch (_e) {
+          // Corrupt lock — treat as stale
+          lock = { holder: "unknown", acquired_at: "1970-01-01T00:00:00.000Z", expires_at: "1970-01-01T00:00:00.000Z" };
+        }
 
-      // Check if lock is still valid
-      if (new Date(lock.expires_at) > now) {
-        logger.info("consolidation_lock_busy", "Consolidation lock held by another process", {
-          metadata: { holder: lock.holder, expiresAt: lock.expires_at },
+        if (new Date(lock.expires_at) > now) {
+          logger.info("consolidation_lock_busy", "Consolidation lock held by another process", {
+            metadata: { holder: lock.holder, expiresAt: lock.expires_at },
+          });
+          return false;
+        }
+
+        // Stale lock — auto-release
+        logger.info("consolidation_lock_stale", "Releasing stale consolidation lock", {
+          metadata: { staleHolder: lock.holder, expiredAt: lock.expires_at },
         });
-        return false;
       }
 
-      // Stale lock — auto-release
-      logger.info("consolidation_lock_stale", "Releasing stale consolidation lock", {
-        metadata: { staleHolder: lock.holder, expiredAt: lock.expires_at },
+      const lockData: ConsolidationLock = {
+        holder:      lockHolder,
+        acquired_at: now.toISOString(),
+        expires_at:  expiresAt.toISOString(),
+      };
+
+      db.prepare(
+        `INSERT OR REPLACE INTO workspace_config (key, value, updated_at)
+         VALUES (?, ?, datetime('now'))`,
+      ).run(LOCK_CONFIG_KEY, JSON.stringify(lockData));
+
+      logger.info("consolidation_lock_acquired", "Consolidation lock acquired", {
+        metadata: { holder: lockHolder, expiresAt: expiresAt.toISOString() },
       });
-    }
 
-    // Acquire lock
-    const lockData: ConsolidationLock = {
-      holder:      lockHolder,
-      acquired_at: now.toISOString(),
-      expires_at:  expiresAt.toISOString(),
-    };
-
-    db.prepare(
-      `INSERT OR REPLACE INTO workspace_config (key, value, updated_at)
-       VALUES (?, ?, datetime('now'))`,
-    ).run(LOCK_CONFIG_KEY, JSON.stringify(lockData));
-
-    logger.info("consolidation_lock_acquired", "Consolidation lock acquired", {
-      metadata: { holder: lockHolder, expiresAt: expiresAt.toISOString() },
+      return true;
     });
 
-    return true;
+    return txFn.exclusive();
   } catch (err: unknown) {
     logger.warn("consolidation_lock_error", "Failed to acquire consolidation lock", {
       metadata: { error: err instanceof Error ? err.message : String(err) },
@@ -201,11 +205,5 @@ export function recordLastConsolidationRun(db: InstanceType<typeof Database>): v
 // ---------------------------------------------------------------------------
 
 function _ensureWorkspaceConfig(db: InstanceType<typeof Database>): void {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS workspace_config (
-      key        TEXT PRIMARY KEY,
-      value      TEXT NOT NULL,
-      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
-  `);
+  ensureWorkspaceConfigTable(db);
 }

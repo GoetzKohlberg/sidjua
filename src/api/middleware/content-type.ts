@@ -41,7 +41,7 @@ export const contentTypeJson: MiddlewareHandler = async (c, next) => {
   const contentType = c.req.header("content-type") ?? "";
   const mediaType   = contentType.split(";")[0]!.trim().toLowerCase();
 
-  if (mediaType !== "application/json") {
+  if (mediaType !== "application/json" && mediaType !== "multipart/form-data") {
     const displayed = mediaType === "" ? "(missing)" : `"${mediaType}"`;
     return c.json(
       {

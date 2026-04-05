@@ -230,11 +230,43 @@ export class InputSanitizer {
 
   constructor(config: Partial<SanitizerConfig> = {}) {
     this.config = { ...DEFAULT_SANITIZER_CONFIG, ...config };
-    this.customPatterns = (config.customPatterns ?? []).map((p) => ({
-      type:    "injection_pattern" as const,
-      pattern: new RegExp(p, "gi"),
-      detail:  `Custom pattern: ${p}`,
-    }));
+    this.customPatterns = (config.customPatterns ?? []).map((p) => {
+      // Validate custom pattern to prevent ReDoS attacks via crafted user-supplied regexes.
+
+      // 1. Length guard: very long patterns consume CPU at compile time
+      if (p.length > 500) {
+        throw SidjuaError.from(
+          "INPUT-003",
+          `Custom pattern too long: ${p.length} chars (max 500)`,
+        );
+      }
+
+      // 2. Nested-quantifier guard: detect groups/classes followed by a quantifier
+      //    when the group/class itself already contains a quantifier — the classic
+      //    catastrophic-backtracking pattern (e.g. (a+)+ or (.+){2,}).
+      const innerGroupMatch = /\(([^)]+)\)[+*{]/.exec(p);
+      if (innerGroupMatch !== null && /[+*{]/.test(innerGroupMatch[1]!)) {
+        throw SidjuaError.from(
+          "INPUT-003",
+          `Custom pattern contains nested quantifiers (potential ReDoS): "${p.slice(0, 80)}"`,
+        );
+      }
+
+      // 3. Syntax check — compile the regex inside a try/catch so that invalid
+      //    patterns produce a clear error rather than throwing mid-sanitize.
+      try {
+        return {
+          type:    "injection_pattern" as const,
+          pattern: new RegExp(p, "gi"),
+          detail:  `Custom pattern: ${p}`,
+        };
+      } catch (err: unknown) {
+        throw SidjuaError.from(
+          "INPUT-003",
+          `Invalid custom regex pattern: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    });
   }
 
   /**

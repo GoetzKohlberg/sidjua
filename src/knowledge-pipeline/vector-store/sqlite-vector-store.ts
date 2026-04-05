@@ -10,6 +10,12 @@
 
 import type { Database } from "../../utils/db.js";
 import type { VectorPoint, VectorSearchResult, VectorStore } from "./vector-store.js";
+import { createLogger } from "../../core/logger.js";
+
+const logger = createLogger("sqlite-vector-store");
+
+/** Row count threshold above which a performance warning is emitted on search. */
+const LARGE_COLLECTION_WARN_THRESHOLD = 10_000;
 
 function cosineSimilarity(a: Float32Array, b: Float32Array): number {
   let dot = 0;
@@ -55,6 +61,12 @@ export class SqliteVectorStore implements VectorStore {
       .all(collectionId);
 
     if (rows.length === 0) return [];
+
+    if (rows.length >= LARGE_COLLECTION_WARN_THRESHOLD) {
+      logger.warn("vector_search_full_scan", "Full-scan vector search over large collection — consider migrating to Qdrant", {
+        metadata: { collection_id: collectionId, row_count: rows.length },
+      });
+    }
 
     const scored = rows.map((row) => ({
       id:    row.chunk_id,

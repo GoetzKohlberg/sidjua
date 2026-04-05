@@ -137,23 +137,37 @@ export class ClaudeExportParser implements Parser {
     };
   }
 
+  /**
+   * Reject ZIP entry names that could escape the target directory (ZIP-slip).
+   * Entry names containing ".." or starting with "/" are not valid relative paths
+   * and must never be used for file extraction or path lookups.
+   */
+  private _isSafeEntryName(name: string): boolean {
+    if (name.startsWith("/")) return false;
+    const segments = name.split(/[\\/]/);
+    return !segments.includes(".") && !segments.includes("..");
+  }
+
   private async _extractFromZip(buffer: Buffer): Promise<string> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const AdmZip = require("adm-zip") as new (buf: Buffer) => any;
     const zip = new AdmZip(buffer);
     const entries = zip.getEntries() as Array<{ entryName: string; getData: () => Buffer }>;
 
-    // Find conversations.json (may be nested)
-    const entry = entries.find(
+    // Reject entries with path traversal sequences before any access (ZIP-slip guard).
+    const safeEntries = entries.filter((e) => this._isSafeEntryName(e.entryName));
+
+    // Find conversations.json (may be nested) — only among safe entries
+    const entry = safeEntries.find(
       (e) =>
         e.entryName === "conversations.json" ||
         e.entryName.endsWith("/conversations.json"),
     );
 
     if (entry === undefined) {
+      const allNames = entries.map((e) => e.entryName).join(", ");
       throw new Error(
-        "No conversations.json found in ZIP. Entries: " +
-          entries.map((e) => e.entryName).join(", "),
+        "No conversations.json found in ZIP. Entries: " + allNames,
       );
     }
 

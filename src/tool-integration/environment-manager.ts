@@ -30,7 +30,7 @@ interface DbEnvironmentRow {
   type: string;
   platform: string | null;
   platform_version: string | null;
-  config_yaml: string;
+  config_json: string;
   status: string;
   last_tested_at: string | null;
   created_at: string;
@@ -69,7 +69,7 @@ export class EnvironmentManager {
         void
       >(
         `INSERT INTO environments
-           (id, name, type, platform, platform_version, config_yaml,
+           (id, name, type, platform, platform_version, config_json,
             created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       )
@@ -97,7 +97,7 @@ export class EnvironmentManager {
   getById(id: string): Environment {
     const row = this.db
       .prepare<[string], DbEnvironmentRow>(
-        `SELECT id, name, type, platform, platform_version, config_yaml, status,
+        `SELECT id, name, type, platform, platform_version, config_json, status,
                 last_tested_at, created_at, updated_at
          FROM environments WHERE id = ?`,
       )
@@ -120,7 +120,7 @@ export class EnvironmentManager {
   list(): Environment[] {
     const rows = this.db
       .prepare<[], DbEnvironmentRow>(
-        `SELECT id, name, type, platform, platform_version, config_yaml, status,
+        `SELECT id, name, type, platform, platform_version, config_json, status,
                 last_tested_at, created_at, updated_at
          FROM environments`,
       )
@@ -276,7 +276,7 @@ export class EnvironmentManager {
   }
 
   private mapRow(row: DbEnvironmentRow): Environment {
-    const config = JSON.parse(row.config_yaml) as EnvironmentConfig;
+    const config = JSON.parse(row.config_json) as EnvironmentConfig;
 
     const env: Environment = {
       id: row.id,

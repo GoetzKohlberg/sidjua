@@ -31,6 +31,7 @@ import type {
   DaemonStatus,
   DaemonAuditEvent,
 } from "./types.js";
+import type { Database } from "../utils/db.js";
 import { createLogger } from "../core/logger.js";
 
 const logger = createLogger("agent-daemon");
@@ -99,6 +100,7 @@ export class AgentDaemon {
     private readonly watchdogPair?:      WatchdogPair,
     private readonly proactiveScanner?:  ProactiveScanner,
     private readonly schedulerServices?: SchedulerServices,
+    private readonly db?:                Database | null,
   ) {
     this.pollMs  = config.poll_interval_ms ?? DEFAULT_POLL_MS;
     this.maxConc = config.max_concurrent   ?? DEFAULT_MAX_CONC;
@@ -112,6 +114,7 @@ export class AgentDaemon {
   /** Start the daemon loop (no-op if already running). */
   start(): void {
     if (this.running) return;
+    this._loadRateState();
     this.running   = true;
     this.startedAt = new Date().toISOString();
     this.emit("started");
@@ -121,6 +124,11 @@ export class AgentDaemon {
   /**
    * Stop the daemon loop.
    * Signals the loop to exit and waits up to 30 s for in-flight tasks.
+   * Rate/budget state is persisted to SQLite (if db was provided) so that
+   * limits survive a daemon restart (single-process deployment).
+   *
+   * NOTE: Multi-instance deployments (multiple processes sharing the same DB)
+   * are NOT supported in the Free Tier — rate limits are enforced per-process.
    */
   async stop(): Promise<void> {
     if (!this.running) return;
@@ -131,6 +139,7 @@ export class AgentDaemon {
       await Promise.race([this.loopPromise, timeout]);
       this.loopPromise = null;
     }
+    this._persistRateState();
   }
 
   // ---------------------------------------------------------------------------
@@ -381,6 +390,75 @@ export class AgentDaemon {
 
   private _recordTask(): void {
     this.taskTimestamps.push(Date.now());
+  }
+
+  // ---------------------------------------------------------------------------
+  // Rate-state persistence (SQLite — single-process restart survival)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Load rate-limit state from SQLite into memory.
+   * Only entries within the current sliding window are loaded; older rows are
+   * discarded so the window is always fresh on startup.
+   *
+   * Called by start() before the loop begins.
+   */
+  private _loadRateState(): void {
+    if (this.db == null) return;
+    try {
+      const cutoff = Date.now() - SLIDING_WINDOW_MS;
+      const tasks = this.db.prepare<[string, number], { ts: number }>(
+        "SELECT ts FROM daemon_rate_state WHERE agent_id = ? AND type = 'task' AND ts > ?",
+      ).all(this.agentId, cutoff);
+      this.taskTimestamps = tasks.map((r) => r.ts);
+
+      const costs = this.db.prepare<[string, number], { ts: number; cost: number }>(
+        "SELECT ts, cost FROM daemon_rate_state WHERE agent_id = ? AND type = 'cost' AND ts > ?",
+      ).all(this.agentId, cutoff);
+      this.costEntries = costs.map((r) => ({ ts: r.ts, cost: r.cost }));
+    } catch (err: unknown) {
+      // Non-fatal: table may not exist yet (schema migration pending).
+      logger.warn("agent-daemon", "Failed to load rate state from DB (will use empty window)", {
+        metadata: { agent_id: this.agentId, error: err instanceof Error ? err.message : String(err) },
+      });
+    }
+  }
+
+  /**
+   * Persist current rate-limit state to SQLite.
+   * Old entries (outside the sliding window) are pruned first.
+   *
+   * Called by stop() so that limits survive a daemon restart.
+   */
+  private _persistRateState(): void {
+    if (this.db == null) return;
+    try {
+      this._purgeWindow();
+      const cutoff = Date.now() - SLIDING_WINDOW_MS;
+      this.db.transaction(() => {
+        this.db!.prepare<[string, number], void>(
+          "DELETE FROM daemon_rate_state WHERE agent_id = ? AND ts <= ?",
+        ).run(this.agentId, cutoff);
+
+        const taskStmt = this.db!.prepare<[string, string, number, null], void>(
+          "INSERT OR IGNORE INTO daemon_rate_state (agent_id, type, ts, cost) VALUES (?, ?, ?, ?)",
+        );
+        for (const ts of this.taskTimestamps) {
+          taskStmt.run(this.agentId, "task", ts, null);
+        }
+
+        const costStmt = this.db!.prepare<[string, string, number, number], void>(
+          "INSERT OR IGNORE INTO daemon_rate_state (agent_id, type, ts, cost) VALUES (?, ?, ?, ?)",
+        );
+        for (const e of this.costEntries) {
+          costStmt.run(this.agentId, "cost", e.ts, e.cost);
+        }
+      })();
+    } catch (err: unknown) {
+      logger.warn("agent-daemon", "Failed to persist rate state to DB", {
+        metadata: { agent_id: this.agentId, error: err instanceof Error ? err.message : String(err) },
+      });
+    }
   }
 
   // ---------------------------------------------------------------------------

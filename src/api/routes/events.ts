@@ -18,8 +18,8 @@ import type Database from "better-sqlite3";
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 
-import { createLogger }       from "../../core/logger.js";
-import { EventStreamManager } from "../sse/event-stream.js";
+import { createLogger }                                from "../../core/logger.js";
+import { EventStreamManager, checkAndRecordSseIpAttempt } from "../sse/event-stream.js";
 import { getReplaySince }     from "../sse/event-replay.js";
 import { matchesFilters }     from "../sse/event-filter.js";
 import type { SSEClientFilters } from "../sse/event-filter.js";
@@ -59,6 +59,25 @@ export function registerEventRoutes(app: Hono, services: EventRouteServices): vo
   // ---- GET /api/v1/events ------------------------------------------------
 
   app.get("/api/v1/events", (c) => {
+    // IP-based rate limit — applied before ticket validation to prevent exhausting
+    // the MAX_CLIENTS pool via rapid connection attempts from a single source.
+    const clientIpEarly = getClientIp(c.req.raw.headers);
+    if (!checkAndRecordSseIpAttempt(clientIpEarly)) {
+      logger.warn("sse_ip_rate_limited", "SSE connection rate-limited by IP", {
+        metadata: { ip: clientIpEarly },
+      });
+      return c.json(
+        {
+          error: {
+            code:        "RATE-SSE-001",
+            message:     "Too many SSE connection attempts from this address. Try again later.",
+            recoverable: true,
+          },
+        },
+        429,
+      );
+    }
+
     // Reject deprecated token= query parameter — tokens in query strings appear
     // in server logs, browser history, and referrer headers.
     const legacyToken = c.req.query("token");

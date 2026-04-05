@@ -185,7 +185,9 @@ export class EmbeddingPipeline {
       _logger.debug("embedding-pipeline", "FTS index rebuild failed — index may be stale", { metadata: { error: e instanceof Error ? e.message : String(e) } });
     }
 
-    // Update collection chunk_count and total_tokens
+    // Update collection chunk_count and total_tokens.
+    // Use progress.completed (actual successful writes) not expandedChunks.length
+    // to avoid inflating chunk_count when some chunks fail embedding.
     this.db.prepare<[number, number, string, string], void>(`
       UPDATE knowledge_collections
       SET chunk_count = chunk_count + ?,
@@ -193,7 +195,7 @@ export class EmbeddingPipeline {
           status = 'indexed',
           updated_at = ?
       WHERE id = ?
-    `).run(expandedChunks.length, tokensTotal, new Date().toISOString(), options.collection_id);
+    `).run(progress.completed, tokensTotal, new Date().toISOString(), options.collection_id);
 
     this.logger.info("ingestion_complete", "Ingestion complete", {
       metadata: {
@@ -268,6 +270,13 @@ export class EmbeddingPipeline {
 
   /** Writes a single chunk + embedding to the DB (no transaction — used for retry path). */
   private async _writeOne(chunk: Chunk, embedding: Float32Array, wal?: MemoryWal): Promise<void> {
+    // WAL "pending" entry must be written BEFORE the DB write so crash recovery
+    // can detect and re-embed any chunk whose DB write succeeded but whose
+    // "committed" marker was never written.
+    const walId = wal !== undefined
+      ? await wal.appendPending("chunk_write", chunk.collection_id, chunk.id)
+      : undefined;
+
     this.db.prepare<
       [string, string, string, string, number, number, string, number | null, string, string, string],
       void
@@ -283,7 +292,6 @@ export class EmbeddingPipeline {
       JSON.stringify(chunk.metadata),
       chunk.created_at,
     );
-    const walId = wal !== undefined ? await wal.appendPending("chunk_write", chunk.collection_id, chunk.id) : undefined;
     await this.vectorStore.upsert(chunk.collection_id, [{ id: chunk.id, vector: embedding }]);
     if (walId !== undefined) await wal!.markCommitted(walId, "chunk_write", chunk.collection_id, chunk.id);
   }
@@ -300,7 +308,8 @@ export class EmbeddingPipeline {
     let currentTokens = 0;
 
     for (const chunk of chunks) {
-      const t = countTokens(chunk.content);
+      // Prefer the precomputed token_count field; fall back to estimation only when zero.
+      const t = chunk.token_count > 0 ? chunk.token_count : countTokens(chunk.content);
       if (current.length >= maxChunks || (current.length > 0 && currentTokens + t > maxTokens)) {
         batches.push(current);
         current = [chunk];

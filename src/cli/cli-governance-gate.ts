@@ -80,8 +80,18 @@ export function getCliCallerContext(
       if (row?.value === "admin" || row?.value === "operator" || row?.value === "readonly") {
         role = row.value;
       }
-    } catch (_err: unknown) {
-      // workspace_config may not exist yet (pre-apply) — use default
+    } catch (err: unknown) {
+      // "no such table" = pre-apply state (workspace_config not yet created) — use default.
+      // Any other error is unexpected; fail-closed rather than granting operator access.
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!msg.includes("no such table")) {
+        logger.warn(
+          "cli_governance_gate_db_error",
+          "Unexpected DB error reading cli_default_role — rejecting (fail-closed)",
+          { metadata: { error: msg } },
+        );
+        throw new Error(`CLI governance check failed: ${msg}`);
+      }
     }
   }
 

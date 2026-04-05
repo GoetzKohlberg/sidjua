@@ -59,14 +59,23 @@ function jaccardSimilarity(a: string, b: string): number {
   return intersection.size / union.size;
 }
 
+/**
+ * Maximum byte length accepted for an event's `details` field before JSON.parse.
+ * Prevents a crafted large-JSON payload from exhausting heap memory (JSON bomb).
+ */
+const MAX_DETAIL_SIZE = 1_048_576; // 1 MiB
+
 /** Convert a GatheredEvent to a MemoryEntry. */
 function eventToEntry(event: GatheredEvent): MemoryEntry {
   let details: Record<string, unknown> = {};
   try {
+    if (event.details.length > MAX_DETAIL_SIZE) {
+      throw new Error(`details too large: ${event.details.length} bytes (limit ${MAX_DETAIL_SIZE})`);
+    }
     details = JSON.parse(event.details) as Record<string, unknown>;
   } catch (_e) {
-    // non-JSON details — use raw string
-    details = { raw: event.details };
+    // non-JSON or oversized details — store truncated raw string
+    details = { raw: event.details.slice(0, 200) };
   }
 
   const content = typeof details["summary"] === "string"

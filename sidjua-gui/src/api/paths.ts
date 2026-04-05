@@ -88,4 +88,10 @@ export const API_PATHS = {
   // Org chart status (P359)
   orgStatus:             ()             => `${API_PREFIX}/org/status`,
   orgAgentTasks:         (id: string)   => `${API_PREFIX}/org/agent/${id}/tasks`,
+
+  // Backup
+  backup:                ()             => `${API_PREFIX}/backup`,
+
+  // Activity stream
+  activityStream:        ()             => `${API_PREFIX}/activity/stream`,
 } as const;

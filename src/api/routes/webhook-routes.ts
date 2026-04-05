@@ -35,6 +35,18 @@ const logger = createLogger("webhook-routes");
 /** Maximum allowed request body size in bytes (1 MB). */
 const MAX_PAYLOAD_BYTES = 1_048_576;
 
+/**
+ * Patterns indicating HTML/script injection in webhook payload strings.
+ * Shared with execution.ts logic — webhook content goes directly into task descriptions.
+ */
+const WEBHOOK_HTML_INJECTION_RE =
+  /<\s*script|javascript\s*:|on\w+\s*=\s*["']?[^"'>]+|<\s*iframe|<\s*object\b|<\s*embed\b|data\s*:[a-z]+\/[a-z]/i;
+
+/** Return true if the string contains HTML/script injection patterns. */
+function containsHtmlInjection(text: string): boolean {
+  return WEBHOOK_HTML_INJECTION_RE.test(text);
+}
+
 /** Generic 401 response — no detail about what failed. */
 const UNAUTHORIZED = { error: { code: "AUTH-004", message: "Unauthorized", recoverable: false } } as const;
 
@@ -146,6 +158,18 @@ export function registerWebhookRoutes(app: Hono, services: WebhookRouteServices)
     });
 
     // ── 7. Submit task ────────────────────────────────────────────────────────
+
+    // Reject webhook payloads containing HTML/script injection
+    if (containsHtmlInjection(normalized.title) || containsHtmlInjection(normalized.description)) {
+      logger.warn("webhook-routes", "Webhook payload rejected: HTML/script injection detected", {
+        metadata: { agent_id: agentId, source: normalized.source },
+      });
+      return c.json(
+        { error: { code: "WEBHOOK-003", message: "Webhook payload contains disallowed HTML or script content", recoverable: false } },
+        400,
+      );
+    }
+
     try {
       const eventBus = new TaskEventBus(services.db);
       const bridge   = new ExecutionBridge(services.db, eventBus);

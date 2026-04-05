@@ -18,6 +18,7 @@ import type {
 } from "../types.js";
 import { createLogger } from "../../core/logger.js";
 import { SidjuaError } from "../../core/error-codes.js";
+import { validateOutboundUrlAsync } from "../../core/network/url-validator.js";
 
 const logger = createLogger("rest-adapter");
 
@@ -27,47 +28,34 @@ const RETRY_DELAYS_MS = [1_000, 2_000, 4_000];
 const MAX_ATTEMPTS = 3;
 
 
-const PRIVATE_IP_PATTERNS = [
-  /^10\./,
-  /^172\.(1[6-9]|2\d|3[01])\./,
-  /^192\.168\./,
-  /^127\./,
-  /^0\./,
-  /^::1$/,
-  /^fc00:/i,
-  /^fd[0-9a-f]{2}:/i,
-  /^fe80:/i,
-  /^localhost$/i,
-];
-
-/** Returns true when the URL hostname resolves to a private or loopback address. */
-function isPrivateUrl(urlStr: string): boolean {
-  try {
-    const url = new URL(urlStr);
-    const host = url.hostname;
-    return PRIVATE_IP_PATTERNS.some((p) => p.test(host));
-  } catch (_parseErr) {
-    return true; // Unparseable URLs are rejected
-  }
-}
-
 /**
- * Enforce SSRF protection on a URL.
- * Throws SidjuaError if the URL is private/local or not in the configured allowlist.
+ * Enforce SSRF protection on a URL using DNS-resolution validation.
+ *
+ * Calls validateOutboundUrlAsync (static checks + DNS lookup) to prevent
+ * DNS rebinding attacks, then enforces any configured domain allowlist.
+ *
+ * @throws SidjuaError SSRF-001 on scheme / format violation
+ * @throws SidjuaError SSRF-002 on private/loopback host (static check)
+ * @throws SidjuaError SSRF-003 on private/loopback DNS resolution
+ * @throws SidjuaError REST-SEC-002 on domain not in allowlist
  */
-function assertAllowedUrl(urlStr: string): void {
-  if (isPrivateUrl(urlStr)) {
-    const host = (() => { try { return new URL(urlStr).hostname; } catch (_e) { return urlStr; } })();
-    throw SidjuaError.from("REST-SEC-001", `Request to private or local address blocked: ${host}`);
-  }
+async function assertAllowedUrl(urlStr: string): Promise<void> {
+  // DNS-resolving SSRF check (covers private IPs + DNS rebinding)
+  await validateOutboundUrlAsync(urlStr);
 
+  // Domain allowlist (operator-configured via SIDJUA_REST_ALLOWLIST)
   const allowList = process.env["SIDJUA_REST_ALLOWLIST"]
     ?.split(",")
     .map((d) => d.trim())
     .filter(Boolean) ?? [];
 
   if (allowList.length > 0) {
-    const host = new URL(urlStr).hostname;
+    let host: string;
+    try {
+      host = new URL(urlStr).hostname;
+    } catch (_e) {
+      throw SidjuaError.from("REST-SEC-001", `Invalid URL: ${urlStr}`);
+    }
     if (!allowList.includes(host)) {
       throw SidjuaError.from("REST-SEC-002", `Request domain not in allowlist: ${host}`);
     }
@@ -157,8 +145,8 @@ export class RestAdapter implements ToolAdapter {
         };
     }
 
-    // Reject requests to private/local addresses (SSRF protection)
-    assertAllowedUrl(url);
+    // Reject requests to private/local addresses (SSRF + DNS rebinding protection)
+    await assertAllowedUrl(url);
 
     const timeoutMs = this.config.timeout_ms ?? 30_000;
 
@@ -310,7 +298,7 @@ export class RestAdapter implements ToolAdapter {
     }
 
     const url = this.config.base_url + pathWithQuery;
-    assertAllowedUrl(url);
+    await assertAllowedUrl(url);
 
     const timeoutMs = this.config.timeout_ms ?? 30_000;
     const maxResponseBytes = 1_048_576; // 1 MiB

@@ -30,6 +30,8 @@ import type {
   FirstRunCompleteResponse,
   ScanResult,
   BouncerConfigResponse,
+  BackupResult,
+  ActivityStreamResponse,
 } from './types';
 
 
@@ -48,6 +50,21 @@ function validatePathParam(value: string, name: string): string {
     );
   }
   return encodeURIComponent(trimmed);
+}
+
+/** Maximum length for a query parameter value (guards against oversized inputs). */
+const MAX_QUERY_PARAM_LENGTH = 256;
+
+/**
+ * Sanitize a user-supplied query parameter value.
+ * - Strips ASCII control characters (0x00–0x1F, 0x7F) to prevent header injection
+ * - Truncates to MAX_QUERY_PARAM_LENGTH to prevent oversized queries
+ * - URL-encodes the result for safe inclusion in query strings
+ */
+function sanitizeQueryParam(value: string): string {
+  // eslint-disable-next-line no-control-regex
+  const cleaned = value.replace(/[\x00-\x1F\x7F]/g, '');
+  return encodeURIComponent(cleaned.slice(0, MAX_QUERY_PARAM_LENGTH));
 }
 
 
@@ -150,9 +167,12 @@ export class SidjuaApiClient {
 
   private headers(): HeadersInit {
     return {
-      'Authorization': `Bearer ${this.apiKey}`,
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
+      'Authorization':     `Bearer ${this.apiKey}`,
+      'Accept':            'application/json',
+      'Content-Type':      'application/json',
+      // Custom marker for CSRF defense-in-depth — browsers can't set this cross-origin
+      // without triggering a CORS preflight; browser extensions cannot forge it.
+      'X-SIDJUA-Request':  '1',
     };
   }
 
@@ -278,9 +298,9 @@ export class SidjuaApiClient {
     tier?: 1 | 2 | 3;
   }): Promise<AgentsResponse> {
     const qs = new URLSearchParams();
-    if (params?.division) qs.set('division', params.division);
-    if (params?.status)   qs.set('status', params.status);
-    if (params?.tier)     qs.set('tier', String(params.tier));
+    if (params?.division) qs.set('division', sanitizeQueryParam(params.division));
+    if (params?.status)   qs.set('status',   sanitizeQueryParam(params.status));
+    if (params?.tier)     qs.set('tier',     String(params.tier));
     const q = qs.toString();
     return this.get(`${API_PATHS.agents()}${q ? `?${q}` : ''}`);
   }
@@ -304,11 +324,11 @@ export class SidjuaApiClient {
     offset?: number;
   }): Promise<TasksResponse> {
     const qs = new URLSearchParams();
-    if (params?.status)   qs.set('status', params.status);
-    if (params?.division) qs.set('division', params.division);
-    if (params?.agent)    qs.set('agent', params.agent);
-    if (params?.limit)    qs.set('limit', String(params.limit));
-    if (params?.offset)   qs.set('offset', String(params.offset));
+    if (params?.status)   qs.set('status',   sanitizeQueryParam(params.status));
+    if (params?.division) qs.set('division', sanitizeQueryParam(params.division));
+    if (params?.agent)    qs.set('agent',    sanitizeQueryParam(params.agent));
+    if (params?.limit)    qs.set('limit',    String(Math.max(0, Math.floor(params.limit))));
+    if (params?.offset)   qs.set('offset',   String(Math.max(0, Math.floor(params.offset))));
     const q = qs.toString();
     return this.get(`${API_PATHS.tasks()}${q ? `?${q}` : ''}`);
   }
@@ -327,13 +347,13 @@ export class SidjuaApiClient {
     offset?: number;
   }): Promise<AuditResponse> {
     const qs = new URLSearchParams();
-    if (params?.division) qs.set('division', params.division);
-    if (params?.agent)    qs.set('agent', params.agent);
-    if (params?.event)    qs.set('event', params.event);
-    if (params?.from)     qs.set('from', params.from);
-    if (params?.to)       qs.set('to', params.to);
-    if (params?.limit)    qs.set('limit', String(params.limit));
-    if (params?.offset)   qs.set('offset', String(params.offset));
+    if (params?.division) qs.set('division', sanitizeQueryParam(params.division));
+    if (params?.agent)    qs.set('agent',    sanitizeQueryParam(params.agent));
+    if (params?.event)    qs.set('event',    sanitizeQueryParam(params.event));
+    if (params?.from)     qs.set('from',     sanitizeQueryParam(params.from));
+    if (params?.to)       qs.set('to',       sanitizeQueryParam(params.to));
+    if (params?.limit)    qs.set('limit',    String(Math.max(0, Math.floor(params.limit))));
+    if (params?.offset)   qs.set('offset',   String(Math.max(0, Math.floor(params.offset))));
     const q = qs.toString();
     return this.get(`${API_PATHS.audit()}${q ? `?${q}` : ''}`);
   }
@@ -391,11 +411,11 @@ export class SidjuaApiClient {
     to?: string;
   }): Promise<CostsResponse> {
     const qs = new URLSearchParams();
-    if (params?.division) qs.set('division', params.division);
-    if (params?.agent)    qs.set('agent', params.agent);
-    if (params?.period)   qs.set('period', params.period);
-    if (params?.from)     qs.set('from', params.from);
-    if (params?.to)       qs.set('to', params.to);
+    if (params?.division) qs.set('division', sanitizeQueryParam(params.division));
+    if (params?.agent)    qs.set('agent',    sanitizeQueryParam(params.agent));
+    if (params?.period)   qs.set('period',   sanitizeQueryParam(params.period));
+    if (params?.from)     qs.set('from',     sanitizeQueryParam(params.from));
+    if (params?.to)       qs.set('to',       sanitizeQueryParam(params.to));
     const q = qs.toString();
     return this.get(`${API_PATHS.costs()}${q ? `?${q}` : ''}`);
   }
@@ -428,5 +448,13 @@ export class SidjuaApiClient {
 
   scanMessage(message: string): Promise<ScanResult> {
     return this.post(API_PATHS.chatScan(), { message });
+  }
+
+  createBackup(): Promise<BackupResult> {
+    return this.post(API_PATHS.backup(), undefined, TIMEOUT_MS.long);
+  }
+
+  listErrorEvents(limit = 20): Promise<ActivityStreamResponse> {
+    return this.get(`${API_PATHS.activityStream()}?severity=error&limit=${limit}`);
   }
 }

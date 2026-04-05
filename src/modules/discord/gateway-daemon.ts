@@ -238,6 +238,7 @@ export async function startDaemon(opts: DaemonOptions): Promise<Daemon> {
   const handler = new SupportHandler(client, docMatcher, redmineHandler, {
     supportChannelIds,
     botUserId,
+    allowedGuildIds: new Set([config.guildId]),
   });
 
   // Create Gateway

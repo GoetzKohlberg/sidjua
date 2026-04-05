@@ -50,6 +50,14 @@ export class OllamaEmbedder implements Embedder {
     this.baseUrl   = (opts.baseUrl ?? DEFAULT_BASE_URL).replace(/\/$/, "");
     this.model     = opts.model ?? DEFAULT_MODEL;
     this.maxTokens = opts.maxTokens ?? OLLAMA_MAX_TOKENS;
+    // Validate scheme — Ollama is local infrastructure so private IPs are
+    // allowed, but non-http/https schemes are not.
+    const scheme = new URL(this.baseUrl).protocol;
+    if (scheme !== "http:" && scheme !== "https:") {
+      throw new Error(
+        `OllamaEmbedder: unsupported URL scheme "${scheme}" — must be http or https`,
+      );
+    }
   }
 
   async embed(texts: string[], _options?: EmbedderOptions): Promise<Float32Array[]> {

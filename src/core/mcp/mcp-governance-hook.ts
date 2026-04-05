@@ -25,7 +25,8 @@ import type {
   GovernanceContext,
   ToolRiskLevel,
 } from "./types.js";
-import { RISK_TIER_MAP } from "./types.js";
+import { RISK_TIER_MAP, DEFAULT_RISK_LEVELS } from "./types.js";
+import { BoundedMap } from "../../utils/bounded-map.js";
 
 const logger = createLogger("mcp-governance");
 
@@ -50,8 +51,11 @@ function classificationRank(level: string): number {
 // Rate limiter — in-memory sliding window per (server, agentId)
 // ---------------------------------------------------------------------------
 
-/** Call timestamps per key: `${serverName}::${agentId}` */
-const rateLimitWindows = new Map<string, number[]>();
+/** Maximum number of distinct rate-limit keys tracked in memory. */
+const MAX_RATE_LIMIT_KEYS = 10_000;
+
+/** Call timestamps per key: `${serverName}::${agentId}` — bounded to prevent unbounded growth. */
+const rateLimitWindows = new BoundedMap<string, number[]>(MAX_RATE_LIMIT_KEYS);
 
 /** Exported for test cleanup only */
 export function clearRateLimitState(): void {
@@ -88,15 +92,30 @@ export async function governToolCall(
 ): Promise<GovernanceDecision> {
   try {
     // ── Stage 0: Tool risk vs agent tier ────────────────────────────────────
-    if (toolRiskLevel !== undefined) {
-      const permittedTiers = RISK_TIER_MAP[toolRiskLevel];
+    // Resolve effective risk level — use explicit value first, then prefix lookup
+    // from DEFAULT_RISK_LEVELS, then "high" as a fail-closed default so that
+    // tools without an explicit risk level are never silently permitted to T3 agents.
+    const effectiveRiskLevel: ToolRiskLevel = toolRiskLevel ?? (() => {
+      for (const [prefix, level] of Object.entries(DEFAULT_RISK_LEVELS)) {
+        if (toolName.startsWith(prefix)) return level;
+      }
+      return "high"; // fail-closed: unknown tools are treated as high-risk
+    })();
+    {
+      const permittedTiers = RISK_TIER_MAP[effectiveRiskLevel];
       if (!permittedTiers.includes(context.tier)) {
         logger.info("mcp_gov_risk_denied", "MCP tool call denied: tier below risk level", {
-          metadata: { tool: toolName, server: serverName, tier: context.tier, riskLevel: toolRiskLevel },
+          metadata: {
+            tool:       toolName,
+            server:     serverName,
+            tier:       context.tier,
+            riskLevel:  effectiveRiskLevel,
+            riskSource: toolRiskLevel !== undefined ? "explicit" : "default",
+          },
         });
         return {
           allowed: false,
-          reason: `Tool risk level "${toolRiskLevel}" requires tier in [${permittedTiers.join(", ")}] — agent is ${context.tier}`,
+          reason: `Tool risk level "${effectiveRiskLevel}" requires tier in [${permittedTiers.join(", ")}] — agent is ${context.tier}`,
           stage: 0,
         };
       }

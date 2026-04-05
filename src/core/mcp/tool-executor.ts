@@ -25,6 +25,7 @@
 
 import { createHash }           from "node:crypto";
 import { createLogger }         from "../logger.js";
+import { redactPii }            from "../telemetry/pii-redactor.js";
 import { activityEmitter }      from "../activity/activity-emitter.js";
 import { getMetrics }           from "./../../core/metrics/index.js";
 import { governToolCall }       from "./mcp-governance-hook.js";
@@ -413,7 +414,8 @@ export async function executeWithToolLoop(
 
         toolResultParts.push(`[Tool: ${toolName}]\n${resultText}`);
       } catch (err) {
-        const errMsg = err instanceof Error ? err.message : String(err);
+        // Redact PII before logging — tool error messages may reflect arg content
+        const errMsg = redactPii(err instanceof Error ? err.message : String(err));
         activityEmitter.emit({
           event_type: "mcp.tool.error",
           category:   "agent",

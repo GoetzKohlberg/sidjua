@@ -33,6 +33,21 @@ const logger = createLogger("cron-scheduler");
 
 
 const SCHEMA_SQL = `
+CREATE TABLE IF NOT EXISTS schedule_budget_reservations (
+  id           TEXT PRIMARY KEY,
+  schedule_id  TEXT NOT NULL,
+  agent_id     TEXT NOT NULL,
+  division_id  TEXT NOT NULL,
+  reserved_usd REAL NOT NULL,
+  actual_usd   REAL,
+  created_at   TEXT NOT NULL,
+  released_at  TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_reservations_schedule
+  ON schedule_budget_reservations(schedule_id);
+CREATE INDEX IF NOT EXISTS idx_reservations_division_day
+  ON schedule_budget_reservations(division_id, agent_id, created_at);
+
 CREATE TABLE IF NOT EXISTS schedules (
   id TEXT PRIMARY KEY,
   agent_id TEXT NOT NULL,
@@ -272,38 +287,57 @@ export class CronScheduler {
 
   /**
    * Check governance constraints and advance DB bookkeeping for one due schedule.
-   * Returns `{ executed: true }` if all checks pass, or `{ executed: false, reason }`.
+   *
+   * Atomically reserves budget before executing; returns a `reservationId` the
+   * daemon layer MUST pass to `releaseReservation()` after the task completes
+   * (or fails), so the budget window is closed correctly.
+   *
+   * Returns `{ executed: true, reservationId }` on success, or
+   * `{ executed: false, reason }` when any constraint is not met.
    *
    * NOTE: Does NOT submit a task — actual task submission handled in the daemon layer.
    */
   async executeDueSchedule(
     schedule: ScheduleDefinition,
     now: Date = new Date(),
-  ): Promise<{ executed: boolean; reason?: string }> {
+  ): Promise<{ executed: boolean; reason?: string; reservationId?: string }> {
     // 1. Check daily run count via the schedule_runs ledger table
-    const todayDate  = now.toISOString().slice(0, 10); // "YYYY-MM-DD"
-    const countRow   = this.db.prepare<[string, string], { cnt: number }>(
+    const todayDate = now.toISOString().slice(0, 10); // "YYYY-MM-DD"
+    const countRow  = this.db.prepare<[string, string], { cnt: number }>(
       "SELECT COUNT(*) as cnt FROM schedule_runs WHERE schedule_id = ? AND date(run_at) = ?",
     ).get(schedule.id, todayDate);
-    const runsToday  = countRow?.cnt ?? 0;
+    const runsToday = countRow?.cnt ?? 0;
 
     if (runsToday >= schedule.governance.max_runs_per_day) {
       return { executed: false, reason: "max_runs_per_day exceeded" };
     }
 
-    // 2. Check budget
-    if (!this.budgetTracker.canAfford(schedule.governance.max_cost_per_run, schedule.division)) {
-      return { executed: false, reason: "budget_exhausted" };
-    }
-
-    // 3. Check approval requirement (first run only)
+    // 2. Check approval requirement (first run only)
     if (schedule.governance.require_approval && schedule.total_runs === 0) {
       return { executed: false, reason: "requires_approval" };
     }
 
+    // 3. Atomic budget check + reserve (replaces non-atomic canAfford check)
+    let reservationId: string;
+    try {
+      reservationId = this._atomicCheckAndReserve(
+        schedule.id,
+        schedule.agent_id,
+        schedule.division,
+        schedule.governance.max_cost_per_run,
+        now,
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg === "daily_cap_exceeded") {
+        return { executed: false, reason: "daily_cap_exceeded" };
+      }
+      return { executed: false, reason: "budget_exhausted" };
+    }
+
     // 4. All checks passed — update DB bookkeeping
-    const newNextRun  = nextRunAt(schedule.cron_expression, now);
-    const nowIso      = now.toISOString();
+    const newNextRun = nextRunAt(schedule.cron_expression, now);
+    const nowIso     = now.toISOString();
     this.db.prepare<unknown[], void>(`
       UPDATE schedules SET
         last_run_at  = ?,
@@ -320,13 +354,35 @@ export class CronScheduler {
 
     this.log.info("cron-scheduler", "Schedule executed", {
       metadata: {
-        schedule_id: schedule.id,
-        agent_id:    schedule.agent_id,
-        next_run_at: newNextRun,
+        schedule_id:    schedule.id,
+        agent_id:       schedule.agent_id,
+        next_run_at:    newNextRun,
+        reservation_id: reservationId,
       },
     });
 
-    return { executed: true };
+    return { executed: true, reservationId };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Budget reservation
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Release a budget reservation after a scheduled task completes.
+   * Records the actual cost (may be less than the reserved amount).
+   * Call this from the daemon layer on both success and failure.
+   *
+   * @param reservationId  ID returned by executeDueSchedule.
+   * @param actualCostUsd  Actual cost incurred; 0 on failure.
+   */
+  releaseReservation(reservationId: string, actualCostUsd: number): void {
+    const nowIso = new Date().toISOString();
+    this.db.prepare<unknown[], void>(
+      `UPDATE schedule_budget_reservations
+         SET actual_usd = ?, released_at = ?
+       WHERE id = ?`,
+    ).run(actualCostUsd, nowIso, reservationId);
   }
 
   // ---------------------------------------------------------------------------
@@ -529,6 +585,59 @@ export class CronScheduler {
   // ---------------------------------------------------------------------------
   // Private helpers
   // ---------------------------------------------------------------------------
+
+  /**
+   * Atomically check daily-cap + per-run budget, then insert a reservation row.
+   * Runs inside a SQLite BEGIN…COMMIT transaction so two concurrent callers
+   * cannot both pass the cap check and oversubscribe.
+   *
+   * Budget key: agent_id + division_id (schedule_id is tracked for audit).
+   *
+   * @throws Error("daily_cap_exceeded") when the agent/division daily cap is full.
+   * @throws Error("budget_exhausted")  when the real-time budget tracker rejects.
+   * @returns Reservation ID (UUID string).
+   */
+  private _atomicCheckAndReserve(
+    scheduleId:     string,
+    agentId:        string,
+    divisionId:     string,
+    reservedAmount: number,
+    now:            Date,
+  ): string {
+    const reservationId = crypto.randomUUID();
+    const todayDate     = now.toISOString().slice(0, 10);
+    const nowIso        = now.toISOString();
+
+    const txn = this.db.transaction(() => {
+      // 1. Daily-cap check: sum all reservations for this agent+division today
+      const sumRow = this.db.prepare<[string, string, string], { total: number }>(
+        `SELECT COALESCE(SUM(reserved_usd), 0.0) AS total
+           FROM schedule_budget_reservations
+          WHERE agent_id = ? AND division_id = ? AND date(created_at) = ?`,
+      ).get(agentId, divisionId, todayDate);
+      const todayTotal = sumRow?.total ?? 0;
+
+      const dailyCap = this.governance.global_limits.max_total_scheduled_cost_per_day;
+      if (todayTotal + reservedAmount > dailyCap) {
+        throw new Error("daily_cap_exceeded");
+      }
+
+      // 2. Real-time budget check (fail-closed: rejection = blocked)
+      if (!this.budgetTracker.canAfford(reservedAmount, divisionId)) {
+        throw new Error("budget_exhausted");
+      }
+
+      // 3. Insert the reservation — visible to concurrent callers immediately
+      this.db.prepare<unknown[], void>(
+        `INSERT INTO schedule_budget_reservations
+           (id, schedule_id, agent_id, division_id, reserved_usd, created_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+      ).run(reservationId, scheduleId, agentId, divisionId, reservedAmount, nowIso);
+    });
+
+    txn(); // Execute within a single SQLite transaction
+    return reservationId;
+  }
 
   private _getRow(id: string): ScheduleRow | null {
     const row = this.db.prepare<unknown[], ScheduleRow>(

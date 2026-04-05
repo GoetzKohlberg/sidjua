@@ -150,9 +150,38 @@ const V1_6_RESILIENCE: DbMigration = {
   `,
 };
 
+const V1_7_DAEMON_RATE_STATE: DbMigration = {
+  version: "1.7",
+  description: "Daemon rate-state persistence — survive restart without resetting sliding windows",
+  up: `
+    -- Persists per-agent sliding-window rate/budget entries so that hourly limits
+    -- survive a daemon restart (single-process deployment). Rows older than one
+    -- hour are pruned on load and on shutdown.
+    --
+    -- NOTE: Multi-instance deployments (multiple processes sharing the same DB)
+    -- are NOT supported — rate limits are enforced per-process.
+    CREATE TABLE IF NOT EXISTS daemon_rate_state (
+      agent_id TEXT    NOT NULL,
+      type     TEXT    NOT NULL CHECK (type IN ('task', 'cost')),
+      ts       INTEGER NOT NULL,
+      cost     REAL,
+      PRIMARY KEY (agent_id, type, ts)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_daemon_rate_agent
+      ON daemon_rate_state(agent_id, type, ts);
+  `,
+  down: `
+    DROP INDEX IF EXISTS idx_daemon_rate_agent;
+    DROP TABLE IF EXISTS daemon_rate_state;
+  `,
+};
+
+
 export const LIFECYCLE_MIGRATIONS: DbMigration[] = [
   V1_5_AGENT_LIFECYCLE,
   V1_6_RESILIENCE,
+  V1_7_DAEMON_RATE_STATE,
 ];
 
 

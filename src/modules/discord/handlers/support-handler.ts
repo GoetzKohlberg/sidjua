@@ -64,10 +64,24 @@ export interface SupportHandlerConfig {
   supportChannelIds: Set<string>;
   /** The bot's own user ID — used to prevent self-response loops. */
   botUserId: string;
+  /**
+   * Whitelist of guild IDs the bot is permitted to respond in.
+   * Messages from guilds not in this set are silently ignored.
+   * Prevents the bot from being added to an untrusted server and leaking data.
+   */
+  allowedGuildIds: Set<string>;
 }
 
 
+/** Maximum number of tickets a single user can create per hour. */
+const TICKET_RATE_LIMIT = 5;
+/** Rate-limit window in milliseconds (1 hour). */
+const TICKET_RATE_WINDOW_MS = 3_600_000;
+
 export class SupportHandler {
+  /** Per-user ticket creation timestamps for rate limiting. */
+  private readonly ticketTimestamps = new Map<string, number[]>();
+
   constructor(
     private readonly client:         DiscordClient,
     private readonly docMatcher:     DocMatcher,
@@ -76,8 +90,25 @@ export class SupportHandler {
   ) {}
 
   /**
+   * Returns true if the user has exceeded the ticket creation rate limit.
+   * Prunes stale timestamps on each call.
+   */
+  private isTicketRateLimited(userId: string): boolean {
+    const now = Date.now();
+    const cutoff = now - TICKET_RATE_WINDOW_MS;
+    const times  = (this.ticketTimestamps.get(userId) ?? []).filter((t) => t > cutoff);
+    if (times.length >= TICKET_RATE_LIMIT) {
+      this.ticketTimestamps.set(userId, times);
+      return true;
+    }
+    times.push(now);
+    this.ticketTimestamps.set(userId, times);
+    return false;
+  }
+
+  /**
    * Handle an incoming Gateway message.
-   * No-ops if the message is from a bot, outside support channels, or a DM.
+   * No-ops if the message is from a bot, outside support channels, DM, or untrusted guild.
    */
   async handleMessage(msg: GatewayMessage): Promise<void> {
     // 1. Ignore bots (including ourselves)
@@ -89,6 +120,9 @@ export class SupportHandler {
 
     // 3. Ignore DMs (no guild_id)
     if (msg.guild_id === undefined) return;
+
+    // 4. Guild whitelist check — reject messages from unlisted servers
+    if (!this.config.allowedGuildIds.has(msg.guild_id)) return;
 
     const priority = detectPriority(msg.content);
 
@@ -107,6 +141,12 @@ export class SupportHandler {
 
     // 5. Create Redmine issue for HIGH priority
     if (priority === "HIGH" && this.redmineHandler !== null) {
+      if (this.isTicketRateLimited(msg.author.id)) {
+        await this.client.sendMessage(msg.channel_id, {
+          content: `<@${msg.author.id}> You're submitting tickets too quickly. Please wait before creating another.`,
+        });
+        return;
+      }
       if (this.redmineHandler.canCreateIssue(msg.author.id)) {
         const issueId = await this.redmineHandler.createIssue(
           msg, priority, msg.channel_id,

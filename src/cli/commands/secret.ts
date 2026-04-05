@@ -27,6 +27,7 @@ import { hasTable }           from "../utils/db-init.js";
 import { msg }                from "../../i18n/index.js";
 import { auditCliCommand }    from "../cli-audit.js";
 import { getOsUsername }      from "../cli-governance-gate.js";
+import { cliErrorHandler }    from "../utils/command-helpers.js";
 
 
 async function openProvider(workDir: string): Promise<{
@@ -111,8 +112,8 @@ export function registerSecretCommands(program: Command): void {
         await provider.set(namespace, key, value);
         out(`✓ Set ${namespace}/${key}\n`);
       } catch (e) {
-        err(`Error: ${String(e)}`);
-        process.exit(1);
+        close();
+        cliErrorHandler(e, "secret set");
       } finally {
         close();
       }
@@ -177,8 +178,8 @@ export function registerSecretCommands(program: Command): void {
           out(msg("secret.get.masked_hint"));
         }
       } catch (e) {
-        err(`Error: ${String(e)}`);
-        process.exit(1);
+        close();
+        cliErrorHandler(e, "secret get");
       } finally {
         close();
       }
@@ -200,8 +201,8 @@ export function registerSecretCommands(program: Command): void {
           for (const k of keys) out(`${k}\n`);
         }
       } catch (e) {
-        err(`Error: ${String(e)}`);
-        process.exit(1);
+        close();
+        cliErrorHandler(e, "secret list");
       } finally {
         close();
       }
@@ -225,8 +226,8 @@ export function registerSecretCommands(program: Command): void {
         await provider.delete(namespace, key);
         out(`✓ Deleted ${namespace}/${key}\n`);
       } catch (e) {
-        err(`Error: ${String(e)}`);
-        process.exit(1);
+        close();
+        cliErrorHandler(e, "secret delete");
       } finally {
         close();
       }
@@ -256,8 +257,8 @@ export function registerSecretCommands(program: Command): void {
         out(`Last accessed by: ${meta.last_accessed_by}\n`);
         out(`Rotation age:     ${meta.rotation_age_days} day(s)\n`);
       } catch (e) {
-        err(`Error: ${String(e)}`);
-        process.exit(1);
+        close();
+        cliErrorHandler(e, "secret info");
       } finally {
         close();
       }
@@ -281,8 +282,8 @@ export function registerSecretCommands(program: Command): void {
         await provider.rotate(namespace, key, value);
         out(`✓ Rotated ${namespace}/${key}\n`);
       } catch (e) {
-        err(`Error: ${String(e)}`);
-        process.exit(1);
+        close();
+        cliErrorHandler(e, "secret rotate");
       } finally {
         close();
       }
@@ -314,8 +315,8 @@ export function registerSecretCommands(program: Command): void {
           for (const r of rows) out(r.namespace + "\n");
         }
       } catch (e: unknown) {
-        err(`Error: ${String(e)}`);
-        process.exit(1);
+        secretsDb.close();
+        cliErrorHandler(e, "secret namespaces");
       } finally {
         secretsDb.close();
       }

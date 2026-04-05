@@ -10,8 +10,6 @@
 import type { Database } from "../utils/db.js";
 import type { EmbeddingPipeline } from "./embedding/embedding-pipeline.js";
 import type { CollectionManager } from "./collection-manager.js";
-import { MarkdownParser } from "./parsers/markdown-parser.js";
-import { SemanticChunker } from "./chunkers/semantic-chunker.js";
 import { createLogger, type Logger } from "../core/logger.js";
 
 export interface AutoCollectorConfig {
@@ -27,9 +25,6 @@ export interface TaskResultEvent {
 }
 
 export class AutoCollector {
-  private readonly parser = new MarkdownParser();
-  private readonly chunker = new SemanticChunker();
-
   constructor(
     private readonly db: Database,
     private readonly pipeline: EmbeddingPipeline,

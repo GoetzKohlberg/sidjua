@@ -360,6 +360,24 @@ Docker Desktop on macOS requires explicit permission to access directories outsi
 
 Docker Desktop ≥ 4.6 supports **VirtioFS** for file sharing, which is significantly faster than the older gRPC-FUSE backend. Enable it in Docker Desktop → Settings → General → **"Use VirtioFS for file sharing"**. This is especially noticeable if SIDJUA is writing frequently to SQLite on a bind-mounted volume.
 
+### SIDJUA goes offline after Mac sleep/wake
+
+**Symptom:** After the Mac goes to sleep, SIDJUA is unreachable at `http://localhost:4200` even though Docker Desktop appears to be running.
+
+**Cause:** Docker Desktop on macOS suspends the Linux VM during sleep. When the Mac wakes, Docker Desktop resumes, but the internal network bridge (the NAT interface connecting container ports to `localhost`) takes a few seconds to re-initialise. During this window, port 4200 is not forwarded.
+
+**Solution:**
+
+1. Wait 10–15 seconds after wake — the network bridge usually recovers automatically.
+2. If SIDJUA is still unreachable after 30 seconds, restart the containers:
+   ```bash
+   docker compose restart
+   ```
+3. If the issue recurs frequently, consider enabling **"Start Docker Desktop at login"** (Docker Desktop → Settings → General) so the VM is warm before you open the browser.
+4. As a permanent workaround on Apple Silicon Macs, upgrade Docker Desktop to ≥ 4.30 which includes improved wake/sleep handling for the Virtualization Framework backend.
+
+**Prevention:** All SIDJUA containers already use `restart: unless-stopped`, so they will restart automatically if Docker Desktop itself is restarted. The sleep/wake issue is specific to the brief network-bridge recovery window, not a container crash.
+
 ---
 
 ## Docker: Common Error Reference

@@ -128,6 +128,12 @@ export interface GovernanceOverride {
   override_at:           string;  // ISO 8601
   original_block_reason: string;
   original_block_rule:   string;
+  /**
+   * When true the entire governance pipeline is bypassed for this submission.
+   * This is an intentional full override, not a rule-scoped exception.
+   * Always set to true by OverrideManager.processOverride().
+   */
+  bypass_all:            true;
 }
 
 /** User-facing task input built from a MessageEnvelope. */

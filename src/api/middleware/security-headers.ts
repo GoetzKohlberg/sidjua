@@ -16,6 +16,7 @@
  * including 4xx/5xx error responses.
  */
 
+import { randomBytes }       from "node:crypto";
 import type { MiddlewareHandler } from "hono";
 
 // HSTS max-age: 1 year (recommended minimum for HTTPS deployments)
@@ -29,6 +30,10 @@ const HSTS_MAX_AGE_SECONDS = 31_536_000;
  * enable HSTS on plain HTTP — browsers will refuse to connect afterwards.
  */
 export const securityHeaders: MiddlewareHandler = async (c, next) => {
+  // Generate a per-request nonce for inline style whitelisting (replaces the inline-style exception).
+  const nonce = randomBytes(16).toString("base64url");
+  c.set("nonce" as never, nonce);
+
   await next();
 
   const res = c.res;
@@ -41,7 +46,7 @@ export const securityHeaders: MiddlewareHandler = async (c, next) => {
   if (isApi) {
     res.headers.set("Content-Security-Policy", "default-src 'none'");
   } else {
-    res.headers.set("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; font-src 'self'; object-src 'none'; frame-ancestors 'none'");
+    res.headers.set("Content-Security-Policy", `default-src 'self'; script-src 'self'; style-src 'self' 'nonce-${nonce}'; connect-src 'self'; img-src 'self' data:; font-src 'self'; object-src 'none'; frame-ancestors 'none'`);
   }
   res.headers.set("X-Permitted-Cross-Domain-Policies", "none");
 
