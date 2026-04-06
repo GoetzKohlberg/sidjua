@@ -171,9 +171,6 @@ export class AgentDaemon {
     let idleSince: number | null = null;
 
     while (this.running) {
-      // Heartbeat so the ProcessSupervisor sees this agent as alive
-      this.supervisor.recordHeartbeat(this.agentId);
-
       // 1a. Watchdog health check (only if this agent has restart authority)
       if (this.config.watchdog?.restart_authority && this.watchdogPair) {
         await this.watchdogPair.performHealthCheck(this.agentId);
@@ -201,7 +198,10 @@ export class AgentDaemon {
         continue;
       }
 
-      // 4. Dequeue
+      // 4. Heartbeat — only reached when not blocked by circuit/budget/rate guards
+      this.supervisor.recordHeartbeat(this.agentId);
+
+      // 5. Dequeue
       const task = this.queue.dequeue(this.agentId);
       if (task === null) {
         // Nothing to do — run proactive scan before sleeping
@@ -441,14 +441,14 @@ export class AgentDaemon {
         ).run(this.agentId, cutoff);
 
         const taskStmt = this.db!.prepare<[string, string, number, null], void>(
-          "INSERT OR IGNORE INTO daemon_rate_state (agent_id, type, ts, cost) VALUES (?, ?, ?, ?)",
+          "INSERT OR REPLACE INTO daemon_rate_state (agent_id, type, ts, cost) VALUES (?, ?, ?, ?)",
         );
         for (const ts of this.taskTimestamps) {
           taskStmt.run(this.agentId, "task", ts, null);
         }
 
         const costStmt = this.db!.prepare<[string, string, number, number], void>(
-          "INSERT OR IGNORE INTO daemon_rate_state (agent_id, type, ts, cost) VALUES (?, ?, ?, ?)",
+          "INSERT OR REPLACE INTO daemon_rate_state (agent_id, type, ts, cost) VALUES (?, ?, ?, ?)",
         );
         for (const e of this.costEntries) {
           costStmt.run(this.agentId, "cost", e.ts, e.cost);
