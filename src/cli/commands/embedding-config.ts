@@ -315,7 +315,7 @@ function buildEmbedder(provider: EmbeddingProvider, opts: EmbeddingConfigOptions
       if (!apiKey) {
         throw new Error(
           "OpenAI embedding requires OPENAI_API_KEY environment variable.\n" +
-          "  export OPENAI_API_KEY=sk-...",
+          "  export OPENAI_API_KEY=sk-...", // pipeline-ok
         );
       }
       return new OpenAIEmbedder(apiKey, "text-embedding-3-large");

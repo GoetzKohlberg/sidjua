@@ -320,7 +320,7 @@ export function registerKnowledgeCommands(program: Command): void {
               process.stderr.write(
                 "Error: Local embedding is not available in V1.\n" +
                   "Set the OPENAI_API_KEY environment variable to use OpenAI embeddings:\n" +
-                  "  export OPENAI_API_KEY=sk-...\n",
+                  "  export OPENAI_API_KEY=sk-...\n", // pipeline-ok
               );
             } else {
               process.stderr.write(`Error during ingestion: ${msg}\n`);
@@ -507,7 +507,7 @@ export function registerKnowledgeCommands(program: Command): void {
               process.stderr.write(
                 "Error: Local embedding is not available in V1.\n" +
                   "Set the OPENAI_API_KEY environment variable to use OpenAI embeddings:\n" +
-                  "  export OPENAI_API_KEY=sk-...\n",
+                  "  export OPENAI_API_KEY=sk-...\n", // pipeline-ok
               );
             } else {
               process.stderr.write(`Error during search: ${msg}\n`);

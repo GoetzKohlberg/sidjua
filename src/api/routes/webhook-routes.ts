@@ -63,7 +63,7 @@ export function registerWebhookRoutes(app: Hono, services: WebhookRouteServices)
 
   // POST /api/v1/webhook/:agentId
   app.post("/api/v1/webhook/:agentId", async (c: Context) => {
-    const agentId = c.req.param("agentId");
+    const agentId = c.req.param("agentId")!;
 
     // ── 1. Rate limit (before expensive auth) ────────────────────────────────
     if (!webhookRateLimitCheck(agentId)) {

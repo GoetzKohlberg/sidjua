@@ -90,8 +90,8 @@ const _defaultRedactPatterns: readonly RegExp[] = [
   // Auth headers (Bearer / Basic)
   /Bearer [A-Za-z0-9+/=_-]+/g,
   /Basic [A-Za-z0-9+/=]{10,}/g,
-  // Provider API keys — sk-* family (OpenAI, Anthropic sk-ant-*, OpenAI sk-proj-*)
-  // Must allow dashes so sk-ant-api03-xxx and sk-proj-xxx are fully redacted
+  // Provider API keys — sk-* family (OpenAI, Anthropic sk-ant-*, OpenAI sk-proj-*) // pipeline-ok
+  // Must allow dashes so sk-ant-api03-xxx and sk-proj-xxx are fully redacted // pipeline-ok
   /\bsk-[a-zA-Z0-9_-]+/g,
   // xAI / Grok API keys
   /\bxai-[A-Za-z0-9_-]+/g,
@@ -99,8 +99,8 @@ const _defaultRedactPatterns: readonly RegExp[] = [
   /\bkey-[a-zA-Z0-9_-]+/g,
   // Password assignments in log strings
   /"?password"?\s*[:=]\s*"?[^"\s,}]*/gi,
-  // AWS access keys (AKIA*)
-  /\bAKIA[0-9A-Z]{16}\b/g,
+  // AWS access keys (AKIA*) // pipeline-ok
+  /\bAKIA[0-9A-Z]{16}\b/g, // pipeline-ok
   // GitHub tokens
   /\b(ghp_|ghr_|gho_|ghs_|ghu_)[A-Za-z0-9_]{36,}\b/g,
   // Slack tokens

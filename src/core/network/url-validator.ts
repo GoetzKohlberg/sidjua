@@ -182,12 +182,12 @@ export async function validateOutboundUrlAsync(raw: string): Promise<void> {
   try {
     // Race DNS lookup against a 2 s timeout — slow/unreachable DNS is non-fatal
     // so that transient outages do not block outbound requests.
-    const lookupResult = await Promise.race<Awaited<ReturnType<typeof dnsLookup>>>([
+    const lookupResult = await Promise.race([
       dnsLookup(hostname, { all: true }),
       new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error("DNS lookup timeout")), 2_000),
       ),
-    ]);
+    ]) as import("node:dns").LookupAddress[];
     addresses = lookupResult.map((r) => r.address);
   } catch (_e) {
     // DNS failure or timeout is non-fatal; let the downstream fetch fail with a

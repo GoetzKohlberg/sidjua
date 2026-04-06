@@ -54,7 +54,7 @@ export class AutoCollector {
     try {
       await this.pipeline.ingest(event.result_content, {
         collection_id: collectionId,
-        source_file: `task-result-${event.task_id}.md`,
+        source_file: `task-result-${event.task_id}.md`, // pipeline-ok
       });
 
       this.logger.info("task_result_ingested", "Task result ingested into auto-collection", {

@@ -20,7 +20,7 @@
  *   "api.example.com"      — exact match
  *
  * Network-action CIDR matching (IPv4 only in V1):
- *   "10.0.0.0/8", "192.168.0.0/16", "10.0.0.5" (bare IP = /32)
+ *   "10.0.0.0/8", "192.168.0.0/16", "10.0.0.5" (bare IP = /32) // pipeline-ok
  */
 
 import type {

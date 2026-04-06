@@ -56,7 +56,7 @@ export function registerTokenRoutes(app: Hono, services: TokenRouteServices): vo
 
   // ── GET /api/v1/tokens/:id ───────────────────────────────────────────────
   app.get("/api/v1/tokens/:id", requireScope("admin"), apiHandler("token_get_error", (c) => {
-    const id    = c.req.param("id");
+    const id    = c.req.param("id")!;
     const token = tokenStore.getToken(id);
     if (token === null) {
       return c.json({ error: { code: "TOKEN-404", message: "Token not found" } }, 404);
@@ -144,7 +144,7 @@ export function registerTokenRoutes(app: Hono, services: TokenRouteServices): vo
 
   // ── DELETE /api/v1/tokens/:id ────────────────────────────────────────────
   app.delete("/api/v1/tokens/:id", requireScope("admin"), apiHandler("token_revoke_error", (c) => {
-    const id      = c.req.param("id");
+    const id      = c.req.param("id")!;
     const revoked = tokenStore.revokeToken(id);
     if (!revoked) {
       return c.json({ error: { code: "TOKEN-404", message: "Token not found or already revoked" } }, 404);

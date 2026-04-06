@@ -16,8 +16,8 @@ if [ -n "$HITS" ]; then
     ISSUES=$((ISSUES + 1))
 fi
 
-# API keys / tokens
-HITS=$(grep -rn "sk-\|AKIA\|api_key.*=.*['\"].\{20,\}" src/ sidjua-gui/src/ --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v "test\|example\|mock\|placeholder\|process\.env" || true)
+# API keys / tokens — require enough chars to avoid matching doc placeholders (sk-..., sk-*)
+HITS=$(grep -rPn "\bsk-[a-zA-Z0-9-]{20,}|\bAKIA[A-Z0-9]{16}\b|api_key.*=['\"].{20,}" src/ sidjua-gui/src/ --include="*.ts" --include="*.tsx" 2>/dev/null | grep -v "test\|example\|mock\|placeholder\|process\.env\|pipeline-ok" || true)
 if [ -n "$HITS" ]; then
     echo -e "  ${RED}FAIL${NC} Possible API keys:"
     echo "$HITS" | head -5

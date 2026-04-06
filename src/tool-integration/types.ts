@@ -145,6 +145,10 @@ export interface CompositeToolConfig {
   strategy: "fallback" | "parallel" | "round_robin";
 }
 
+export interface InternalToolConfig {
+  type: "internal";
+}
+
 export type ToolConfig =
   | McpToolConfig
   | RestToolConfig
@@ -153,7 +157,8 @@ export type ToolConfig =
   | DatabaseToolConfig
   | ComputerUseToolConfig
   | AdbToolConfig
-  | CompositeToolConfig;
+  | CompositeToolConfig
+  | InternalToolConfig;
 
 
 export interface ToolAccess {

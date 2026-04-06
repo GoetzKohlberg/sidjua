@@ -98,6 +98,7 @@ function webhookCreate(opts: {
       label:      opts.label,
       enabled:    true,
       created_at: now,
+      expires_at: null,
     });
 
     process.stdout.write(`Webhook token created.\n`);

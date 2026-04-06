@@ -147,7 +147,7 @@ export function registerStreamRoutes(app: Hono, services: StreamRouteServices = 
    *   model    — optional — override the agent's default model
    */
   app.get("/api/v1/stream/:agentId", requireScope("operator"), (c: Context) => {
-    const agentId = c.req.param("agentId");
+    const agentId = c.req.param("agentId")!;
     const message = c.req.query("message");
 
     if (!message || message.trim().length === 0) {

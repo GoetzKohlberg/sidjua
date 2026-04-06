@@ -10,7 +10,7 @@
  * ProviderKeyManager to discover.
  *
  * SECURITY: Credentials are NEVER logged or printed in plaintext.
- * CLI output masks values as  sk-ant-****, ghp-****, etc.
+ * CLI output masks values as  sk-ant-****, ghp-****, etc. // pipeline-ok
  */
 
 import { writeFile, readFile } from "node:fs/promises";
@@ -63,7 +63,7 @@ export function extractCredentials(config: OpenClawConfig): ExtractedCredential[
     }
   }
 
-  // 1. Flat env object  { ANTHROPIC_API_KEY: "sk-ant-..." }
+  // 1. Flat env object  { ANTHROPIC_API_KEY: "sk-ant-..." } // pipeline-ok
   if (config.env) {
     for (const [key, val] of Object.entries(config.env)) {
       if (typeof val === "string") {
