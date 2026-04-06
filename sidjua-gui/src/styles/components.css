@@ -1912,3 +1912,37 @@
   color:     var(--color-text-muted);
   margin:    0;
 }
+
+/* Update-check row (About section) */
+.page-settings--update-check {
+  margin-top:     14px;
+  padding:        10px 14px;
+  border-radius:  var(--radius-md);
+  border:         1px solid var(--color-border);
+  background:     var(--color-bg-alt);
+  display:        flex;
+  align-items:    center;
+  gap:            10px;
+  font-size:      13px;
+}
+
+.update-check--row {
+  display:     flex;
+  align-items: center;
+  gap:         8px;
+  flex:        1;
+}
+
+.update-check--icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.update-check--msg {
+  color: var(--color-text);
+  flex:  1;
+}
+
+.update-check--ok   { color: var(--color-success); }
+.update-check--available { color: var(--color-accent); font-weight: 600; }
+.update-check--error { color: var(--color-error); }

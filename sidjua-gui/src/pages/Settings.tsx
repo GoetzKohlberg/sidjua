@@ -1421,6 +1421,7 @@ export function Settings() {
               </p>
             )}
           </div>
+          <UpdateCheckRow />
         </section>
       </div>
 
@@ -1438,6 +1439,100 @@ export function Settings() {
           }}
           onCancel={() => setShowStartOver(false)}
         />
+      )}
+    </div>
+  );
+}
+
+
+type UpdateCheckState = 'idle' | 'checking' | 'uptodate' | 'available' | 'starting' | 'error';
+
+function UpdateCheckRow() {
+  const { t }           = useTranslation();
+  const { config }      = useAppConfig();
+  const [status, setStatus]   = useState<UpdateCheckState>('idle');
+  const [latestVer, setLatestVer] = useState('');
+  const [errMsg, setErrMsg]   = useState('');
+
+  const handleCheck = useCallback(async () => {
+    setStatus('checking');
+    setErrMsg('');
+    try {
+      const r = await fetch('/api/v1/update/check', {
+        headers: { Authorization: `Bearer ${config.apiKey}` },
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json() as { hasUpdate: boolean; latest: string };
+      if (data.hasUpdate) {
+        setLatestVer(data.latest);
+        setStatus('available');
+      } else {
+        setStatus('uptodate');
+      }
+    } catch (e) {
+      setErrMsg(e instanceof Error ? e.message : String(e));
+      setStatus('error');
+    }
+  }, [config.apiKey]);
+
+  const handleUpdate = useCallback(async () => {
+    setStatus('starting');
+    try {
+      await fetch('/api/v1/update/start', {
+        method:  'POST',
+        headers: {
+          Authorization:  `Bearer ${config.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ version: latestVer }),
+      });
+    } catch {
+      /* UpdateBanner takes over once the update stream starts */
+    }
+  }, [config.apiKey, latestVer]);
+
+  const icon =
+    status === 'uptodate'  ? '✓' :
+    status === 'available' ? '↑' :
+    status === 'error'     ? '✕' :
+    status === 'checking' || status === 'starting' ? '…' : '';
+
+  const iconClass =
+    status === 'uptodate'  ? 'update-check--ok' :
+    status === 'available' ? 'update-check--available' :
+    status === 'error'     ? 'update-check--error' : '';
+
+  const msg =
+    status === 'idle'      ? '' :
+    status === 'checking'  ? t('gui.settings.update.checking') :
+    status === 'uptodate'  ? t('gui.settings.update.uptodate') :
+    status === 'available' ? t('gui.settings.update.available', { version: latestVer }) :
+    status === 'starting'  ? t('gui.settings.update.starting') :
+    t('gui.settings.update.error', { message: errMsg });
+
+  return (
+    <div className="page-settings--update-check">
+      <div className="update-check--row">
+        {icon && (
+          <span className={`update-check--icon ${iconClass}`}>{icon}</span>
+        )}
+        <span className="update-check--msg">{msg || t('gui.settings.update.title')}</span>
+      </div>
+      {(status === 'idle' || status === 'uptodate' || status === 'error') && (
+        <button
+          onClick={() => { void handleCheck(); }}
+          style={primaryButtonStyle(false)}
+        >
+          {t('gui.settings.update.check')}
+        </button>
+      )}
+      {status === 'available' && (
+        <button
+          onClick={() => { void handleUpdate(); }}
+          style={primaryButtonStyle(false)}
+        >
+          {t('update.now')}
+        </button>
       )}
     </div>
   );
