@@ -15,6 +15,9 @@ agents/skills/
 # Documentation build artifacts (regenerated on each build)
 docs/.build/deps.json
 docs/.build/filemap.json
+
+# Go build artifacts (updater sidecar is built via Dockerfile multi-stage)
+docker/updater/sidjua-updater
 *.log
 *.pid
 .DS_Store
