@@ -100,7 +100,7 @@ services:
       - CADDY_ADMIN=http://proxy:2019
     networks:
       - sidjua-net
-    restart: unless-stopped
+    restart: "no"
 
   # ---------------------------------------------------------------------------
   # Qdrant — Vector database for semantic search (V0.9.5+, OPTIONAL)

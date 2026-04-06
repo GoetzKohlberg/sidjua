@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -26,6 +27,15 @@ type ProgressEvent struct {
 
 // pullBackoff intervals for docker pull retries.
 var pullBackoff = []time.Duration{10 * time.Second, 30 * time.Second, 90 * time.Second}
+
+// exitFunc is the process-exit function; overridable in tests.
+var exitFunc = os.Exit
+
+// monitorWindow is the total post-switch health monitoring period; overridable in tests.
+var monitorWindow = 60 * time.Second
+
+// monitorCheckInterval is the sleep between health checks; overridable in tests.
+var monitorCheckInterval = 10 * time.Second
 
 // RunUpdate executes the full blue/green update sequence.
 // Steps follow the mandatory order from the architecture specification.
@@ -150,11 +160,11 @@ func (u *Updater) RunUpdate(targetVersion string, events chan<- ProgressEvent) e
 	return nil
 }
 
-// monitorPostSwitch watches the new slot for 60s and auto-rolls back on failure.
+// monitorPostSwitch watches the new slot for monitorWindow and auto-rolls back on failure.
 func (u *Updater) monitorPostSwitch(newBase, oldSlot, oldBase, caddyAdmin, project, newContainerName string) {
-	deadline := time.Now().Add(60 * time.Second)
+	deadline := time.Now().Add(monitorWindow)
 	for time.Now().Before(deadline) {
-		time.Sleep(10 * time.Second)
+		time.Sleep(monitorCheckInterval)
 		resp, err := http.Get(newBase + "/api/v1/health")
 		if err != nil || resp.StatusCode != http.StatusOK {
 			// Auto-rollback
@@ -175,6 +185,8 @@ func (u *Updater) monitorPostSwitch(newBase, oldSlot, oldBase, caddyAdmin, proje
 			resp.Body.Close()
 		}
 	}
+	log.Println("[updater] update verified, all health checks passed — shutting down")
+	exitFunc(0)
 }
 
 // RunRollback switches the proxy back to the previous slot.
