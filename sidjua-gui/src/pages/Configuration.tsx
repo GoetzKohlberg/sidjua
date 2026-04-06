@@ -326,4 +326,3 @@ export function Configuration() {
   );
 }
 
-export default Configuration;

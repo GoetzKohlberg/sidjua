@@ -1475,4 +1475,3 @@ function primaryButtonStyle(disabled: boolean): React.CSSProperties {
   };
 }
 
-export default Settings;

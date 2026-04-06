@@ -506,4 +506,3 @@ export function AuditLog() {
   );
 }
 
-export default AuditLog;

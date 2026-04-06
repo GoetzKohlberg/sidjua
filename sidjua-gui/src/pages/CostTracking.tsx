@@ -312,4 +312,3 @@ export function CostTracking() {
   );
 }
 
-export default CostTracking;

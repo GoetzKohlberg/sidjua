@@ -427,4 +427,3 @@ function EmptyState({ message }: { message: string }) {
   return <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>{message}</p>;
 }
 
-export default Dashboard;

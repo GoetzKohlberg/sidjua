@@ -3,24 +3,13 @@
   "workspaces": {
     ".": {
       "entry": [
-        "src/index.ts",
-        "src/modules/discord/gateway-daemon-bin.ts",
         "scripts/*.{js,ts}",
-        "tests/*.test.ts"
+        "tests/**/*.test.ts"
       ],
-      "project": ["src/**/*.ts", "scripts/**/*.{js,ts}", "tests/**/*.ts"],
-      "ignore": ["dist/**", "snapshots/**"],
-      "ignoreDependencies": []
+      "project": ["src/**/*.ts", "scripts/**/*.{js,ts}"]
     },
     "sidjua-gui": {
-      "entry": [
-        "src/main.tsx",
-        "src/vite-env.d.ts",
-        "vite.config.ts"
-      ],
-      "project": ["src/**/*.{ts,tsx}", "vite.config.ts"],
-      "ignore": ["dist/**"]
+      "project": ["src/**/*.{ts,tsx}"]
     }
   }
 }
-

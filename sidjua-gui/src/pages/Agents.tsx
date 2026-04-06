@@ -759,4 +759,3 @@ const selectStyle: React.CSSProperties = {
   outline:      'none',
 };
 
-export default Agents;

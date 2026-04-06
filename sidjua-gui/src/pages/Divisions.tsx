@@ -158,4 +158,3 @@ export function Divisions() {
   );
 }
 
-export default Divisions;

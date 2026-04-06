@@ -205,20 +205,6 @@ export async function validateOutboundUrlAsync(raw: string): Promise<void> {
   }
 }
 
-/**
- * Alias for validateOutboundUrlAsync.
- *
- * Resolves the URL hostname via DNS before allowing the connection, providing
- * protection against DNS rebinding attacks.  All outbound code paths that make
- * server-side HTTP(S) requests MUST call this (or validateOutboundUrlAsync)
- * before opening a connection.
- *
- * @throws SidjuaError SSRF-001 on scheme violation or invalid URL
- * @throws SidjuaError SSRF-002 on private/loopback host (static check)
- * @throws SidjuaError SSRF-003 on private/loopback DNS resolution
- */
-export const resolveAndValidateUrl = validateOutboundUrlAsync;
-
 
 /**
  * Validate that an SSH host is safe to connect to.

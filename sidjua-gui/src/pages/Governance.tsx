@@ -356,4 +356,3 @@ export function Governance() {
   );
 }
 
-export default Governance;
