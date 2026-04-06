@@ -12,7 +12,7 @@
 
 import { readFile, readdir, access } from "node:fs/promises";
 import { join, resolve, relative, isAbsolute } from "node:path";
-import { existsSync, realpathSync } from "node:fs";
+import { existsSync, realpathSync, lstatSync } from "node:fs";
 import { parse as parseYaml } from "yaml";
 import { SidjuaError } from "../core/error-codes.js";
 import { assertWithinDirectory } from "../utils/path-utils.js";
@@ -76,6 +76,23 @@ export function resolveSkillPath(workDir: string, skillPath: string): string {
     // resolve() has already sanitized).  `resolved` is guaranteed within workDir
     // by the assertWithinDirectory() call above.
     if (e instanceof Error && "code" in e && (e as NodeJS.ErrnoException).code === "ENOENT") {
+      // Reject if resolved path itself is a symlink — even with non-existent target.
+      // A symlink could later be re-pointed outside the workspace (TOCTOU).
+      try {
+        const st = lstatSync(resolved);
+        if (st.isSymbolicLink()) {
+          throw SidjuaError.from(
+            "SEC-010",
+            `Skill path "${skillPath}" is a dangling symlink — rejected`,
+          );
+        }
+      } catch (lstatErr: unknown) {
+        // Re-throw our own SEC-010 (dangling symlink) without wrapping
+        if (lstatErr instanceof SidjuaError) throw lstatErr;
+        if (!(lstatErr instanceof Error && "code" in lstatErr && (lstatErr as NodeJS.ErrnoException).code === "ENOENT")) {
+          throw SidjuaError.from("SEC-010", `Skill path stat failed: ${String(lstatErr)}`);
+        }
+      }
       return resolved;
     }
     // Re-throw SEC-010 (symlink escape detected above)
