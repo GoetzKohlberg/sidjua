@@ -58,6 +58,26 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# Check 4: No hardcoded current-version literals outside canonical sources
+#          (SPEC-RELEASE-PIPELINE-V1 §6.5 — Version String Single-Source-of-Truth)
+# ---------------------------------------------------------------------------
+HARDCODED_DQ=$(grep -rn --include='*.ts' -F "\"${VERSION}\"" tests/ src/ 2>/dev/null \
+  | grep -v 'src/version.ts' \
+  | grep -v '// version-literal-ok' || true)
+HARDCODED_SQ=$(grep -rn --include='*.ts' -F "'${VERSION}'" tests/ src/ 2>/dev/null \
+  | grep -v 'src/version.ts' \
+  | grep -v '// version-literal-ok' || true)
+HARDCODED="${HARDCODED_DQ}${HARDCODED_SQ}"
+if [ -n "$HARDCODED" ]; then
+  echo "[GATE-L1] FAIL: hardcoded version literals found (SPEC §6.5):"
+  echo "$HARDCODED"
+  echo "  Import SIDJUA_VERSION from src/version.ts or suffix with // version-literal-ok"
+  FAIL=true
+else
+  echo "[GATE-L1] PASS: no hardcoded version literals (SPEC §6.5)"
+fi
+
+# ---------------------------------------------------------------------------
 # Result
 # ---------------------------------------------------------------------------
 if [ "$FAIL" = true ]; then

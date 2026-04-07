@@ -101,3 +101,27 @@ if (process.env.CI === 'true') {
 } else {
   pass('working tree check skipped (CI not set)');
 }
+
+// ---------------------------------------------------------------------------
+// Check 5: no hardcoded current-version literals outside canonical sources
+//          (SPEC-RELEASE-PIPELINE-V1 §6.5 — Version String Single-Source-of-Truth)
+// ---------------------------------------------------------------------------
+// Pattern matches only the CURRENT package.json version in double or single quotes.
+// Excludes src/version.ts (canonical definition) and lines annotated with
+// "// version-literal-ok" (rare intentional exceptions).
+try {
+  const cmdDQ = `grep -rn --include='*.ts' -F '"${version}"' tests/ src/ 2>/dev/null | grep -v 'src/version.ts' | grep -v '// version-literal-ok' || true`;
+  const cmdSQ = `grep -rn --include='*.ts' -F "'${version}'" tests/ src/ 2>/dev/null | grep -v 'src/version.ts' | grep -v '// version-literal-ok' || true`;
+  const outDQ = execSync(cmdDQ, { cwd: ROOT, encoding: 'utf-8' }).trim();
+  const outSQ = execSync(cmdSQ, { cwd: ROOT, encoding: 'utf-8' }).trim();
+  const output = [outDQ, outSQ].filter(Boolean).join('\n');
+  if (output) {
+    console.error(`[GATE-L3] FAIL: hardcoded version literals found (SPEC §6.5 violation):\n${output}`);
+    console.error('  Import SIDJUA_VERSION from src/version.ts instead.');
+    console.error('  For rare exceptions: suffix the line with // version-literal-ok');
+    process.exit(1);
+  }
+  pass('no hardcoded version literals (SPEC §6.5)');
+} catch (e) {
+  fail(`hardcoded-version scan failed: ${e.message}`);
+}
