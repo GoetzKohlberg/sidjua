@@ -854,5 +854,12 @@
   "gui.settings.recent_errors": "Recent Errors",
   "gui.settings.recent_errors_empty": "No errors logged.",
   "gui.settings.recent_errors_loading": "Loading…",
-  "gui.settings.recent_errors_refresh": "Refresh"
+  "gui.settings.recent_errors_refresh": "Refresh",
+  "gui.settings.update.available": "[HA] Update available: {{version}}",
+  "gui.settings.update.check": "[HA] Check for updates",
+  "gui.settings.update.checking": "[HA] Checking…",
+  "gui.settings.update.error": "[HA] Check failed: {{message}}",
+  "gui.settings.update.starting": "[HA] Starting update…",
+  "gui.settings.update.title": "[HA] Software Update",
+  "gui.settings.update.uptodate": "[HA] You are running the latest version."
 }

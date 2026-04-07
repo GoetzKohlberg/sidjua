@@ -862,5 +862,12 @@
   "gui.settings.recent_errors": "Recent Errors",
   "gui.settings.recent_errors_empty": "No errors logged.",
   "gui.settings.recent_errors_loading": "Loading…",
-  "gui.settings.recent_errors_refresh": "Refresh"
+  "gui.settings.recent_errors_refresh": "Refresh",
+  "gui.settings.update.available": "[MS] Update available: {{version}}",
+  "gui.settings.update.check": "[MS] Check for updates",
+  "gui.settings.update.checking": "[MS] Checking…",
+  "gui.settings.update.error": "[MS] Check failed: {{message}}",
+  "gui.settings.update.starting": "[MS] Starting update…",
+  "gui.settings.update.title": "[MS] Software Update",
+  "gui.settings.update.uptodate": "[MS] You are running the latest version."
 }

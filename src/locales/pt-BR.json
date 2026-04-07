@@ -862,5 +862,12 @@
   "gui.settings.recent_errors": "Recent Errors",
   "gui.settings.recent_errors_empty": "No errors logged.",
   "gui.settings.recent_errors_loading": "Loading…",
-  "gui.settings.recent_errors_refresh": "Refresh"
+  "gui.settings.recent_errors_refresh": "Refresh",
+  "gui.settings.update.available": "[PT-BR] Update available: {{version}}",
+  "gui.settings.update.check": "[PT-BR] Check for updates",
+  "gui.settings.update.checking": "[PT-BR] Checking…",
+  "gui.settings.update.error": "[PT-BR] Check failed: {{message}}",
+  "gui.settings.update.starting": "[PT-BR] Starting update…",
+  "gui.settings.update.title": "[PT-BR] Software Update",
+  "gui.settings.update.uptodate": "[PT-BR] You are running the latest version."
 }

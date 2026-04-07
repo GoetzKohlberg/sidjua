@@ -13,7 +13,8 @@
 
 import { spawn, type ChildProcess } from "node:child_process";
 import { createHash } from "node:crypto";
-import { createLogger } from "../logger.js";
+import { createLogger }    from "../logger.js";
+import { SIDJUA_VERSION }  from "../../version.js";
 import type {
   JsonRpcRequest,
   JsonRpcResponse,
@@ -499,7 +500,7 @@ export class McpClient {
     await this.sendRequest("initialize", {
       protocolVersion: "2024-11-05",
       capabilities: { tools: {} },
-      clientInfo: { name: "sidjua", version: "1.1.0" },
+      clientInfo: { name: "sidjua", version: SIDJUA_VERSION },
     });
     this.sendNotification("notifications/initialized");
   }

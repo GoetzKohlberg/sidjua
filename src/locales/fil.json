@@ -862,5 +862,12 @@
   "gui.settings.recent_errors": "Recent Errors",
   "gui.settings.recent_errors_empty": "No errors logged.",
   "gui.settings.recent_errors_loading": "Loading…",
-  "gui.settings.recent_errors_refresh": "Refresh"
+  "gui.settings.recent_errors_refresh": "Refresh",
+  "gui.settings.update.available": "[FIL] Update available: {{version}}",
+  "gui.settings.update.check": "[FIL] Check for updates",
+  "gui.settings.update.checking": "[FIL] Checking…",
+  "gui.settings.update.error": "[FIL] Check failed: {{message}}",
+  "gui.settings.update.starting": "[FIL] Starting update…",
+  "gui.settings.update.title": "[FIL] Software Update",
+  "gui.settings.update.uptodate": "[FIL] You are running the latest version."
 }

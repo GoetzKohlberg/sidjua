@@ -854,5 +854,12 @@
   "gui.settings.recent_errors": "Recent Errors",
   "gui.settings.recent_errors_empty": "No errors logged.",
   "gui.settings.recent_errors_loading": "Loading…",
-  "gui.settings.recent_errors_refresh": "Refresh"
+  "gui.settings.recent_errors_refresh": "Refresh",
+  "gui.settings.update.available": "[SK] Update available: {{version}}",
+  "gui.settings.update.check": "[SK] Check for updates",
+  "gui.settings.update.checking": "[SK] Checking…",
+  "gui.settings.update.error": "[SK] Check failed: {{message}}",
+  "gui.settings.update.starting": "[SK] Starting update…",
+  "gui.settings.update.title": "[SK] Software Update",
+  "gui.settings.update.uptodate": "[SK] You are running the latest version."
 }
