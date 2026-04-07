@@ -27,6 +27,8 @@ COMMUNICATION-FACT-SHEET.md
 CLAUDE.md
 AGENTS.md
 CHANGELOG.md
+# CHANGELOG.md is public-tracked per SPEC-RELEASE-PIPELINE-V1 §1 despite being built from internal sources
+!CHANGELOG.md
 SECURITY.md
 CONTRIBUTING.md
 CODEOWNERS
