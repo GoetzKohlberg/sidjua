@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# scripts/git-hooks/pre-push — SPEC-RELEASE-PIPELINE-V1 Layer 1
+#
+# Installed to .git/hooks/pre-push by scripts/install-git-hooks.sh.
+# Bypassable with: git push --no-verify
+#
+# Checks before any push:
+#   1. package.json version is valid SemVer (x.y.z or x.y.z-rc.N)
+#   2. CHANGELOG.md has a [version] entry (skipped for rc builds)
+#   3. Working tree is clean
+set -euo pipefail
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+cd "$REPO_ROOT"
+
+FAIL=false
+
+# ---------------------------------------------------------------------------
+# Check 1: SemVer in package.json
+# ---------------------------------------------------------------------------
+VERSION=$(node -e "console.log(require('./package.json').version)")
+SEMVER_RE='^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$'
+
+if [[ ! "$VERSION" =~ $SEMVER_RE ]]; then
+  echo "[GATE-L1] FAIL: package.json version '$VERSION' is not valid SemVer (expected x.y.z or x.y.z-rc.N)"
+  FAIL=true
+else
+  echo "[GATE-L1] PASS: version=$VERSION"
+fi
+
+# ---------------------------------------------------------------------------
+# Check 2: CHANGELOG entry for current version (skip rc builds)
+# ---------------------------------------------------------------------------
+if [[ "$VERSION" != *-rc.* ]]; then
+  if [ ! -f "CHANGELOG.md" ]; then
+    echo "[GATE-L1] FAIL: CHANGELOG.md not found — expected [$VERSION] entry"
+    FAIL=true
+  elif ! grep -qF "[$VERSION]" CHANGELOG.md 2>/dev/null; then
+    echo "[GATE-L1] FAIL: CHANGELOG.md has no [$VERSION] entry"
+    FAIL=true
+  else
+    echo "[GATE-L1] PASS: CHANGELOG contains [$VERSION]"
+  fi
+else
+  echo "[GATE-L1] PASS: version is RC ($VERSION) — CHANGELOG check skipped"
+fi
+
+# ---------------------------------------------------------------------------
+# Check 3: Working tree clean
+# ---------------------------------------------------------------------------
+DIRTY=$(git status --porcelain)
+if [ -n "$DIRTY" ]; then
+  echo "[GATE-L1] FAIL: working tree is dirty — commit or stash changes before pushing"
+  git status --short
+  FAIL=true
+else
+  echo "[GATE-L1] PASS: working tree clean"
+fi
+
+# ---------------------------------------------------------------------------
+# Result
+# ---------------------------------------------------------------------------
+if [ "$FAIL" = true ]; then
+  echo ""
+  echo "  Push blocked by GATE-L1. To bypass in an emergency:"
+  echo "    git push --no-verify"
+  exit 1
+fi
+
+exit 0
