@@ -384,7 +384,7 @@ export class SidjuaApiClient {
   }): Promise<ProviderTestResult> { return this.post(API_PATHS.providerTest(), body); }
 
   /** Return a Headers object for making manual fetch calls (e.g. streaming). */
-  authHeaders(): HeadersInit {
+  authHeaders(): Record<string, string> {
     return {
       'Authorization': `Bearer ${this.apiKey}`,
       'Content-Type': 'application/json',
