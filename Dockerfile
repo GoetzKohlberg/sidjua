@@ -120,6 +120,8 @@ COPY --from=builder /build/package.json      ./
 COPY --from=builder /build/sidjua-gui/dist/  ./sidjua-gui/dist/
 # Copy locale JSON files (loader resolves ../locales/ relative to dist/index.js = /app/locales/)
 COPY --from=builder /build/src/locales/      ./locales/
+# Copy static assets (org-public.ts resolves ../static/glasscheibe-widget.js relative to dist/index.js = /app/static/)
+COPY --from=builder /build/src/api/static/   ./static/
 
 # Copy entrypoint and bundled default configs
 COPY docker-entrypoint.sh ./
@@ -155,7 +157,7 @@ VOLUME ["/data"]
 
 # Make read-only app directories non-writable (defence-in-depth)
 # Writable at runtime: /app/.system  /app/config  /app/logs  /app/data  /data
-RUN chmod -R 555 /app/dist /app/node_modules /app/locales /app/sidjua-gui /app/defaults /app/docs
+RUN chmod -R 555 /app/dist /app/node_modules /app/locales /app/static /app/sidjua-gui /app/defaults /app/docs
 
 # Transfer ownership to non-root user before switching
 RUN chown -R sidjua:sidjua /app /data
