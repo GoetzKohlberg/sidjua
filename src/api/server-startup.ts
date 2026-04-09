@@ -245,6 +245,20 @@ export async function runServerStart(
     }
   }
 
+  // GUI bootstrap injection: use admin token if available, not bootstrap key.
+  // The bootstrap key is auto-disabled by C4 when the admin token is created,
+  // so injecting it would cause 401s in the GUI on every page load.
+  let guiKeyFn: () => string = () => apiKeyState.currentApiKey;
+  const adminTokenFilePath = join(opts.workDir, ".system", "admin.token");
+  try {
+    if (existsSync(adminTokenFilePath)) {
+      const storedAdminToken = readFileSync(adminTokenFilePath, "utf-8").trim();
+      if (storedAdminToken) {
+        guiKeyFn = () => storedAdminToken;
+      }
+    }
+  } catch (_e) { /* best-effort — fall back to bootstrap key */ }
+
   const config: ApiServerConfig = {
     ...DEFAULT_SERVER_CONFIG,
     port:             parseInt(opts.port, 10),
@@ -390,7 +404,7 @@ export async function runServerStart(
   // dist/index.js is the bundle entry; one level up is the package root.
   const pkgRoot = resolvePath(new URL(".", import.meta.url).pathname, "../");
   const guiDist = join(pkgRoot, "sidjua-gui", "dist");
-  const hasGui  = registerGuiRoutes(server.app, guiDist, () => apiKeyState.currentApiKey);
+  const hasGui  = registerGuiRoutes(server.app, guiDist, guiKeyFn);
 
   // ── Error log with PII redaction (SIDJUA_ERROR_LOG env var) ─────────────
   const errorLogPath: string | undefined = process.env["SIDJUA_ERROR_LOG"];

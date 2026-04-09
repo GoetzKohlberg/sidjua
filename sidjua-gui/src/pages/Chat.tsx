@@ -507,6 +507,7 @@ export function Chat() {
   const navigate               = useNavigate();
   const { client, config }     = useAppConfig();
   const baseUrl                = config.serverUrl;
+  const { t }                  = useTranslation();
 
   const agentsRes   = useApi<StarterAgentsResponse>((c) => c.listStarterAgents());
   const providerRes = useApi<ProviderConfigResponse>((c) => c.getProviderConfig());
@@ -801,9 +802,9 @@ export function Chat() {
           onClick={() => navigate('/settings')}
           className="page-chat--link-btn"
         >
-          Open Settings
+          {t('gui.chat.open_settings')}
         </button>{' '}
-        to enter your server URL and API key.
+        {t('gui.chat.enter_server_details')}
       </div>
     );
   }

@@ -19,47 +19,6 @@ import { useTranslation } from '../hooks/useTranslation';
 type TabId = 'overview' | 'pipeline' | 'policies' | 'history';
 
 
-interface PipelineStep {
-  num:    number;
-  label:  string;
-  desc:   string;
-  action: string;
-}
-
-const PIPELINE_STEPS: PipelineStep[] = [
-  {
-    num:    1,
-    label:  'Input Sanitization',
-    desc:   'Scans action input for injection patterns, secret leakage, and oversized payloads.',
-    action: 'Block / Sanitize',
-  },
-  {
-    num:    2,
-    label:  'Budget Check',
-    desc:   'Verifies that the requesting agent has sufficient budget at org, division, and task level.',
-    action: 'Block (402)',
-  },
-  {
-    num:    3,
-    label:  'Policy Evaluation',
-    desc:   'Evaluates all enabled governance policies. Forbidden actions are blocked immediately.',
-    action: 'Block / Approve / Escalate',
-  },
-  {
-    num:    4,
-    label:  'Classification',
-    desc:   'Assigns data sensitivity level (PUBLIC → FYEO) based on content and context.',
-    action: 'Classify',
-  },
-  {
-    num:    5,
-    label:  'Decision',
-    desc:   'Final allow / block / escalate decision combining all upstream stage results.',
-    action: 'Allow / Block / Escalate',
-  },
-];
-
-
 function OverviewTab({
   status,
   statusLoading,
@@ -82,14 +41,14 @@ function OverviewTab({
         {statusError && <p className="sidjua-text-error-sm">{statusError}</p>}
         {status && (
           <div className="page-gov--status-grid">
-            <StatusRow label="Snapshots"   value={String(status.snapshot_count)} />
-            <StatusRow label="Last apply"  value={status.last_apply_at ? formatRelative(status.last_apply_at) : '—'} />
-            <StatusRow label="Work dir"    value={status.work_dir} mono />
+            <StatusRow label={t('gui.governance.label_snapshots')}        value={String(status.snapshot_count)} />
+            <StatusRow label={t('gui.governance.label_last_apply')}       value={status.last_apply_at ? formatRelative(status.last_apply_at) : '—'} />
+            <StatusRow label={t('gui.governance.label_work_dir')}         value={status.work_dir} mono />
             <StatusRow
-              label="Latest snapshot"
+              label={t('gui.governance.label_latest_snapshot')}
               value={status.latest_snapshot
                 ? `v${status.latest_snapshot.version} (${formatRelative(status.latest_snapshot.timestamp)})`
-                : 'None'}
+                : t('gui.governance.label_none')}
             />
           </div>
         )}
@@ -101,9 +60,9 @@ function OverviewTab({
         {!auditLoading && (
           <div className="page-gov--activity-grid">
             {[
-              { label: 'Total actions', value: auditEntries.length, color: undefined },
-              { label: 'Blocked',       value: auditEntries.filter((e) => e.outcome === 'blocked').length,   color: 'var(--color-warning)' },
-              { label: 'Escalated',     value: auditEntries.filter((e) => e.outcome === 'escalated').length, color: 'var(--color-danger)' },
+              { label: t('gui.governance.label_total_actions'), value: auditEntries.length, color: undefined },
+              { label: t('gui.governance.label_blocked'),       value: auditEntries.filter((e) => e.outcome === 'blocked').length,   color: 'var(--color-warning)' },
+              { label: t('gui.governance.label_escalated'),     value: auditEntries.filter((e) => e.outcome === 'escalated').length, color: 'var(--color-danger)' },
             ].map(({ label, value, color }) => (
               <div key={label} className="page-gov--stat-center">
                 <p className="page-gov--stat-number" style={{ color: color ?? 'var(--color-text)' }}>
@@ -120,20 +79,27 @@ function OverviewTab({
 }
 
 function PipelineTab() {
+  const { t } = useTranslation();
+  const steps = [
+    { num: 1, label: t('gui.governance.pipeline_step_1_label'), desc: t('gui.governance.pipeline_step_1_desc'), action: t('gui.governance.pipeline_step_1_action') },
+    { num: 2, label: t('gui.governance.pipeline_step_2_label'), desc: t('gui.governance.pipeline_step_2_desc'), action: t('gui.governance.pipeline_step_2_action') },
+    { num: 3, label: t('gui.governance.pipeline_step_3_label'), desc: t('gui.governance.pipeline_step_3_desc'), action: t('gui.governance.pipeline_step_3_action') },
+    { num: 4, label: t('gui.governance.pipeline_step_4_label'), desc: t('gui.governance.pipeline_step_4_desc'), action: t('gui.governance.pipeline_step_4_action') },
+    { num: 5, label: t('gui.governance.pipeline_step_5_label'), desc: t('gui.governance.pipeline_step_5_desc'), action: t('gui.governance.pipeline_step_5_action') },
+  ];
   return (
     <div className="sidjua-card">
       <p className="sidjua-card-title">
         <ShieldCheck size={14} style={{ display: 'inline', marginRight: '6px', verticalAlign: 'middle' }} />
-        Pre-Action Governance Pipeline
+        {t('gui.governance.pipeline_title')}
       </p>
       <p className="page-gov--pipeline-desc">
-        Every agent action passes through this 5-stage pipeline before execution.
-        Each stage can block, modify, or allow the action.
+        {t('gui.governance.pipeline_desc')}
       </p>
 
       {/* Desktop: horizontal flow */}
       <div className="page-gov--pipeline-flow">
-        {PIPELINE_STEPS.map((step, idx) => (
+        {steps.map((step, idx) => (
           <React.Fragment key={step.num}>
             <div className="page-gov--pipeline-step">
               <div className="page-gov--step-header">
@@ -151,7 +117,7 @@ function PipelineTab() {
                 {step.action}
               </span>
             </div>
-            {idx < PIPELINE_STEPS.length - 1 && (
+            {idx < steps.length - 1 && (
               <ChevronRight size={16} style={{ color: 'var(--color-text-muted)', flexShrink: 0, marginTop: '24px' }} />
             )}
           </React.Fragment>
@@ -160,10 +126,10 @@ function PipelineTab() {
 
       <div className="page-gov--legend">
         {[
-          { icon: <CheckCircle size={14} style={{ color: 'var(--color-success)' }} />, label: 'Allow — action proceeds normally' },
-          { icon: <XCircle     size={14} style={{ color: 'var(--color-danger)'  }} />, label: 'Block — action rejected, audit logged' },
-          { icon: <AlertTriangle size={14} style={{ color: 'var(--color-warning)' }} />, label: 'Escalate — T1 operator approval required' },
-          { icon: <Clock size={14} style={{ color: 'var(--color-info)' }} />, label: 'Queue — pending budget/approval' },
+          { icon: <CheckCircle size={14} style={{ color: 'var(--color-success)' }} />, label: t('gui.governance.legend_allow') },
+          { icon: <XCircle     size={14} style={{ color: 'var(--color-danger)'  }} />, label: t('gui.governance.legend_block') },
+          { icon: <AlertTriangle size={14} style={{ color: 'var(--color-warning)' }} />, label: t('gui.governance.legend_escalate') },
+          { icon: <Clock size={14} style={{ color: 'var(--color-info)' }} />, label: t('gui.governance.legend_queue') },
         ].map(({ icon, label }) => (
           <span key={label} className="page-gov--legend-item">
             {icon} {label}
@@ -182,14 +148,13 @@ function PoliciesTab() {
       <div className="page-gov--policies-placeholder">
         <ShieldCheck size={32} style={{ color: 'var(--color-text-muted)', marginBottom: '12px' }} />
         <p className="page-gov--policies-heading">
-          Policy management not yet exposed via REST API
+          {t('gui.governance.policies_api_note')}
         </p>
         <p className="page-gov--policies-desc">
-          Governance policies are defined in <code>divisions.yaml</code> under each division's{' '}
-          <code>governance:</code> block. Use the CLI to list and manage policies.
+          {t('gui.governance.policies_desc')}
         </p>
         <div className="page-gov--code-box">
-          <p className="page-gov--code-comment"># CLI commands</p>
+          <p className="page-gov--code-comment">{t('gui.governance.policies_cli_comment')}</p>
           <p>sidjua governance list</p>
           <p>sidjua governance status</p>
           <p>sidjua governance rollback &lt;version&gt;</p>
@@ -208,7 +173,7 @@ function HistoryTab({ history, loading, error }: { history: GovernanceHistory | 
       {error && <p className="sidjua-text-error-sm">{error}</p>}
       {!loading && !error && (history?.snapshots ?? []).length === 0 && (
         <p className="sidjua-text-muted-sm">
-          No snapshots yet. Run <code>sidjua apply</code> to create the first one.
+          {t('gui.governance.no_snapshots')}
         </p>
       )}
       {(history?.snapshots ?? []).map((snap) => (
@@ -219,6 +184,7 @@ function HistoryTab({ history, loading, error }: { history: GovernanceHistory | 
 }
 
 function SnapshotRow({ snap }: { snap: GovernanceSnapshot }) {
+  const { t } = useTranslation();
   return (
     <div className="page-gov--snapshot-row">
       <span className="page-gov--snapshot-badge">
@@ -226,10 +192,10 @@ function SnapshotRow({ snap }: { snap: GovernanceSnapshot }) {
       </span>
       <div style={{ flex: 1 }}>
         <p className="page-gov--snapshot-id">
-          Snapshot {snap.id.slice(0, 8)}
+          {t('gui.governance.snapshot_label')} {snap.id.slice(0, 8)}
         </p>
         <p className="page-gov--snapshot-meta">
-          Trigger: {snap.trigger} · Hash: {snap.divisions_yaml_hash.slice(0, 12)}…
+          {t('gui.governance.snapshot_trigger')} {snap.trigger} · {t('gui.governance.snapshot_hash')} {snap.divisions_yaml_hash.slice(0, 12)}…
         </p>
       </div>
       <span className="page-gov--snapshot-ts">
@@ -294,17 +260,17 @@ export function Governance() {
         <MetricCard
           title={t('gui.governance.actions_today')}
           value={auditRes.loading ? <LoadingSpinner size="sm" /> : auditEntries.length}
-          subtitle="governance audit entries"
+          subtitle={t('gui.governance.metric_audit_entries')}
         />
         <MetricCard
           title={t('gui.governance.blocked_today')}
           value={auditRes.loading ? <LoadingSpinner size="sm" /> : blocked}
-          subtitle={blocked > 0 ? 'review audit log' : 'none blocked'}
+          subtitle={blocked > 0 ? t('gui.governance.metric_review_audit') : t('gui.governance.metric_none_blocked')}
         />
         <MetricCard
           title={t('gui.governance.compliance_rate')}
           value={auditRes.loading ? <LoadingSpinner size="sm" /> : `${compliance}%`}
-          subtitle="actions passed governance"
+          subtitle={t('gui.governance.metric_actions_passed')}
         />
       </div>
 

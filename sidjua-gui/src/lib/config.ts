@@ -210,6 +210,7 @@ export function AppConfigProvider({ children }: { children: ReactNode }) {
     clearSessionToken();
     setRuntimeApiKey('');
     setConfigState((prev) => ({ ...prev, apiKey: '' }));
+    setStatus('error');
   };
 
   const client = useMemo(
@@ -229,7 +230,9 @@ export function AppConfigProvider({ children }: { children: ReactNode }) {
     // store the admin token and use it; otherwise use the provided key as-is
     // (e.g. the user may have entered an admin token directly).
     void (async () => {
-      if (next.apiKey) {
+      // If the key is already a scoped admin token (sidjua_sk_ prefix), use it directly.
+      // Attempting exchange would fail with AUTH-011 once bootstrap is disabled.
+      if (next.apiKey && !next.apiKey.startsWith('sidjua_sk_')) {
         const adminToken = await exchangeForAdminToken(next.serverUrl, next.apiKey);
         if (adminToken) {
           const upgraded = { ...next, apiKey: adminToken };
@@ -310,15 +313,21 @@ export function AppConfigProvider({ children }: { children: ReactNode }) {
     if (typeof injected?.api_key === 'string' && injected.api_key) {
       const serverUrl = injected.server_url || config.serverUrl || window.location.origin;
       void (async () => {
-        const adminToken = await exchangeForAdminToken(serverUrl, injected.api_key);
-        // Either path (exchanged token or fallback key) is a bootstrap session
+        // Either path (already-scoped token, exchanged token, or fallback key) is a bootstrap session
         _isBootstrapSession = true;
         setIsBootstrap(true);
-        if (adminToken) {
-          setConfigState({ serverUrl, apiKey: adminToken });
-        } else {
-          // Exchange failed (e.g. local dev with admin bootstrap key) — use key as-is
+        // If the injected key is already a scoped admin token (sidjua_sk_ prefix),
+        // use it directly — bootstrap is disabled after admin token creation (C4).
+        if (injected.api_key.startsWith('sidjua_sk_')) {
           setConfigState({ serverUrl, apiKey: injected.api_key });
+        } else {
+          const adminToken = await exchangeForAdminToken(serverUrl, injected.api_key);
+          if (adminToken) {
+            setConfigState({ serverUrl, apiKey: adminToken });
+          } else {
+            // Exchange failed (e.g. local dev with admin bootstrap key) — use key as-is
+            setConfigState({ serverUrl, apiKey: injected.api_key });
+          }
         }
         saveConfig({ serverUrl, apiKey: '' });
       })();

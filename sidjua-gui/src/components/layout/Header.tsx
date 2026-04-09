@@ -4,7 +4,7 @@
 
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { ChevronRight, Menu } from 'lucide-react';
+import { ChevronRight, Menu, Power } from 'lucide-react';
 import { ThemeToggle } from '../shared/ThemeToggle';
 import { LanguageSelector } from '../shared/LanguageSelector';
 import { useAppConfig } from '../../lib/config';
@@ -176,12 +176,11 @@ export function Header({ showMenuButton = false, onMenuToggle }: HeaderProps) {
             v{buildInfo.version}{buildInfo.buildNumber ? `-${buildInfo.buildNumber}` : ''}
           </span>
         )}
-        <span
+        <Power
+          size={14}
           title={t('gui.shutdown_reminder')}
-          style={{ fontSize: '11px', color: 'var(--color-text-muted)', userSelect: 'none', cursor: 'help' }}
-        >
-          sidjua shutdown
-        </span>
+          style={{ color: 'var(--color-text-muted)', cursor: 'help', flexShrink: 0 }}
+        />
         <ConnectionIndicator status={status} t={t} />
         {config.apiKey && <SseStatusIndicator status={sseStatus} />}
         <LanguageSelector />
