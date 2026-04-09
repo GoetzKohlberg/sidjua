@@ -46,7 +46,7 @@ export const securityHeaders: MiddlewareHandler = async (c, next) => {
   if (isApi) {
     res.headers.set("Content-Security-Policy", "default-src 'none'");
   } else {
-    res.headers.set("Content-Security-Policy", `default-src 'self'; script-src 'self'; style-src 'self' 'nonce-${nonce}'; connect-src 'self'; img-src 'self' data:; font-src 'self'; object-src 'none'; frame-ancestors 'none'`);
+    res.headers.set("Content-Security-Policy", `default-src 'self'; script-src 'self' 'nonce-${nonce}'; style-src 'self' 'nonce-${nonce}'; connect-src 'self'; img-src 'self' data:; font-src 'self'; object-src 'none'; frame-ancestors 'none'`);
   }
   res.headers.set("X-Permitted-Cross-Domain-Policies", "none");
 

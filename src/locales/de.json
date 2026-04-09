@@ -440,6 +440,7 @@
   "gui.breadcrumb.settings": "Einstellungen",
   "gui.chat.enter_server_details": "um Server-URL und API-Schlüssel einzugeben.",
   "gui.chat.no_provider": "Kein KI-Anbieter konfiguriert.",
+  "gui.chat.not_connected_title": "Keine Verbindung zu einem SIDJUA-Server.",
   "gui.chat.open_settings": "Einstellungen öffnen",
   "gui.chat.setup_provider": "Bitte richten Sie einen in Einstellungen → KI-Anbieter ein.",
   "gui.common.cancel": "Abbrechen",

@@ -99,8 +99,19 @@ export function serveIndexHtmlWithBootstrap(
     : JSON.stringify({})
   ).replace(/</g, "\\u003c");
 
-  const script = `<script>window.__SIDJUA_BOOTSTRAP__ = ${payload};</script>`;
-  const html   = readFileSync(realPath, "utf-8").replace("</head>", `  ${script}\n  </head>`);
+  // Retrieve the per-request nonce set by the securityHeaders middleware so
+  // the inline bootstrap script is whitelisted by the script-src CSP directive.
+  const nonce  = (c.get as (k: string) => string | undefined)("nonce" as never) ?? "";
+  const nonceAttr = nonce ? ` nonce="${nonce}"` : "";
+
+  const script = `<script${nonceAttr}>window.__SIDJUA_BOOTSTRAP__ = ${payload};</script>`;
+  let html = readFileSync(realPath, "utf-8").replace("</head>", `  ${script}\n  </head>`);
+
+  // Add nonce to any remaining inline <script> tags injected by vite (e.g. modulepreload
+  // polyfill). Only inline scripts (no src=) that don't already have nonce= are touched.
+  if (nonce) {
+    html = html.replace(/<script(?![^>]*\bsrc=)(?![^>]*\bnonce=)/g, `<script nonce="${nonce}"`);
+  }
 
   return c.newResponse(html, 200, {
     "Content-Type":  "text/html; charset=utf-8",

@@ -797,7 +797,7 @@ export function Chat() {
   if (!client) {
     return (
       <div className="page-chat--not-connected">
-        <strong>{GUI_ERRORS['GUI-CONN-005'].message}</strong>{' '}
+        <strong>{t('gui.chat.not_connected_title')}</strong>{' '}
         <button
           onClick={() => navigate('/settings')}
           className="page-chat--link-btn"

@@ -440,6 +440,7 @@
   "gui.breadcrumb.settings": "Settings",
   "gui.chat.enter_server_details": "to enter your server URL and API key.",
   "gui.chat.no_provider": "No LLM provider configured.",
+  "gui.chat.not_connected_title": "Not connected to any SIDJUA server.",
   "gui.chat.open_settings": "Open Settings",
   "gui.chat.setup_provider": "Please set one up in Settings → LLM Providers first.",
   "gui.common.cancel": "Cancel",

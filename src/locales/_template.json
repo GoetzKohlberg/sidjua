@@ -904,5 +904,6 @@
   "gui.governance.policies_desc": "",
   "gui.governance.snapshot_hash": "",
   "gui.governance.snapshot_label": "",
-  "gui.governance.snapshot_trigger": ""
+  "gui.governance.snapshot_trigger": "",
+  "gui.chat.not_connected_title": ""
 }

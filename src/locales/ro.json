@@ -911,5 +911,6 @@
   "gui.governance.policies_desc": "[RO] Governance policies are defined in divisions.yaml under each division's governance: block. Use the CLI to list and manage policies.",
   "gui.governance.snapshot_hash": "[RO] Hash:",
   "gui.governance.snapshot_label": "[RO] Snapshot",
-  "gui.governance.snapshot_trigger": "[RO] Trigger:"
+  "gui.governance.snapshot_trigger": "[RO] Trigger:",
+  "gui.chat.not_connected_title": "[RO] Not connected to any SIDJUA server."
 }

@@ -551,10 +551,12 @@ export async function runStartCommand(opts: StartCommandOptions): Promise<number
         const assetPath = c.req.path.replace(/^\/assets\//, "");
         return serveGuiFile(c, join(guiDist, "assets"), assetPath);
       });
-      // SPA fallback — serve index.html for unmatched non-API paths
+      // SPA fallback — serve index.html for unmatched non-API paths.
+      // Use serveIndexHtmlWithBootstrap (not serveGuiFile) so the nonce is
+      // injected into all inline scripts, satisfying the script-src CSP directive.
       server.app.get("/*", (c) => {
         if (c.req.path.startsWith("/api/")) return c.notFound();
-        return serveGuiFile(c, guiDist, "index.html");
+        return serveIndexHtmlWithBootstrap(c, guiDist, () => apiKey);
       });
     }
 
@@ -748,8 +750,15 @@ function serveIndexHtmlWithBootstrap(
     : JSON.stringify({})
   ).replace(/</g, "\\u003c");
 
-  const script = `<script>window.__SIDJUA_BOOTSTRAP__ = ${payload};</script>`;
-  const html   = readFileSync(realPath, "utf-8").replace("</head>", `  ${script}\n  </head>`);
+  const nonce     = (c.get as (k: string) => string | undefined)("nonce" as never) ?? "";
+  const nonceAttr = nonce ? ` nonce="${nonce}"` : "";
+
+  const script = `<script${nonceAttr}>window.__SIDJUA_BOOTSTRAP__ = ${payload};</script>`;
+  let html = readFileSync(realPath, "utf-8").replace("</head>", `  ${script}\n  </head>`);
+
+  if (nonce) {
+    html = html.replace(/<script(?![^>]*\bsrc=)(?![^>]*\bnonce=)/g, `<script nonce="${nonce}"`);
+  }
 
   return c.newResponse(html, 200, {
     "Content-Type":  "text/html; charset=utf-8",
