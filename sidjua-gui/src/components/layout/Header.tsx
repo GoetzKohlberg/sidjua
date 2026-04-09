@@ -176,11 +176,12 @@ export function Header({ showMenuButton = false, onMenuToggle }: HeaderProps) {
             v{buildInfo.version}{buildInfo.buildNumber ? `-${buildInfo.buildNumber}` : ''}
           </span>
         )}
-        <Power
-          size={14}
+        <span
           title={t('gui.shutdown_reminder')}
-          style={{ color: 'var(--color-text-muted)', cursor: 'help', flexShrink: 0 }}
-        />
+          style={{ display: 'inline-flex', cursor: 'help', flexShrink: 0 }}
+        >
+          <Power size={14} style={{ color: 'var(--color-text-muted)' }} />
+        </span>
         <ConnectionIndicator status={status} t={t} />
         {config.apiKey && <SseStatusIndicator status={sseStatus} />}
         <LanguageSelector />
