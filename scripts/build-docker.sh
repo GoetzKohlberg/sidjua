@@ -34,6 +34,13 @@ echo "  Platforms:  ${PLATFORMS}"
 echo "  Signature:  ${BUILD_SIGNATURE}"
 echo ""
 
+# Build the browser GUI first so sidjua-gui/dist exists for the compose bind-mount.
+# (The Dockerfile also builds the GUI internally for the image layers — this step
+# ensures a local dist/ is available for `docker compose up` without a full image rebuild.)
+echo "Building sidjua-gui …"
+(cd sidjua-gui && npm run build)
+echo ""
+
 # Ensure a buildx builder with multi-arch support is active.
 if ! docker buildx inspect multiarch &>/dev/null; then
   docker buildx create --name multiarch --driver docker-container --use

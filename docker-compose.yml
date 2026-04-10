@@ -28,9 +28,10 @@ services:
     image: caddy:2-alpine
     container_name: sidjua-proxy
     ports:
-      - "3000:3000"
+      - "127.0.0.1:47821:3000"
     volumes:
       - ./docker/proxy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./sidjua-gui/dist:/srv:ro
       - caddy-data:/data
       - caddy-config:/config
     networks:

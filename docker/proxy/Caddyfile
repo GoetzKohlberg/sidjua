@@ -1,3 +1,16 @@
 :3000 {
-    reverse_proxy sidjua_blue:4200
+
+    # API traffic → backend (blue/green slot)
+    handle /api/* {
+        reverse_proxy sidjua_blue:4200
+    }
+
+    # Static GUI files from sidjua-gui/dist (mounted at /srv)
+    # SPA fallback: unknown paths serve index.html so React Router handles them
+    handle {
+        root * /srv
+        try_files {path} /index.html
+        file_server
+    }
+
 }
