@@ -9,19 +9,11 @@
  * The API key is held in React state ONLY — never persisted to localStorage.
  * Server URL (non-secret) is persisted to localStorage for convenience.
  *
- * Bootstrap key flow (P325 / H17):
- *   1. Server injects window.__SIDJUA_BOOTSTRAP__ = { api_key, server_url }
- *   2. On mount, call POST /api/v1/tokens to exchange bootstrap key → admin token
- *   3. Admin token is held in React state (memory) only — never written to sessionStorage
- *   4. On auth failure, clear key from state (forces re-exchange on next page load)
- *
  * H17: Admin tokens must NOT be persisted to sessionStorage — XSS risk.
  */
 
 import { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo, type ReactNode, createElement } from 'react';
 import { SidjuaApiClient } from '../api/client';
-import { API_PATHS } from '../api/paths';
-import type { TokenCreateResponse } from '../api/types';
 
 
 export interface AppConfig {
@@ -52,15 +44,6 @@ export interface AppConfigContextValue {
   client: SidjuaApiClient | null;
 }
 
-
-// P281: Type declaration for the server-injected bootstrap object.
-interface SidjuaBootstrap {
-  api_key:     string;
-  server_url?: string;
-}
-interface WindowWithBootstrap extends Window {
-  __SIDJUA_BOOTSTRAP__?: SidjuaBootstrap;
-}
 
 const STORAGE_KEY         = 'sidjua-config';
 const SESSION_STORAGE_KEY = 'sidjua-session-token';
@@ -153,30 +136,6 @@ function clearSessionToken(): void {
   }
 }
 
-/**
- * Exchange a bootstrap key for an admin session token.
- * Calls POST /api/v1/tokens with the bootstrap key as Bearer auth.
- * Returns the rawToken on success, or null on failure.
- */
-async function exchangeForAdminToken(serverUrl: string, bootstrapKey: string): Promise<string | null> {
-  try {
-    const res = await fetch(`${serverUrl}${API_PATHS.tokens()}`, {
-      method:  'POST',
-      headers: {
-        'Content-Type':  'application/json',
-        'Authorization': `Bearer ${bootstrapKey}`,
-      },
-      body: JSON.stringify({ label: 'gui-session', scope: 'admin' }),
-    });
-    if (!res.ok) return null;
-    const data = await res.json() as TokenCreateResponse;
-    return data.rawToken ?? null;
-  } catch {
-    return null;
-  }
-}
-
-
 export const AppConfigContext = createContext<AppConfigContextValue>({
   config:              DEFAULT_CONFIG,
   status:              'unknown',
@@ -225,27 +184,9 @@ export function AppConfigProvider({ children }: { children: ReactNode }) {
     // overlay and Settings key field reflect the actual user-chosen key.
     _isBootstrapSession = false;
     setIsBootstrap(false);
-
-    // Attempt to exchange for an admin session token.  If exchange succeeds,
-    // store the admin token and use it; otherwise use the provided key as-is
-    // (e.g. the user may have entered an admin token directly).
-    void (async () => {
-      // If the key is already a scoped admin token (sidjua_sk_ prefix), use it directly.
-      // Attempting exchange would fail with AUTH-011 once bootstrap is disabled.
-      if (next.apiKey && !next.apiKey.startsWith('sidjua_sk_')) {
-        const adminToken = await exchangeForAdminToken(next.serverUrl, next.apiKey);
-        if (adminToken) {
-          const upgraded = { ...next, apiKey: adminToken };
-          setConfigState(upgraded);
-          saveConfig(upgraded);
-          setStatus('unknown');
-          return;
-        }
-      }
-      setConfigState(next);
-      saveConfig(next);
-      setStatus('unknown');
-    })();
+    setConfigState(next);
+    saveConfig(next);
+    setStatus('unknown');
   }, []);
 
   // Keep runtime key in sync with React state
@@ -294,46 +235,6 @@ export function AppConfigProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => { /* server not reachable yet — buildInfo stays null */ });
   }, [config.serverUrl]);
-
-  // GUI bootstrap: read the API key from the server-injected window object,
-  // then exchange it for an admin session token (H17: memory-only, no sessionStorage).
-  //
-  // Flow:
-  //  1. If we already have a key in React state, nothing to do.
-  //  2. Read the bootstrap key from window.__SIDJUA_BOOTSTRAP__,
-  //     exchange it for an admin token and apply it.
-  //     If exchange fails, fall back to using the bootstrap key directly
-  //     (local-dev / non-production setups where bootstrap key has admin scope).
-  useEffect(() => {
-    if (config.apiKey) return;  // already have a key
-
-    const injected = (window as WindowWithBootstrap).__SIDJUA_BOOTSTRAP__;
-    // Delete immediately — prevents browser extensions from reading the key later
-    try { delete (window as WindowWithBootstrap).__SIDJUA_BOOTSTRAP__; } catch (_) { /* non-fatal */ }
-    if (typeof injected?.api_key === 'string' && injected.api_key) {
-      const serverUrl = injected.server_url || config.serverUrl || window.location.origin;
-      void (async () => {
-        // Either path (already-scoped token, exchanged token, or fallback key) is a bootstrap session
-        _isBootstrapSession = true;
-        setIsBootstrap(true);
-        // If the injected key is already a scoped admin token (sidjua_sk_ prefix),
-        // use it directly — bootstrap is disabled after admin token creation (C4).
-        if (injected.api_key.startsWith('sidjua_sk_')) {
-          setConfigState({ serverUrl, apiKey: injected.api_key });
-        } else {
-          const adminToken = await exchangeForAdminToken(serverUrl, injected.api_key);
-          if (adminToken) {
-            setConfigState({ serverUrl, apiKey: adminToken });
-          } else {
-            // Exchange failed (e.g. local dev with admin bootstrap key) — use key as-is
-            setConfigState({ serverUrl, apiKey: injected.api_key });
-          }
-        }
-        saveConfig({ serverUrl, apiKey: '' });
-      })();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const value: AppConfigContextValue = {
     config,
