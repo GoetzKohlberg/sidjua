@@ -2,7 +2,7 @@
 // Copyright (c) 2026 Götz Kohlberg. All rights reserved.
 // Dual licensed: AGPL-3.0 + SIDJUA Commercial License. See LICENSE.
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Network, Bot, ListTodo, DollarSign, RefreshCw,
@@ -47,18 +47,8 @@ const cardTitleStyle: React.CSSProperties = {
 export function Dashboard() {
   const navigate  = useNavigate();
   const { t }     = useTranslation();
-  const { config, client } = useAppConfig();
+  const { buildInfo } = useAppConfig();
 
-  // Redirect to settings on first visit if no API key is configured.
-  // Guard prevents a redirect loop if the user navigates back to Dashboard
-  // after dismissing settings without entering a key.
-  const hasRedirectedRef = useRef(false);
-  useEffect(() => {
-    if (!config.apiKey && !hasRedirectedRef.current) {
-      hasRedirectedRef.current = true;
-      navigate('/settings', { replace: true });
-    }
-  }, [config.apiKey, navigate]);
   const { health }  = useHealth();
   const divRes      = useDivisions();
   const agentRes    = useAgents();
@@ -158,27 +148,6 @@ export function Dashboard() {
     costsRes.refetch();
     auditRes.refetch();
   }, [divRes, agentRes, tasksRes, costsRes, auditRes]);
-
-  // ---- Not connected state ------------------------------------------------
-  if (!client) {
-    return (
-      <div style={{
-        background:   'var(--color-warning-bg)',
-        border:       '1px solid var(--color-warning)',
-        borderRadius: 'var(--radius-lg)',
-        padding:      '20px',
-        color:        'var(--color-warning)',
-      }}>
-        <strong>{t('gui.dashboard.not_connected')}</strong> — {t('gui.dashboard.not_connected_cta')}{' '}
-        <button
-          onClick={() => navigate('/settings')}
-          style={{ background: 'none', border: 'none', color: 'var(--color-accent)', cursor: 'pointer', textDecoration: 'underline', fontSize: 'inherit' }}
-        >
-          {t('gui.dashboard.not_connected_link')}
-        </button>.
-      </div>
-    );
-  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -386,6 +355,20 @@ export function Dashboard() {
           )}
         </div>
       </div>
+
+      {/* Version footer (B4) */}
+      {buildInfo && (
+        <div style={{
+          textAlign:  'center',
+          fontSize:   '11px',
+          color:      'var(--color-text-muted)',
+          paddingTop: '8px',
+        }}>
+          SIDJUA v{buildInfo.version}
+          {buildInfo.buildNumber ? ` · Build #${buildInfo.buildNumber}` : ''}
+          {buildInfo.buildDate   ? ` · ${buildInfo.buildDate.slice(0, 10)}` : ''}
+        </div>
+      )}
     </div>
   );
 }

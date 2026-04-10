@@ -3,9 +3,9 @@
 // Dual licensed: AGPL-3.0 + SIDJUA Commercial License. See LICENSE.
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
-import { useAppConfig, getIsBootstrapSession } from '../lib/config';
-import type { AppConfig, BuildInfo } from '../lib/config';
+import { useAppConfig } from '../lib/config';
+import type { BuildInfo } from '../lib/config';
+import { getCsrfToken } from '../lib/csrf';
 import type { LoggingStatus } from '../api/types';
 import { useApi } from '../hooks/useApi';
 import { useTheme } from '../hooks/useTheme';
@@ -739,22 +739,21 @@ function SettingsHelpPanel() {
 
 
 export function Settings() {
-  const { config, status, client, setConfig, testConnection, buildInfo } = useAppConfig();
+  const { client, buildInfo } = useAppConfig();
   const { theme, setTheme } = useTheme();
   const { t } = useTranslation();
   const toast = useToast();
 
-  const [form,          setForm]          = useState<AppConfig>({
-    ...config,
-    // Don't pre-fill the key field with the auto-exchanged bootstrap token —
-    // the user must explicitly enter their own key.
-    apiKey: getIsBootstrapSession() ? '' : config.apiKey,
-  });
-  const [testing,       setTesting]       = useState(false);
   const [providerKey,   setProviderKey]   = useState(0); // force re-render on provider save
   const [showStartOver, setShowStartOver] = useState(false);
-  const [showApiKey,    setShowApiKey]    = useState(false);
   const [backupBusy,    setBackupBusy]    = useState(false);
+
+  // Password change (P434c)
+  const [currentPw,  setCurrentPw]  = useState('');
+  const [newPw,      setNewPw]      = useState('');
+  const [confirmPw,  setConfirmPw]  = useState('');
+  const [pwBusy,     setPwBusy]     = useState(false);
+  const [pwError,    setPwError]    = useState<string | null>(null);
 
   // Error logging toggle
   const loggingRes = useApi<LoggingStatus>((c) => c.loggingStatus());
@@ -930,117 +929,83 @@ export function Settings() {
     }
   }
 
-  function handleChange(field: keyof AppConfig) {
-    return (e: React.ChangeEvent<HTMLInputElement>) => {
-      setForm((prev) => ({ ...prev, [field]: e.target.value }));
-    };
-  }
-
-  function handleApiKeyInput(e: React.FormEvent<HTMLInputElement>) {
-    setForm((prev) => ({ ...prev, apiKey: (e.target as HTMLInputElement).value }));
-  }
-
-  function handleSave() {
-    setConfig(form);
-    toast.success('Settings saved.');
-  }
-
-  async function handleTest() {
-    setConfig(form);
-    setTesting(true);
-    const ok = await testConnection();
-    setTesting(false);
-    if (ok) {
-      toast.success('Connection successful — server is reachable.');
-    } else {
-      toast.error(`${GUI_ERRORS['GUI-SETTINGS-002'].message} ${GUI_ERRORS['GUI-SETTINGS-002'].suggestion}`);
+  async function handleChangePassword(): Promise<void> {
+    setPwError(null);
+    if (newPw.length < 12) { setPwError('New password must be at least 12 characters.'); return; }
+    if (newPw !== confirmPw) { setPwError('Passwords do not match.'); return; }
+    if (!client) return;
+    setPwBusy(true);
+    try {
+      await client.changePassword(currentPw, newPw);
+      toast.success('Password changed successfully.');
+      setCurrentPw(''); setNewPw(''); setConfirmPw('');
+    } catch (err: unknown) {
+      setPwError(formatGuiError(err));
+    } finally {
+      setPwBusy(false);
     }
   }
-
-  const isDirty =
-    form.serverUrl !== config.serverUrl ||
-    form.apiKey    !== config.apiKey;
 
   return (
     <div className="page-settings--layout">
       {/* ── Left column: settings cards ── */}
       <div>
-        {/* Server Connection */}
+        {/* Admin Password (P434c) */}
         <section className="page-settings--section">
-          <h2 className="page-settings--section-h2">{t('gui.settings.server_connection')}</h2>
+          <h2 className="page-settings--section-h2">Admin Password</h2>
 
           <label className="page-settings--label">
-            {t('gui.settings.server_url')}
+            Current password
             <input
-              type="url"
-              value={form.serverUrl}
-              onChange={handleChange('serverUrl')}
-              placeholder="http://localhost:3000"
+              type="password"
+              value={currentPw}
+              onChange={(e) => setCurrentPw(e.target.value)}
+              placeholder="Current password"
               className="page-settings--input"
+              autoComplete="current-password"
               spellCheck={false}
             />
           </label>
 
           <label className="page-settings--label">
-            {t('gui.settings.api_key')}
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showApiKey ? 'text' : 'password'}
-                value={form.apiKey}
-                onChange={handleChange('apiKey')}
-                onInput={handleApiKeyInput}
-                placeholder="sk-…"
-                className="page-settings--input"
-                style={{ paddingRight: '40px' }}
-                autoComplete="current-password"
-                spellCheck={false}
-              />
-              <button
-                type="button"
-                onClick={() => setShowApiKey((v) => !v)}
-                aria-label={showApiKey ? t('gui.settings.hide_api_key') : t('gui.settings.show_api_key')}
-                style={{
-                  position:        'absolute',
-                  right:           '8px',
-                  top:             '50%',
-                  transform:       'translateY(-50%)',
-                  background:      'none',
-                  border:          'none',
-                  cursor:          'pointer',
-                  color:           'var(--color-text-muted)',
-                  padding:         '2px',
-                  display:         'flex',
-                  alignItems:      'center',
-                }}
-              >
-                {showApiKey ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
+            New password
+            <input
+              type="password"
+              value={newPw}
+              onChange={(e) => setNewPw(e.target.value)}
+              placeholder="At least 12 characters"
+              className="page-settings--input"
+              autoComplete="new-password"
+              spellCheck={false}
+            />
           </label>
+
+          <label className="page-settings--label">
+            Confirm new password
+            <input
+              type="password"
+              value={confirmPw}
+              onChange={(e) => setConfirmPw(e.target.value)}
+              placeholder="Repeat new password"
+              className="page-settings--input"
+              autoComplete="new-password"
+              spellCheck={false}
+            />
+          </label>
+
+          {pwError && (
+            <p className="page-settings--error-msg-sm">{pwError}</p>
+          )}
 
           <div className="page-settings--btn-row">
             <button
-              onClick={handleSave}
-              disabled={!isDirty}
-              style={primaryButtonStyle(!isDirty)}
+              onClick={() => { void handleChangePassword(); }}
+              disabled={pwBusy || !currentPw || !newPw || !confirmPw}
+              style={primaryButtonStyle(pwBusy || !currentPw || !newPw || !confirmPw)}
             >
-              {t('gui.settings.save')}
-            </button>
-
-            <button
-              onClick={() => { void handleTest(); }}
-              disabled={testing}
-              className="page-settings--secondary-btn"
-            >
-              {testing ? <LoadingSpinner size="sm" label={t('gui.settings.testing')} /> : t('gui.settings.test_connection')}
+              {pwBusy ? <LoadingSpinner size="sm" label="Saving…" /> : 'Change Password'}
             </button>
           </div>
-
-          {status === 'connected' && (
-            <p className="page-settings--connected">
-              {t('gui.settings.connected')}
-            </p>
-          )}
         </section>
 
         {/* LLM Provider */}
@@ -1449,7 +1414,6 @@ type UpdateCheckState = 'idle' | 'checking' | 'uptodate' | 'available' | 'starti
 
 function UpdateCheckRow() {
   const { t }           = useTranslation();
-  const { config }      = useAppConfig();
   const [status, setStatus]   = useState<UpdateCheckState>('idle');
   const [latestVer, setLatestVer] = useState('');
   const [errMsg, setErrMsg]   = useState('');
@@ -1457,10 +1421,11 @@ function UpdateCheckRow() {
   const handleCheck = useCallback(async () => {
     setStatus('checking');
     setErrMsg('');
+    const csrf = getCsrfToken();
+    const headers: Record<string, string> = { 'X-SIDJUA-Request': '1' };
+    if (csrf) headers['X-CSRF-Token'] = csrf;
     try {
-      const r = await fetch('/api/v1/update/check', {
-        headers: { Authorization: `Bearer ${config.apiKey}` },
-      });
+      const r = await fetch('/api/v1/update/check', { headers });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const data = await r.json() as { hasUpdate: boolean; latest: string };
       if (data.hasUpdate) {
@@ -1473,23 +1438,26 @@ function UpdateCheckRow() {
       setErrMsg(e instanceof Error ? e.message : String(e));
       setStatus('error');
     }
-  }, [config.apiKey]);
+  }, []);
 
   const handleUpdate = useCallback(async () => {
     setStatus('starting');
+    const csrf = getCsrfToken();
+    const headers: Record<string, string> = {
+      'Content-Type':     'application/json',
+      'X-SIDJUA-Request': '1',
+    };
+    if (csrf) headers['X-CSRF-Token'] = csrf;
     try {
       await fetch('/api/v1/update/start', {
-        method:  'POST',
-        headers: {
-          Authorization:  `Bearer ${config.apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ version: latestVer }),
+        method: 'POST',
+        headers,
+        body:   JSON.stringify({ version: latestVer }),
       });
     } catch {
       /* UpdateBanner takes over once the update stream starts */
     }
-  }, [config.apiKey, latestVer]);
+  }, [latestVer]);
 
   const icon =
     status === 'uptodate'  ? '✓' :
