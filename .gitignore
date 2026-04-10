@@ -1,6 +1,7 @@
 node_modules/
 dist/
 backups/
+.tmp-tests/
 .env
 .env.*
 !.env.example
