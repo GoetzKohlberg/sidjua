@@ -34,6 +34,18 @@ export const DEFAULT_RATE_LIMIT: RateLimitConfig = {
   burst_max:    20,
 };
 
+/**
+ * Tighter rate-limit config for auth endpoints (login, setup, password change).
+ * 10 attempts per 15-minute window per IP, no burst allowance.
+ * Keyed by IP only (no auth header — callers are pre-authentication).
+ */
+export const AUTH_RATE_LIMIT: RateLimitConfig = {
+  enabled:      true,
+  window_ms:    15 * 60_000, // 15 minutes
+  max_requests: 10,
+  burst_max:    0,
+};
+
 interface Bucket {
   tokens:        number;
   last_refill_ms: number;
@@ -229,6 +241,7 @@ export function getClientIp(headers: {
  */
 export const rateLimiter = (config: RateLimitConfig = DEFAULT_RATE_LIMIT): MiddlewareHandler =>
   async (c, next) => {
+
     if (!config.enabled) return next();
 
     startCleanup(config.window_ms);
@@ -290,6 +303,73 @@ export const rateLimiter = (config: RateLimitConfig = DEFAULT_RATE_LIMIT): Middl
     bucket.window_count += 1;
     bucket.lastAccess = now;
     // Refresh LRU position so recently-active clients are not evicted first.
+    setBucket(clientKey, bucket);
+
+    return next();
+  };
+
+/**
+ * Rate-limiter middleware for authentication endpoints (login, setup, password change).
+ *
+ * Uses a separate `auth:` bucket namespace (IP-only key, no auth-header hash)
+ * and the tighter AUTH_RATE_LIMIT defaults.
+ * Intended as route-level middleware on /api/v1/auth/login, /setup, /settings/password.
+ */
+export const authRateLimiter = (config: RateLimitConfig = AUTH_RATE_LIMIT): MiddlewareHandler =>
+  async (c, next) => {
+    if (!config.enabled) return next();
+
+    startCleanup(config.window_ms);
+
+    // Auth endpoints: key by IP only — Authorization header absent pre-auth
+    const clientKey = `auth:${getClientIp(c.req.raw.headers)}`;
+
+    const now = performance.now();
+    let bucket = rateLimitState.buckets.get(clientKey);
+
+    if (bucket === undefined) {
+      bucket = {
+        tokens:         config.max_requests + config.burst_max,
+        last_refill_ms: now,
+        window_start:   now,
+        window_count:   0,
+        lastAccess:     now,
+      };
+      setBucket(clientKey, bucket);
+    }
+
+    const elapsed = now - bucket.last_refill_ms;
+    const refill  = (elapsed / config.window_ms) * config.max_requests;
+    bucket.tokens = Math.min(bucket.tokens + refill, config.max_requests + config.burst_max);
+    bucket.last_refill_ms = now;
+
+    if (bucket.tokens < 1) {
+      const retryAfterSec = Math.ceil(config.window_ms / config.max_requests / 1000);
+      const requestId     = (c.get(REQUEST_ID_KEY) as string | undefined) ?? "unknown";
+
+      logger.warn("auth_rate_limit_exceeded", "Auth rate limit exceeded", {
+        correlationId: requestId,
+        metadata: { client_key: clientKey },
+      });
+
+      c.header("Retry-After", String(retryAfterSec));
+      return c.json(
+        {
+          error: {
+            code:        "RATE-429",
+            message:     "Too many authentication attempts. Try again later.",
+            recoverable: true,
+            suggestion:  `Retry after ${retryAfterSec} seconds`,
+            request_id:  requestId,
+          },
+        },
+        429,
+      );
+    }
+
+    bucket.tokens -= 1;
+    bucket.window_count += 1;
+    bucket.lastAccess = now;
     setBucket(clientKey, bucket);
 
     return next();

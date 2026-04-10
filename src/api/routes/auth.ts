@@ -18,6 +18,7 @@ import { randomBytes } from "node:crypto";
 import argon2          from "argon2";
 import { createLogger }     from "../../core/logger.js";
 import { CALLER_CONTEXT_KEY } from "../middleware/require-scope.js";
+import { authRateLimiter }   from "../middleware/rate-limiter.js";
 import type { ConfigManager } from "../config.js";
 import {
   FileSessionStore,
@@ -60,7 +61,7 @@ export function registerAuthRoutes(app: Hono, services: AuthRouteServices): void
 
   // ── POST /api/v1/auth/setup ──────────────────────────────────────────────
   // Public — only works on first run (before admin password is set).
-  app.post("/api/v1/auth/setup", async (c: Context) => {
+  app.post("/api/v1/auth/setup", authRateLimiter(), async (c: Context) => {
     const requestId = reqId(c);
 
     if (!configManager.isFirstRun()) {
@@ -126,8 +127,8 @@ export function registerAuthRoutes(app: Hono, services: AuthRouteServices): void
 
 
   // ── POST /api/v1/auth/login ──────────────────────────────────────────────
-  // Public — password login; rate-limited by auth-specific bucket (Phase 5).
-  app.post("/api/v1/auth/login", async (c: Context) => {
+  // Public — password login; rate-limited by auth-specific bucket.
+  app.post("/api/v1/auth/login", authRateLimiter(), async (c: Context) => {
     const requestId = reqId(c);
 
     if (configManager.isFirstRun()) {
@@ -267,7 +268,7 @@ export function registerAuthRoutes(app: Hono, services: AuthRouteServices): void
 
   // ── POST /api/v1/auth/settings/password ──────────────────────────────────
   // Requires active session — changes the admin password.
-  app.post("/api/v1/auth/settings/password", async (c: Context) => {
+  app.post("/api/v1/auth/settings/password", authRateLimiter(), async (c: Context) => {
     const requestId = reqId(c);
     const session   = c.get(SESSION_KEY) as SessionData | undefined;
     if (session === undefined) {
