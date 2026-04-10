@@ -12,6 +12,9 @@
 
 import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync, appendFileSync, chmodSync } from "node:fs";
 import { join, dirname, resolve as resolvePath } from "node:path";
+import { ConfigManager }      from "./config.js";
+import { FileSessionStore }   from "./middleware/session.js";
+import { setHealthAuthProvider } from "./routes/system.js";
 import { redactPii } from "../core/telemetry/pii-redactor.js";
 import { createLogger, configureLogger } from "../core/logger.js";
 import { loadKeyState } from "./key-store.js";
@@ -259,6 +262,25 @@ export async function runServerStart(
     }
   } catch (_e) { /* best-effort — fall back to bootstrap key */ }
 
+  // ── P434b: GUI Auth config + session store ─────────────────────────────
+  const configManager = new ConfigManager(opts.workDir);
+  const guiConfigured = configManager.load();
+  if (configManager.recoveryMode) {
+    logger.warn("server_start", "GUI config in recovery mode — admin re-setup required via /api/v1/auth/setup", {});
+    process.stderr.write("[sidjua] WARNING: GUI config.json is corrupt — recovery mode active. Re-run setup.\n");
+  } else if (!guiConfigured) {
+    logger.info("server_start", "First run: no admin password set — complete setup at /api/v1/auth/setup", {});
+    process.stderr.write("[sidjua] INFO: GUI not yet configured. Open the browser to complete first-time setup.\n");
+  }
+
+  const sessionStore = new FileSessionStore(opts.workDir);
+  void sessionStore.purgeExpired().catch((_e: unknown) => undefined);
+
+  setHealthAuthProvider(() => ({
+    setup_required: configManager.isFirstRun(),
+    recovery_mode:  configManager.recoveryMode,
+  }));
+
   const config: ApiServerConfig = {
     ...DEFAULT_SERVER_CONFIG,
     port:             parseInt(opts.port, 10),
@@ -271,6 +293,9 @@ export async function runServerStart(
     isDevelopment:    opts.dev,
     // P269: scoped token store wired to auth middleware
     tokenStore,
+    // P434b: GUI session auth
+    sessionStore,
+    getSessionSecret: () => configManager.getConfig().sessionSecret,
   };
 
   const server  = createApiServer(config);
@@ -397,6 +422,8 @@ export async function runServerStart(
     mcpRegistry,
     webhookTokenStore:  db !== null ? new WebhookTokenStore(db) : null,
     backpressure,
+    // P434b: GUI auth
+    auth: { configManager, sessionStore },
   });
 
   // ── GUI static file serving ───────────────────────────────────────────────

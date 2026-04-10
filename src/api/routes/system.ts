@@ -84,6 +84,21 @@ export function setDeepHealthProvider(fn: (() => Promise<DeepHealthFields>) | nu
   _deepHealthProvider = fn;
 }
 
+/**
+ * P434b: Inject auth setup state into GET /health.
+ * Called by server-startup when ConfigManager is loaded.
+ */
+export type HealthAuthFields = {
+  setup_required: boolean;
+  recovery_mode:  boolean;
+};
+
+let _healthAuthProvider: (() => HealthAuthFields) | null = null;
+
+export function setHealthAuthProvider(fn: (() => HealthAuthFields) | null): void {
+  _healthAuthProvider = fn;
+}
+
 export function createSystemRoutes(getApiKey?: () => string): Hono {
   const app = new Hono();
 
@@ -95,6 +110,7 @@ export function createSystemRoutes(getApiKey?: () => string): Hono {
   // SCOPE: public (intentional, no auth required)
   app.get("/health", async (c) => {
     const deep = _deepHealthProvider ? await _deepHealthProvider() : null;
+    const auth = _healthAuthProvider ? _healthAuthProvider() : null;
     return c.json({
       status:        "ok",
       version:       VERSION,
@@ -104,6 +120,7 @@ export function createSystemRoutes(getApiKey?: () => string): Hono {
       build_ref:     BUILD_META?.ref   ?? null,
       components:    {},
       ...(deep ?? {}),
+      ...(auth ?? {}),
     });
   });
 

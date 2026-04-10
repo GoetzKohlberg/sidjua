@@ -90,6 +90,8 @@ import { registerMemoryRoutes }          from "./memory-routes.js";
 import type { MemoryRouteServices }      from "./memory-routes.js";
 export type { MemoryRouteServices };
 import { registerFeatureFlagRoutes }     from "./feature-flag-routes.js";
+import { registerAuthRoutes }            from "./auth.js";
+import type { AuthRouteServices }        from "./auth.js";
 
 import type { AgentRegistryLike }   from "./agents.js";
 import type { SecretRouteServices }    from "./secrets.js";
@@ -179,6 +181,8 @@ export interface AllRouteServices {
   backpressure?: BackpressureManager | null;
   /** P388: Feature flags — optional; routes degrade gracefully without DB. */
   featureFlags?: boolean;
+  /** P434b: GUI auth services — optional; auth routes omitted if absent. */
+  auth?: AuthRouteServices | null;
 }
 
 
@@ -197,6 +201,11 @@ export function registerAllRoutes(app: Hono, services: AllRouteServices = {}): v
   // with fields the blue/green sidecar checks: healthy, migration_complete, db_read, etc.
   if (db !== null) {
     setDeepHealthProvider(() => checkDeepHealth(db, workDir, workDir, isReadOnlyMode()));
+  }
+
+  // P434b: GUI auth routes (setup, login, logout, verify, csrf, settings/password)
+  if (services.auth != null) {
+    registerAuthRoutes(app, services.auth);
   }
 
   // DB-backed routes

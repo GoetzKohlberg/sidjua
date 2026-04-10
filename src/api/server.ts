@@ -37,6 +37,8 @@ import { readonlyMiddleware }   from "./middleware/readonly.js";
 import { createSystemRoutes }  from "./routes/system.js";
 import { createLogger }        from "../core/logger.js";
 import type { RateLimitConfig } from "./middleware/rate-limiter.js";
+import { sessionMiddleware }   from "./middleware/session.js";
+import type { FileSessionStore } from "./middleware/session.js";
 
 export type { RateLimitConfig };
 
@@ -61,6 +63,10 @@ export interface ApiServerConfig {
   tls?:              TlsConfig;
   /** P269: Scoped API token store — enables token-based auth as primary auth path. */
   tokenStore?:       TokenStore | null;
+  /** P434b: File-backed session store for GUI cookie auth. */
+  sessionStore?:     FileSessionStore | null;
+  /** P434b: Returns the session HMAC signing secret from ConfigManager. */
+  getSessionSecret?: () => string | null;
 }
 
 export const DEFAULT_SERVER_CONFIG: Omit<ApiServerConfig, "api_key"> = {
@@ -202,6 +208,13 @@ export function createApiServer(config: ApiServerConfig): ApiServer {
 
   // Reject oversized bodies before auth/parsing (prevents OOM attack).
   app.use("*", bodyLimitMiddleware);
+  // P434b: Session cookie middleware — must run BEFORE csrf and authenticate
+  // so that csrf can check session.csrfToken and authenticate can grant session-based access.
+  if (config.sessionStore != null && config.getSessionSecret !== undefined) {
+    const getSecret = config.getSessionSecret;
+    const store     = config.sessionStore;
+    app.use("*", sessionMiddleware(store, getSecret));
+  }
   // Block state-changing requests from disallowed origins (CSRF defense).
   app.use("*", csrfMiddleware);
   app.use("*", authenticate({
