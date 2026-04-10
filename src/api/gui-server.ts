@@ -56,21 +56,17 @@ export function serveGuiFile(c: Context, dir: string, filename: string): Respons
 }
 
 /**
- * Serve index.html with the API key injected server-side (P281).
+ * Serve index.html with CSP nonce injection for Vite inline scripts.
  *
- * The bootstrap payload is written into `window.__SIDJUA_BOOTSTRAP__` before
- * `</head>` so the GUI can read the key without a separate HTTP round-trip.
+ * Bootstrap payload injection removed (P434a / #779 — SPEC-BOOTSTRAP-V2 §4.4).
+ * The `_getApiKey` parameter is retained for call-site compatibility.
  *
- * Security constraints:
- *   - Key is injected ONLY for loopback requests (Host: localhost / 127.0.0.1 / ::1).
- *   - Non-local requests receive an empty payload `{}`.
- *   - Response is always `Cache-Control: no-store, no-cache` to prevent the key
- *     from being stored in browser or proxy caches.
+ * Response is always `Cache-Control: no-store, no-cache`.
  */
 export function serveIndexHtmlWithBootstrap(
   c: Context,
   guiDist: string,
-  getApiKey: () => string,
+  _getApiKey: () => string,
 ): Response {
   const filePath = join(guiDist, "index.html");
   let realPath: string;
@@ -85,30 +81,13 @@ export function serveIndexHtmlWithBootstrap(
     return c.text("Forbidden", 403);
   }
 
-  // Use the TCP peer address set server-side by toWebRequest() — not the Host header,
-  // which is client-controlled and trivially spoofable.  Fail-closed: if the peer
-  // address header is absent (e.g. test environment), do NOT inject the API key.
-  const peerAddr = c.req.header("x-sidjua-peer-address") ?? "";
-  const isLocal  = peerAddr === "127.0.0.1" || peerAddr === "::1" || peerAddr === "::ffff:127.0.0.1";
-
-  let serverUrl = "";
-  try { serverUrl = new URL(c.req.url).origin; } catch (_err) { /* non-fatal — GUI falls back to window.location.origin */ }
-
-  const payload = (isLocal
-    ? JSON.stringify({ api_key: getApiKey(), server_url: serverUrl })
-    : JSON.stringify({})
-  ).replace(/</g, "\\u003c");
-
   // Retrieve the per-request nonce set by the securityHeaders middleware so
-  // the inline bootstrap script is whitelisted by the script-src CSP directive.
-  const nonce  = (c.get as (k: string) => string | undefined)("nonce" as never) ?? "";
-  const nonceAttr = nonce ? ` nonce="${nonce}"` : "";
+  // any Vite-injected inline scripts (e.g. modulepreload polyfill) are
+  // whitelisted by the script-src CSP directive.
+  const nonce = (c.get as (k: string) => string | undefined)("nonce" as never) ?? "";
+  let html = readFileSync(realPath, "utf-8");
 
-  const script = `<script${nonceAttr}>window.__SIDJUA_BOOTSTRAP__ = ${payload};</script>`;
-  let html = readFileSync(realPath, "utf-8").replace("</head>", `  ${script}\n  </head>`);
-
-  // Add nonce to any remaining inline <script> tags injected by vite (e.g. modulepreload
-  // polyfill). Only inline scripts (no src=) that don't already have nonce= are touched.
+  // Add nonce to any inline <script> tags injected by vite (no src=, no nonce= yet).
   if (nonce) {
     html = html.replace(/<script(?![^>]*\bsrc=)(?![^>]*\bnonce=)/g, `<script nonce="${nonce}"`);
   }

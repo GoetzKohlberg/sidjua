@@ -713,16 +713,15 @@ async function isPortAvailable(port: number, host: string): Promise<boolean> {
 }
 
 /**
- * Serve index.html with the API key injected server-side.
+ * Serve index.html with CSP nonce injection for Vite inline scripts.
  *
- * Mirrors the bootstrap logic in cli-server.ts so the CLI foreground path
- * has identical security properties (peer-address validation, no-store headers,
- * loopback-only key injection).
+ * Bootstrap payload injection removed (P434a / #779 — SPEC-BOOTSTRAP-V2 §4.4).
+ * The `_getApiKey` parameter is retained for call-site compatibility.
  */
 function serveIndexHtmlWithBootstrap(
   c: Context,
   guiDist: string,
-  getApiKey: () => string,
+  _getApiKey: () => string,
 ): Response {
   const filePath = join(guiDist, "index.html");
   let realPath: string;
@@ -737,25 +736,13 @@ function serveIndexHtmlWithBootstrap(
     return c.text("Forbidden", 403);
   }
 
-  // Use the TCP peer address set by toWebRequest() — not the Host header.
-  // Fail-closed: absent peer header (test env) → do NOT inject the key.
-  const peerAddr = c.req.header("x-sidjua-peer-address") ?? "";
-  const isLocal  = peerAddr === "127.0.0.1" || peerAddr === "::1" || peerAddr === "::ffff:127.0.0.1";
+  // Retrieve the per-request nonce set by the securityHeaders middleware so
+  // any Vite-injected inline scripts (e.g. modulepreload polyfill) are
+  // whitelisted by the script-src CSP directive.
+  const nonce = (c.get as (k: string) => string | undefined)("nonce" as never) ?? "";
+  let html = readFileSync(realPath, "utf-8");
 
-  let serverUrl = "";
-  try { serverUrl = new URL(c.req.url).origin; } catch (_err) { /* non-fatal */ }
-
-  const payload = (isLocal
-    ? JSON.stringify({ api_key: getApiKey(), server_url: serverUrl })
-    : JSON.stringify({})
-  ).replace(/</g, "\\u003c");
-
-  const nonce     = (c.get as (k: string) => string | undefined)("nonce" as never) ?? "";
-  const nonceAttr = nonce ? ` nonce="${nonce}"` : "";
-
-  const script = `<script${nonceAttr}>window.__SIDJUA_BOOTSTRAP__ = ${payload};</script>`;
-  let html = readFileSync(realPath, "utf-8").replace("</head>", `  ${script}\n  </head>`);
-
+  // Add nonce to any inline <script> tags injected by vite (no src=, no nonce= yet).
   if (nonce) {
     html = html.replace(/<script(?![^>]*\bsrc=)(?![^>]*\bnonce=)/g, `<script nonce="${nonce}"`);
   }
