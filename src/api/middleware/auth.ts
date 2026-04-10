@@ -30,6 +30,8 @@ import { REQUEST_ID_KEY }         from "./request-logger.js";
 import { CALLER_CONTEXT_KEY }     from "./require-scope.js";
 import type { CallerContext }     from "../caller-context.js";
 import type { TokenStore }        from "../token-store.js";
+import { SESSION_KEY }            from "./session.js";
+import type { SessionData }       from "./session.js";
 
 const logger = createLogger("api-server");
 
@@ -40,11 +42,16 @@ const logger = createLogger("api-server");
 // valid ticket are rejected by the handler with AUTH-001.
 // /api/v1/org/public is the Glasscheibe unauthenticated org-chart endpoint (P348).
 // /widget/glasscheibe.js is the embeddable widget script (P349).
+// /api/v1/auth/setup, /login, /logout, /verify — GUI auth endpoints (P434b)
 const PUBLIC_PATHS = new Set([
   "/api/v1/health",
   "/api/v1/events",
   "/api/v1/org/public",
   "/widget/glasscheibe.js",
+  "/api/v1/auth/setup",
+  "/api/v1/auth/login",
+  "/api/v1/auth/logout",
+  "/api/v1/auth/verify",
 ]);
 
 /** Path prefixes that bypass authentication (GUI static files, SPA routes) */
@@ -159,6 +166,18 @@ export const authenticate = (
       c.set(CALLER_CONTEXT_KEY, ctx);
       return next();
     }
+  }
+
+  // ── 1b. Session-cookie auth (P434b GUI auth) ───────────────────────────────
+  // sessionMiddleware must run before authenticate in the chain to populate
+  // SESSION_KEY.  If a valid session is present, grant admin-scoped access for
+  // the browser user.  Bearer-token clients never have a session; this branch
+  // only activates for cookie-authenticated requests.
+  const session = c.get(SESSION_KEY as string) as SessionData | undefined;
+  if (session !== undefined) {
+    const ctx: CallerContext = { role: "admin" };
+    c.set(CALLER_CONTEXT_KEY, ctx);
+    return next();
   }
 
   // ── 2. Fall back to legacy single API key ──────────────────────────────────
