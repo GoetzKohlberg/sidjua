@@ -13,7 +13,7 @@
 import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync, appendFileSync, chmodSync } from "node:fs";
 import { join, dirname, resolve as resolvePath } from "node:path";
 import { ConfigManager }      from "./config.js";
-import { FileSessionStore }   from "./middleware/session.js";
+import { FileSessionStore, SESSION_TTL_MS } from "./middleware/session.js";
 import { setHealthAuthProvider } from "./routes/system.js";
 import { redactPii } from "../core/telemetry/pii-redactor.js";
 import { createLogger, configureLogger } from "../core/logger.js";
@@ -275,6 +275,11 @@ export async function runServerStart(
 
   const sessionStore = new FileSessionStore(opts.workDir);
   void sessionStore.purgeExpired().catch((_e: unknown) => undefined);
+  const sessionPurgeTimer = setInterval(
+    () => void sessionStore.purgeExpired().catch((_e: unknown) => undefined),
+    SESSION_TTL_MS / 2,
+  );
+  sessionPurgeTimer.unref();
 
   setHealthAuthProvider(() => ({
     setup_required: configManager.isFirstRun(),
@@ -520,6 +525,7 @@ export async function runServerStart(
     });
 
     if (chatPersistTimer !== null) clearInterval(chatPersistTimer);
+    clearInterval(sessionPurgeTimer);
     deadWorkerRecovery.stop();
     backpressure.stop();
     if (orchestrator !== null) {

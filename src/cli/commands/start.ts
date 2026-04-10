@@ -22,6 +22,9 @@ import { isProcessAlive } from "../utils/process.js";
 import { createLogger } from "../../core/logger.js";
 import { createApiServer, DEFAULT_SERVER_CONFIG } from "../../api/server.js";
 import { registerAllRoutes } from "../../api/routes/index.js";
+import { ConfigManager }     from "../../api/config.js";
+import { FileSessionStore, SESSION_TTL_MS } from "../../api/middleware/session.js";
+import { setHealthAuthProvider } from "../../api/routes/system.js";
 import { DeadWorkerRecovery } from "../../core/runtime/dead-worker-recovery.js";
 import { BackpressureManager } from "../../core/runtime/backpressure.js";
 import { installImmutableAuditTriggers } from "../../core/runtime/sqlite-audit-immutable.js";
@@ -469,6 +472,33 @@ export async function runStartCommand(opts: StartCommandOptions): Promise<number
       return 1;
     }
 
+    // ── P434b/P434c: GUI auth config + session store ──────────────────────
+
+    const configManager = new ConfigManager(opts.workDir);
+    const guiConfigured = configManager.load();
+    if (configManager.recoveryMode) {
+      logger.warn("start", "GUI config in recovery mode — admin re-setup required via /api/v1/auth/setup", {});
+      process.stderr.write("[sidjua] WARNING: GUI config.json is corrupt — recovery mode active. Re-run setup.\n");
+    } else if (!guiConfigured) {
+      logger.info("start", "First run: no admin password set — complete setup at /api/v1/auth/setup", {});
+      process.stderr.write("[sidjua] INFO: GUI not yet configured. Open the browser to complete first-time setup.\n");
+    }
+
+    const sessionStore = new FileSessionStore(opts.workDir);
+    void sessionStore.purgeExpired().catch((_e: unknown) => undefined);
+
+    // Periodic session purge — every SESSION_TTL_MS / 2 (4 hours)
+    const sessionPurgeTimer = setInterval(
+      () => { void sessionStore.purgeExpired().catch((_e: unknown) => undefined); },
+      SESSION_TTL_MS / 2,
+    );
+    sessionPurgeTimer.unref();
+
+    setHealthAuthProvider(() => ({
+      setup_required: configManager.isFirstRun(),
+      recovery_mode:  configManager.recoveryMode,
+    }));
+
     // ── Create and configure HTTP API server ─────────────────────────────
 
     const server = createApiServer({
@@ -477,6 +507,9 @@ export async function runStartCommand(opts: StartCommandOptions): Promise<number
       api_key:   apiKey,
       // P269 / P316: wire scoped token store into auth middleware (identical to cli-server.ts)
       tokenStore,
+      // P434b: GUI session auth
+      sessionStore,
+      getSessionSecret: () => configManager.getConfig().sessionSecret,
     });
 
     // ── MCP Registry — DUAL PATH: server-startup.ts (Docker) does the same ──
@@ -515,6 +548,8 @@ export async function runStartCommand(opts: StartCommandOptions): Promise<number
       ...(registry !== undefined ? { registry } : {}),
       mcpRegistry,
       webhookTokenStore: db !== null ? new WebhookTokenStore(db) : null,
+      // P434b/P434c: GUI auth
+      auth: { configManager, sessionStore },
     };
 
     // DUAL PATH: server-startup.ts (Docker) starts the same services. Keep in sync.
@@ -620,6 +655,7 @@ export async function runStartCommand(opts: StartCommandOptions): Promise<number
     // Graceful shutdown handler
     const shutdown = async () => {
       process.stdout.write(msg("cli.start.shutting_down"));
+      clearInterval(sessionPurgeTimer);
       checkpointTimer?.stop();
       stopDigestScheduler();
       deadWorkerRecovery.stop();
