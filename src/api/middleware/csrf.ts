@@ -3,15 +3,11 @@
 // Dual licensed: AGPL-3.0 + SIDJUA Commercial License. See LICENSE.
 
 /**
- * SIDJUA — CSRF origin-validation middleware
+ * SIDJUA — CSRF origin-validation + double-submit middleware
  *
  * Validates the Origin (or Referer) header for state-changing requests
- * (POST/PUT/DELETE/PATCH). Blocks cross-origin requests from non-localhost /
- * non-Tauri origins.
- *
- * Defense-in-depth: API key auth already prevents most CSRF, but a malicious
- * localhost page (e.g. compromised npm package with a dev server) could read
- * the key from localStorage. Origin validation adds an extra layer.
+ * (POST/PUT/DELETE/PATCH). Blocks cross-origin requests from non-localhost
+ * origins.
  *
  * ORIGIN VALIDATION (highest priority):
  *   When an Origin header IS present it is ALWAYS validated against the allowlist.
@@ -19,7 +15,13 @@
  *   A browser extension that injects an Authorization header cross-origin cannot
  *   forge a request from an evil origin past this check.
  *
- * NO-ORIGIN BYPASS RULE (applies only when Origin is absent):
+ * DOUBLE-SUBMIT CSRF (session-based requests):
+ *   When an active session is present in context (loaded by sessionMiddleware),
+ *   the X-CSRF-Token header must match session.csrfToken (timing-safe compare).
+ *   This is defense-in-depth: even a valid origin does not bypass this check.
+ *   Bearer-token / API-key requests never have a session, so they are unaffected.
+ *
+ * NO-ORIGIN BYPASS RULE (applies only when Origin is absent AND no session):
  *   Programmatic clients (CLI tools, curl, server-to-server calls) typically
  *   don't send an Origin header. They can bypass CSRF validation if they present:
  *     - Authorization: <token>          — API-key auth (not a browser form)
@@ -31,7 +33,6 @@
  *   Form-POST CSRF attacks may omit Origin in some browser/proxy configurations.
  *
  * Allowed origins (when Origin IS present):
- *   - tauri://localhost* — Tauri 2.x WebView
  *   - http(s)://localhost[:<port>] — local dev server
  *   - http(s)://127.0.0.1[:<port>] — loopback alias
  *
@@ -39,8 +40,11 @@
  *   of the Referer URL is validated against the same allowlist.
  */
 
+import { timingSafeEqual }       from "node:crypto";
 import type { MiddlewareHandler } from "hono";
-import { createLogger } from "../../core/logger.js";
+import { createLogger }           from "../../core/logger.js";
+import { SESSION_KEY }            from "./session.js";
+import type { SessionData }       from "./session.js";
 
 const logger = createLogger("api-server");
 
@@ -50,20 +54,16 @@ const MUTATING_METHODS = new Set(["POST", "PUT", "DELETE", "PATCH"]);
 
 /**
  * Regex matching allowed origins.
- * - tauri://localhost* — Tauri 2.0 WebView
- * - http(s)://localhost[:<port>] — local dev server
+ * - http(s)://localhost[:<port>] — local dev server / loopback
  * - http(s)://127.0.0.1[:<port>] — loopback alias
  */
 const ALLOWED_ORIGIN_RE =
-  /^tauri:\/\/localhost(\.localhost)?$|^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+  /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 
 
 /**
  * Reject state-changing requests from unexpected origins.
- *
- * Previously requests with NO Origin header were allowed
- * unconditionally. Now they are blocked unless the Authorization header
- * is present (indicating custom-header auth, not cookie-based auth).
+ * For session-based requests, also enforces double-submit CSRF token check.
  */
 export const csrfMiddleware: MiddlewareHandler = async (c, next) => {
   // Safe methods don't mutate state — skip check
@@ -71,11 +71,11 @@ export const csrfMiddleware: MiddlewareHandler = async (c, next) => {
     return next();
   }
 
-  const origin  = c.req.header("origin");
+  const origin = c.req.header("origin");
 
-  // ── Origin present: ALWAYS validate — no bypass can override this ──────────
-  // Browser extensions can inject Authorization headers cross-origin, so checking
-  // Authorization/Content-Type before Origin validation would be exploitable.
+  // ── Step 1: Origin present — ALWAYS validate first ────────────────────────
+  // Browser extensions can inject Authorization headers cross-origin, so
+  // checking Authorization/Content-Type before Origin would be exploitable.
   if (origin !== undefined) {
     if (!ALLOWED_ORIGIN_RE.test(origin)) {
       logger.warn("csrf_origin_rejected", "CSRF: request from disallowed origin blocked", {
@@ -83,28 +83,51 @@ export const csrfMiddleware: MiddlewareHandler = async (c, next) => {
       });
       return c.json({ error: "CSRF: invalid origin" }, 403);
     }
+    // Origin valid — fall through to double-submit check for session requests
+  }
+
+  // ── Step 2: Double-submit CSRF for session-based requests ─────────────────
+  // sessionMiddleware (runs before csrf in the chain) sets SESSION_KEY when a
+  // valid signed session cookie is present. Bearer-token clients never have a
+  // session, so this branch only applies to browser / cookie-auth callers.
+  const session = c.get(SESSION_KEY) as SessionData | undefined;
+  if (session !== undefined) {
+    const csrfHeader = c.req.header("x-csrf-token") ?? "";
+    const expected   = Buffer.from(session.csrfToken, "utf-8");
+    const provided   = Buffer.from(csrfHeader,        "utf-8");
+    const valid =
+      expected.length > 0 &&
+      expected.length === provided.length &&
+      timingSafeEqual(expected, provided);
+    if (!valid) {
+      logger.warn("csrf_double_submit_fail", "CSRF: X-CSRF-Token missing or invalid for session request", {
+        metadata: { method: c.req.method, path: c.req.path, hasToken: csrfHeader.length > 0 },
+      });
+      return c.json({ error: "CSRF: invalid or missing X-CSRF-Token" }, 403);
+    }
     return next();
   }
 
-  // ── No Origin header — programmatic client (CLI, curl, server-to-server) ───
-  // Bypass CSRF if the request carries markers that browsers cannot forge
-  // cross-origin without a CORS pre-flight:
-  //   - Authorization: <token>         — API-key / Bearer auth
-  //   - Content-Type: application/json — browsers use urlencoded/multipart for forms
-  //   - X-Requested-With: <any>        — non-safelisted header; requires pre-flight
-  const hasAuth          = c.req.header("authorization") !== undefined;
-  const contentType      = c.req.header("content-type") ?? "";
-  const isJson           = contentType.includes("application/json");
-  const hasXRW           = c.req.header("x-requested-with") !== undefined;
-  // Custom SIDJUA marker — browsers can't set this cross-origin without a CORS preflight.
-  // API clients (CLI, SDK) explicitly add it; browser extensions cannot forge it.
-  const hasSidjuaHeader  = c.req.header("x-sidjua-request") !== undefined;
+  // ── Step 3: No session — Bearer-token / programmatic client ───────────────
+  // If origin was already validated in step 1 and passed, allow through.
+  if (origin !== undefined) {
+    return next();
+  }
+
+  // No origin and no session — check bypass markers.
+  // These markers can only be set by non-browser clients (CLI, curl, SDKs)
+  // that would not use cookie auth anyway.
+  const hasAuth         = c.req.header("authorization") !== undefined;
+  const contentType     = c.req.header("content-type") ?? "";
+  const isJson          = contentType.includes("application/json");
+  const hasXRW          = c.req.header("x-requested-with") !== undefined;
+  const hasSidjuaHeader = c.req.header("x-sidjua-request") !== undefined;
 
   if (hasAuth || isJson || hasXRW || hasSidjuaHeader) {
     return next();
   }
 
-  // ── No Origin + no bypass markers — fall back to Referer validation ─────────
+  // ── No origin + no session + no bypass markers — Referer fallback ─────────
   const referer = c.req.header("referer");
 
   if (referer !== undefined) {
@@ -127,7 +150,7 @@ export const csrfMiddleware: MiddlewareHandler = async (c, next) => {
     return next();
   }
 
-  // Neither Origin, nor bypass markers, nor valid Referer — block.
+  // Neither Origin, nor session, nor bypass markers, nor valid Referer — block.
   logger.warn("csrf_missing_origin", "CSRF: state-changing request missing both Origin and Referer", {
     metadata: { method: c.req.method, path: c.req.path },
   });
