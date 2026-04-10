@@ -4,6 +4,7 @@
 
 import { API_PATHS } from './paths';
 import { GUI_ERRORS } from '../i18n/gui-errors';
+import { getCsrfToken } from '../lib/csrf';
 import type {
   HealthStatus,
   SystemInfo,
@@ -166,14 +167,18 @@ export class SidjuaApiClient {
   ) {}
 
   private headers(): HeadersInit {
-    return {
-      'Authorization':     `Bearer ${this.apiKey}`,
-      'Accept':            'application/json',
-      'Content-Type':      'application/json',
+    const h: Record<string, string> = {
+      'Authorization':    `Bearer ${this.apiKey}`,
+      'Accept':           'application/json',
+      'Content-Type':     'application/json',
       // Custom marker for CSRF defense-in-depth — browsers can't set this cross-origin
       // without triggering a CORS preflight; browser extensions cannot forge it.
-      'X-SIDJUA-Request':  '1',
+      'X-SIDJUA-Request': '1',
     };
+    // Include CSRF token when a session is active (double-submit pattern, P434b).
+    const csrf = getCsrfToken();
+    if (csrf !== null) h['X-CSRF-Token'] = csrf;
+    return h;
   }
 
   async get<T>(path: string, timeoutMs: number = TIMEOUT_MS.default, signal?: AbortSignal): Promise<T> {
@@ -456,5 +461,9 @@ export class SidjuaApiClient {
 
   listErrorEvents(limit = 20): Promise<ActivityStreamResponse> {
     return this.get(`${API_PATHS.activityStream()}?severity=error&limit=${limit}`);
+  }
+
+  changePassword(currentPassword: string, newPassword: string): Promise<{ ok: boolean }> {
+    return this.post(API_PATHS.authPasswordChange(), { currentPassword, newPassword });
   }
 }

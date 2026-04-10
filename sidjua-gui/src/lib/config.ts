@@ -94,21 +94,12 @@ export function getIsBootstrapSession(): boolean {
   return _isBootstrapSession;
 }
 
-/** Load server URL from localStorage. API key is intentionally excluded. */
+/** Load config. In browser-native mode the server URL is always the page origin. */
 function loadConfig(): AppConfig {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as Partial<AppConfig>;
-      return {
-        serverUrl: parsed.serverUrl ?? DEFAULT_CONFIG.serverUrl,
-        apiKey:    '',  // never loaded from storage
-      };
-    }
-  } catch {
-    // ignore storage errors
-  }
-  return DEFAULT_CONFIG;
+  return {
+    serverUrl: typeof window !== 'undefined' ? window.location.origin : 'http://localhost:4200',
+    apiKey:    '',
+  };
 }
 
 /** Save server URL to localStorage. API key is intentionally excluded. */
@@ -172,10 +163,9 @@ export function AppConfigProvider({ children }: { children: ReactNode }) {
     setStatus('error');
   };
 
+  // In browser-native mode auth is via session cookie — create client even with empty apiKey.
   const client = useMemo(
-    () => config.apiKey
-      ? new SidjuaApiClient(config.serverUrl, config.apiKey, () => handleAuthFailureRef.current())
-      : null,
+    () => new SidjuaApiClient(config.serverUrl, config.apiKey, () => handleAuthFailureRef.current()),
     [config.serverUrl, config.apiKey],
   );
 

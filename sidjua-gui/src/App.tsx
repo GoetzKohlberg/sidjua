@@ -7,12 +7,15 @@ import { HashRouter, Routes, Route, Navigate, useNavigate } from 'react-router-d
 
 import { ThemeProvider }    from './lib/theme';
 import { AppConfigProvider, useAppConfig } from './lib/config';
+import { AuthProvider, useAuth } from './lib/auth';
 import { ToastProvider }    from './components/shared/Toast';
 import { ErrorBoundary }    from './components/shared/ErrorBoundary';
 import { Shell }            from './components/layout/Shell';
 import { FirstRunOverlay }  from './components/overlay/FirstRunOverlay';
-import { SidjuaApiClient }  from './api/client';
+import { LoadingSpinner }   from './components/shared/LoadingSpinner';
 
+import { Setup }        from './pages/Setup';
+import { Login }        from './pages/Login';
 import { Dashboard }    from './pages/Dashboard';
 import { Agents }       from './pages/Agents';
 import { OrgChart }     from './pages/OrgChart';
@@ -25,55 +28,85 @@ import { Configuration } from './pages/Configuration';
 import { Settings }     from './pages/Settings';
 
 
+// ---------------------------------------------------------------------------
+// Auth guard — redirects to /setup or /login when unauthenticated
+// ---------------------------------------------------------------------------
+
+function AuthGuard({ children }: { children: React.ReactNode }) {
+  const navigate = useNavigate();
+  const { authState } = useAuth();
+
+  useEffect(() => {
+    if (authState.status === 'loading') return;
+    if (authState.status === 'unauthenticated') {
+      navigate(authState.isFirstRun ? '/setup' : '/login', { replace: true });
+    }
+  }, [authState, navigate]);
+
+  if (authState.status === 'loading') {
+    return (
+      <div style={{
+        display:        'flex',
+        alignItems:     'center',
+        justifyContent: 'center',
+        height:         '100vh',
+        background:     'var(--color-bg)',
+      }}>
+        <LoadingSpinner size="lg" label="Checking session…" />
+      </div>
+    );
+  }
+  if (authState.status !== 'authenticated') return null;
+  return <>{children}</>;
+}
+
+
+// ---------------------------------------------------------------------------
+// Workspace first-run gate (separate from auth first-run)
+// ---------------------------------------------------------------------------
+
 type FirstRunState = 'loading' | 'completed' | 'pending' | 'error';
 
-function AppWithFirstRunGate() {
-  const { config, isBootstrapSession } = useAppConfig();
-
+function ProtectedApp() {
+  const { client } = useAppConfig();
   const [firstRunState, setFirstRunState] = useState<FirstRunState>('loading');
 
   const checkFirstRun = useCallback(async () => {
-    // If no credentials yet, or key came from auto-bootstrap (not user-saved),
-    // skip overlay — show it only after the user has explicitly configured their key.
-    if (!config.serverUrl || !config.apiKey || isBootstrapSession) {
-      setFirstRunState('completed');
-      return;
-    }
-
     setFirstRunState('loading');
     try {
-      const client = new SidjuaApiClient(config.serverUrl, config.apiKey);
-      const res    = await client.getWorkspaceConfig();
+      const res = await client!.getWorkspaceConfig();
       setFirstRunState(res.firstRunCompleted ? 'completed' : 'pending');
     } catch {
-      // Network error — show error state with retry button; do NOT auto-complete
       setFirstRunState('error');
     }
-  }, [config.serverUrl, config.apiKey, isBootstrapSession]);
+  }, [client]);
 
   useEffect(() => {
     void checkFirstRun();
   }, [checkFirstRun]);
 
   const handleDismiss = useCallback(async () => {
-    setFirstRunState('completed');  // optimistic update — hide overlay immediately
-
-    if (!config.serverUrl || !config.apiKey) return;
+    setFirstRunState('completed');
     try {
-      const client = new SidjuaApiClient(config.serverUrl, config.apiKey);
-      await client.completeFirstRun();
+      await client!.completeFirstRun();
     } catch {
-      // Non-fatal — overlay is already hidden; next load may show it again
+      // Non-fatal — overlay already hidden
     }
-  }, [config.serverUrl, config.apiKey]);
+  }, [client]);
 
   return (
-    <HashRouter>
-      <AppRoutes firstRunState={firstRunState} onDismiss={handleDismiss} onRetry={checkFirstRun} />
-    </HashRouter>
+    <AppRoutes
+      firstRunState={firstRunState}
+      onDismiss={handleDismiss}
+      onRetry={checkFirstRun}
+    />
   );
 }
 
+
+// ---------------------------------------------------------------------------
+// App routes
+// ---------------------------------------------------------------------------
 
 interface AppRoutesProps {
   firstRunState: FirstRunState;
@@ -91,7 +124,6 @@ function AppRoutes({ firstRunState, onDismiss, onRetry }: AppRoutesProps) {
 
   return (
     <>
-      {/* Show overlay when first run is pending or errored */}
       {(firstRunState === 'pending' || firstRunState === 'error') && (
         <FirstRunOverlay
           onDismiss={onDismiss}
@@ -101,7 +133,6 @@ function AppRoutes({ firstRunState, onDismiss, onRetry }: AppRoutesProps) {
         />
       )}
 
-      {/* Main app — always rendered but visually covered by overlay when shown */}
       <Routes>
         <Route element={<Shell />}>
           <Route index              element={<Dashboard />}    />
@@ -114,7 +145,6 @@ function AppRoutes({ firstRunState, onDismiss, onRetry }: AppRoutesProps) {
           <Route path="costs"       element={<CostTracking />} />
           <Route path="config"      element={<Configuration />}/>
           <Route path="settings"    element={<Settings />}     />
-          {/* Catch-all → dashboard */}
           <Route path="*"           element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
@@ -123,14 +153,30 @@ function AppRoutes({ firstRunState, onDismiss, onRetry }: AppRoutesProps) {
 }
 
 
+// ---------------------------------------------------------------------------
+// Root
+// ---------------------------------------------------------------------------
+
 export default function App() {
   return (
     <ThemeProvider>
       <AppConfigProvider>
         <ToastProvider>
-        <ErrorBoundary>
-          <AppWithFirstRunGate />
-        </ErrorBoundary>
+          <ErrorBoundary>
+            <HashRouter>
+              <AuthProvider>
+                <Routes>
+                  <Route path="/setup" element={<Setup />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/*" element={
+                    <AuthGuard>
+                      <ProtectedApp />
+                    </AuthGuard>
+                  } />
+                </Routes>
+              </AuthProvider>
+            </HashRouter>
+          </ErrorBoundary>
         </ToastProvider>
       </AppConfigProvider>
     </ThemeProvider>

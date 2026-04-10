@@ -21,6 +21,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { API_PATHS } from '../api/paths';
 import { getRuntimeApiKey } from '../lib/config';
+import { getCsrfToken } from '../lib/csrf';
 import type { LocaleStringsResponse } from '../api/types';
 
 
@@ -145,13 +146,18 @@ export function useTranslation(): UseTranslationResult {
     _locale = newLocale;
     _notify();
 
-    // Best-effort persist to server (include auth header so the endpoint accepts the request).
+    // Best-effort persist to server (include auth headers so the endpoint accepts the request).
     // Non-server-supported locales (e.g. es, fil) return 400 — that is expected and non-fatal.
     let serverPersisted = false;
     try {
-      const key = getRuntimeApiKey();
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (key) headers['Authorization'] = `Bearer ${key}`;
+      const key  = getRuntimeApiKey();
+      const csrf = getCsrfToken();
+      const headers: Record<string, string> = {
+        'Content-Type':     'application/json',
+        'X-SIDJUA-Request': '1',
+      };
+      if (key)  headers['Authorization'] = `Bearer ${key}`;
+      if (csrf) headers['X-CSRF-Token']  = csrf;
       const res = await fetch(API_PATHS.localeSet(), {
         method:  'POST',
         headers,

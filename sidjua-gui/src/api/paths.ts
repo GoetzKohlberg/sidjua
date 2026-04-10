@@ -94,4 +94,12 @@ export const API_PATHS = {
 
   // Activity stream
   activityStream:        ()             => `${API_PREFIX}/activity/stream`,
+
+  // Auth (P434c)
+  authVerify:            ()             => `${API_PREFIX}/auth/verify`,
+  authSetup:             ()             => `${API_PREFIX}/auth/setup`,
+  authLogin:             ()             => `${API_PREFIX}/auth/login`,
+  authLogout:            ()             => `${API_PREFIX}/auth/logout`,
+  authCsrf:              ()             => `${API_PREFIX}/auth/csrf`,
+  authPasswordChange:    ()             => `${API_PREFIX}/auth/settings/password`,
 } as const;
