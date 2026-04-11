@@ -9,13 +9,16 @@
 #   ./scripts/docker-smoke-test.sh [IMAGE_TAG]
 #
 # Examples:
-#   ./scripts/docker-smoke-test.sh                       # default: ghcr.io/goetzkohlberg/sidjua:1.0.1
+#   ./scripts/docker-smoke-test.sh                       # default: sidjua:<version>-amd64 (local build)
 #   ./scripts/docker-smoke-test.sh sidjua/sidjua:latest
 #   IMAGE=my-custom-tag ./scripts/docker-smoke-test.sh
 
 set -e
 
-IMAGE="${1:-${IMAGE:-ghcr.io/goetzkohlberg/sidjua:1.0.1}}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+EXPECTED_VERSION=$(node -p "require('${SCRIPT_DIR}/../package.json').version" 2>/dev/null || echo "unknown")
+
+IMAGE="${1:-${IMAGE:-sidjua:${EXPECTED_VERSION}-amd64}}"
 
 # ---------------------------------------------------------------------------
 # --verify-manifest mode: check that both amd64 and arm64 are present
@@ -34,7 +37,7 @@ if [[ "${1:-}" == "--verify-manifest" ]]; then
 fi
 
 CONTAINER="sidjua-smoke-test"
-PORT="${SIDJUA_PORT:-4200}"
+PORT="${SIDJUA_PORT:-47821}"
 BASE_URL="http://localhost:${PORT}"
 
 PASS=0
@@ -96,8 +99,8 @@ else
   fail "Health endpoint — got: ${HEALTH}"
 fi
 
-if echo "$HEALTH" | grep -q '"version":"1.0.1"'; then
-  pass "Health endpoint reports version 1.0.1"
+if echo "$HEALTH" | grep -q "\"version\":\"${EXPECTED_VERSION}\""; then
+  pass "Health endpoint reports version ${EXPECTED_VERSION}"
 else
   fail "Health endpoint version — got: ${HEALTH}"
 fi
@@ -107,8 +110,8 @@ fi
 # ---------------------------------------------------------------------------
 
 VERSION_OUT=$(docker exec "$CONTAINER" sidjua --version 2>/dev/null || echo "")
-if echo "$VERSION_OUT" | grep -q "1.0.0"; then
-  pass "sidjua --version outputs 1.0.1"
+if echo "$VERSION_OUT" | grep -q "${EXPECTED_VERSION}"; then
+  pass "sidjua --version outputs ${EXPECTED_VERSION}"
 else
   fail "sidjua --version — got: ${VERSION_OUT}"
 fi
@@ -138,11 +141,14 @@ fi
 # Container logs — no startup errors
 # ---------------------------------------------------------------------------
 
-LOGS=$(docker logs "$CONTAINER" 2>&1)
-if echo "$LOGS" | grep -qi "error\|fatal\|uncaught"; then
-  fail "Container logs contain errors — check: docker logs ${CONTAINER}"
+ERRORS=$(docker logs "$CONTAINER" 2>&1 | grep -E "^\[ERROR\]|^\[FATAL\]|Uncaught|UnhandledPromise" || true)
+if [ -n "$ERRORS" ]; then
+  echo "FAIL: Container logs contain errors:"
+  echo "$ERRORS" | head -5
+  FAIL=$((FAIL + 1))
 else
-  pass "Container logs show no errors on startup"
+  echo "PASS: No ERROR/FATAL in container logs"
+  PASS=$((PASS + 1))
 fi
 
 # ---------------------------------------------------------------------------
