@@ -130,23 +130,30 @@ export async function runServerStart(
     }
   }
 
-  const apiKey = opts.apiKey ?? apiKeyState.currentApiKey;
+  const apiKey = opts.apiKey ?? apiKeyState.currentApiKey ?? "";
 
   if (!apiKey) {
-    process.stderr.write(
-      "Error: API key required. Run `sidjua api-key generate` first, then set SIDJUA_API_KEY or use --api-key.\n",
+    // No legacy API key present. Per SPEC-BOOTSTRAP-V2 v2.1 §5, the server
+    // starts in setup_required=true state. The browser-based /setup flow
+    // (P434b) is the primary auth path. Session-cookie auth and scoped
+    // token auth both work independently of this legacy key.
+    logger.info(
+      "startup_no_legacy_key",
+      "Starting without legacy API key — browser /setup flow is required for first-time configuration",
+      {},
     );
-    process.exit(1);
   }
 
-  // Warn operators that the raw API key now has bootstrap scope only (P311).
-  // All non-bootstrap API operations require a scoped token.
-  logger.warn(
-    "startup_bootstrap_scope",
-    "The raw API key is restricted to bootstrap scope (token creation only). " +
-    "Create a scoped token for API access: sidjua token create --scope admin",
-    {},
-  );
+  if (apiKey !== "") {
+    // Warn operators that the raw API key now has bootstrap scope only (P311).
+    // All non-bootstrap API operations require a scoped token.
+    logger.warn(
+      "startup_bootstrap_scope",
+      "The raw API key is restricted to bootstrap scope (token creation only). " +
+      "Create a scoped token for API access: sidjua token create --scope admin",
+      {},
+    );
+  }
 
   // CORS origins: ENV SIDJUA_CORS_ORIGINS overrides default (comma-separated list)
   const envCorsOrigins = process.env["SIDJUA_CORS_ORIGINS"];
