@@ -19,52 +19,13 @@ if [ ! -f /app/divisions.yaml ]; then
   cp /app/defaults/divisions.yaml /app/divisions.yaml 2>/dev/null || true
 fi
 
-# --- Zero-Config API Key Auto-Generation ---
-API_KEY_FILE="/app/.system/api-key"
-
-if [ -n "$SIDJUA_API_KEY" ]; then
-  # Explicit env var takes priority
-  echo "Using SIDJUA_API_KEY from environment"
-elif [ -f "$API_KEY_FILE" ]; then
-  # Reuse previously generated key
-  export SIDJUA_API_KEY=$(cat "$API_KEY_FILE")
-  echo "Using stored API key from $API_KEY_FILE"
-else
-  # First run — auto-generate
-  GENERATED_KEY="sk-sidjua-$(node -e "console.log(require('crypto').randomBytes(24).toString('hex'))")"
-  echo "$GENERATED_KEY" > "$API_KEY_FILE"
-  chmod 600 "$API_KEY_FILE"
-  export SIDJUA_API_KEY="$GENERATED_KEY"
-  MASKED_KEY="${GENERATED_KEY:0:10}...${GENERATED_KEY: -6}"
-  echo ""
-  echo "============================================"
-  echo "  SIDJUA API Key (auto-generated)"
-  echo "  $MASKED_KEY"
-  echo ""
-  echo "  Full key stored at: $API_KEY_FILE"
-  echo "  Retrieve with: docker exec <container> cat $API_KEY_FILE"
-  echo "  Or set SIDJUA_API_KEY env var to override."
-  echo "============================================"
-  echo ""
-fi
-# --- End Zero-Config API Key ---
-
-# --- Error Logging Transparency Notice ---
-echo ""
-echo "  Error logging is enabled in V1.0.0 to help us improve stability."
-echo "  - API keys and secrets are automatically redacted (never stored in full)"
-echo "  - Logs are stored locally at ${SIDJUA_ERROR_LOG}"
-echo "  - Logging will be user-configurable in V1.0.1"
-echo "  - To disable now: set SIDJUA_LOG_LEVEL=none"
-echo ""
-
 # --- Startup Info ---
 # Security check: warn if running as root
 if [ "$(id -u)" = "0" ]; then
   echo "[WARN] Running as root is not recommended. Use: docker run --user 1001:1001"
 fi
 echo "[INFO] Platform: $(uname -m)"
-echo "[INFO] SIDJUA ${SIDJUA_VERSION:-unknown} starting on port ${SIDJUA_PORT:-4200}"
+echo "[INFO] SIDJUA ${SIDJUA_VERSION:-unknown} starting on port ${SIDJUA_PORT:-47821}"
 
 # --- First-Run Provisioning ---
 # Apply divisions + agents on every startup (idempotent).
@@ -77,7 +38,7 @@ sidjua apply --force --work-dir /app 2>&1 || {
 # Inject --port from SIDJUA_PORT env var when starting the API server.
 # This lets operators override the port without rebuilding the image:
 #   docker run -e SIDJUA_PORT=8080 -p 8080:8080 sidjua/sidjua:1.0.0
-PORT="${SIDJUA_PORT:-4200}"
+PORT="${SIDJUA_PORT:-47821}"
 
 # Only inject --port when the CMD looks like a server start invocation.
 # Direct `docker exec` calls (sidjua --version, sidjua init, etc.) bypass this script.
