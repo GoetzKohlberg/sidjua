@@ -225,6 +225,28 @@ export const authenticate = (
   const currentKey = getApiKey();
   const pendingKey = getPending?.() ?? null;
 
+  // P436: When no legacy API key is configured (first-run, browser-session-only
+  // deployment per SPEC-BOOTSTRAP-V2 v2.1 §5), the legacy bootstrap path is
+  // effectively disabled. Reject explicitly rather than risk an empty-Bearer
+  // match via timingSafeCompare("", "").
+  if (currentKey === "" && (pendingKey === null || pendingKey === "")) {
+    logger.warn("auth_no_legacy_key", "No legacy API key configured — bootstrap path disabled. Use session or scoped token.", {
+      correlationId: requestId,
+      metadata: { path },
+    });
+    return c.json(
+      {
+        error: {
+          code:        "AUTH-001",
+          message:     "Authentication required",
+          recoverable: false,
+          request_id:  requestId,
+        },
+      },
+      401,
+    );
+  }
+
   const valid =
     timingSafeCompare(providedKey, currentKey) ||
     (pendingKey !== null && pendingKey !== "" && timingSafeCompare(providedKey, pendingKey));
