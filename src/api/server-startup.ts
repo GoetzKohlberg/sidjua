@@ -10,7 +10,7 @@
  * GUI serving, error logging, signal handling, and graceful shutdown.
  */
 
-import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync, appendFileSync, chmodSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync, appendFileSync } from "node:fs";
 import { join, dirname, resolve as resolvePath } from "node:path";
 import { ConfigManager }      from "./config.js";
 import { FileSessionStore, SESSION_TTL_MS } from "./middleware/session.js";
@@ -223,44 +223,8 @@ export async function runServerStart(
     }
   }
 
-  // ── P269: Auto-generate admin token on first startup ──────────────────
-  // If no admin token exists, create one and write it to .system/admin.token
-  // (chmod 0600 — readable only by the process owner).
   const tokenStore = db !== null ? new TokenStore(db) : null;
-  if (tokenStore !== null && !tokenStore.hasAdminToken()) {
-    const adminTokenFile = join(opts.workDir, ".system", "admin.token");
-    try {
-      const { id, rawToken } = tokenStore.createToken({
-        scope: "admin",
-        label: "auto-generated admin token",
-      });
-      writeFileSync(adminTokenFile, rawToken, { encoding: "utf-8", mode: 0o600 });
-      try { chmodSync(adminTokenFile, 0o600); } catch (_e) { /* best effort */ }
-      logger.info("admin_token_generated", `Admin token created: ${id}`, {
-        metadata: { id, file: adminTokenFile },
-      });
-      process.stderr.write(`[sidjua] Admin token written to: ${adminTokenFile}\n`);
-      process.stderr.write(`[sidjua] WARNING: Protect this file — it grants full admin access.\n`);
-    } catch (e: unknown) {
-      logger.warn("admin_token_failed", "Could not write admin token file", {
-        metadata: { error: e instanceof Error ? e.message : String(e) },
-      });
-    }
-  }
-
-  // GUI bootstrap injection: use admin token if available, not bootstrap key.
-  // The bootstrap key is auto-disabled by C4 when the admin token is created,
-  // so injecting it would cause 401s in the GUI on every page load.
-  let guiKeyFn: () => string = () => apiKeyState.currentApiKey;
-  const adminTokenFilePath = join(opts.workDir, ".system", "admin.token");
-  try {
-    if (existsSync(adminTokenFilePath)) {
-      const storedAdminToken = readFileSync(adminTokenFilePath, "utf-8").trim();
-      if (storedAdminToken) {
-        guiKeyFn = () => storedAdminToken;
-      }
-    }
-  } catch (_e) { /* best-effort — fall back to bootstrap key */ }
+  const guiKeyFn: () => string = () => apiKeyState.currentApiKey;
 
   // ── P434b: GUI Auth config + session store ─────────────────────────────
   const configManager = new ConfigManager(opts.workDir);
