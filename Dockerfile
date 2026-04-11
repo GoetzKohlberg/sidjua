@@ -63,7 +63,7 @@ ENV SIDJUA_VERSION=$VERSION \
     BUILD_DATE=$BUILD_DATE \
     VCS_REF=$VCS_REF \
     BUILD_NUMBER=$BUILD_NUMBER \
-    SIDJUA_PORT=4200 \
+    SIDJUA_PORT=47821 \
     SIDJUA_DATA_DIR=/data \
     SIDJUA_LOG_LEVEL=info \
     SIDJUA_GUI_BOOTSTRAP=true \
@@ -164,15 +164,15 @@ RUN chown -R sidjua:sidjua /app /data
 
 USER sidjua
 
-EXPOSE 4200
+EXPOSE 47821
 
 # Health check hits the public /api/v1/health endpoint (no auth required)
 # Reads SIDJUA_PORT at runtime so override via -e SIDJUA_PORT=XXXX is respected
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=10s \
-  CMD node -e "fetch('http://localhost:'+(process.env.SIDJUA_PORT||'4200')+'/api/v1/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+  CMD node -e "fetch('http://localhost:'+(process.env.SIDJUA_PORT||'47821')+'/api/v1/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 
 # tini → entrypoint.sh → CMD
 # --host 0.0.0.0 is required so Docker port mapping works (default 127.0.0.1 is loopback-only)
-# Port is injected by docker-entrypoint.sh from SIDJUA_PORT (default 4200)
+# Port is injected by docker-entrypoint.sh from SIDJUA_PORT (default 47821)
 ENTRYPOINT ["/sbin/tini", "--", "/app/docker-entrypoint.sh"]
 CMD ["node", "dist/index.js", "server", "start", "--host", "0.0.0.0"]
