@@ -35,8 +35,8 @@ docker compose up -d
 ```
 
 ```bash
-# View auto-generated API key
-docker compose exec sidjua cat /app/.system/api-key
+# Complete first-time setup
+# Open http://127.0.0.1:47821 in your browser and set your admin password.
 
 # Bootstrap governance
 docker compose exec sidjua sidjua apply --verbose
@@ -327,12 +327,15 @@ docker run -d \
   --name sidjua \
   --security-opt no-new-privileges \
   --cap-drop ALL \
-  -p 4200:4200 \
+  -p 47821:47821 \
   -v sidjua-data:/data \
   ghcr.io/goetzkohlberg/sidjua:latest
 ```
 
-API key is auto-generated on first start — retrieve it with `docker exec $(docker ps -q -f name=sidjua) cat /app/.system/api-key`.
+On first start, open http://127.0.0.1:47821 in your browser. SIDJUA will prompt you to
+set an admin password. That password is the only credential you need to access the
+dashboard.
+
 No environment variables required. No configuration required. No database
 server required — SIDJUA uses SQLite, one database file per agent.
 
@@ -502,7 +505,7 @@ for the full specification of all 10 provisioning steps.
 The SIDJUA REST API runs on the same port as the dashboard:
 
 ```bash
-sidjua server start --port 4200 --api-key $SIDJUA_API_KEY
+sidjua server start --port 47821 --api-key $SIDJUA_API_KEY
 ```
 
 Key endpoints:
@@ -539,7 +542,7 @@ services:
   sidjua:
     image: ghcr.io/goetzkohlberg/sidjua:latest
     ports:
-      - "4200:4200"
+      - "47821:47821"
     volumes:
       - sidjua-data:/data
     restart: unless-stopped
@@ -559,7 +562,7 @@ docker compose exec sidjua sidjua apply
 
 ### Production Deployment with TLS
 
-Port 4200 serves the REST API and Management Console over HTTP.
+Port 47821 serves the REST API and Management Console over HTTP.
 For production deployments, place a reverse proxy in front of SIDJUA
 to handle TLS termination:
 
@@ -567,7 +570,7 @@ to handle TLS termination:
 
 ```
 sidjua.example.com {
-    reverse_proxy localhost:4200
+    reverse_proxy localhost:47821
 }
 ```
 
@@ -581,7 +584,7 @@ server {
     ssl_certificate_key /path/to/key.pem;
 
     location / {
-        proxy_pass http://127.0.0.1:4200;
+        proxy_pass http://127.0.0.1:47821;
         proxy_set_header Host              $host;
         proxy_set_header X-Real-IP         $remote_addr;
         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
@@ -590,7 +593,7 @@ server {
 }
 ```
 
-> **Never expose port 4200 directly to the internet without TLS.**
+> **Never expose port 47821 directly to the internet without TLS.**
 > Set the environment variable `SIDJUA_TRUST_PROXY=true` when running
 > behind a reverse proxy so that client IP detection works correctly.
 

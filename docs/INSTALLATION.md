@@ -164,11 +164,8 @@ docker compose ps
 # sidjua-qdrant     Up X seconds (healthy)
 ```
 
-Retrieve the auto-generated API key:
-
-```bash
-docker compose exec sidjua cat /app/.system/api-key
-```
+Complete first-time setup in your browser at http://127.0.0.1:47821 — you will be
+prompted to set an admin password.
 
 Bootstrap governance from your `divisions.yaml`:
 
@@ -490,11 +487,11 @@ Install the C/C++ toolchain (see Prerequisites section). On Ubuntu: `sudo apt-ge
 Check `SIDJUA_CONFIG_DIR`. The file must be at `$SIDJUA_CONFIG_DIR/divisions.yaml`. Run `sidjua init` to create the workspace structure.
 
 **REST API returns 401 Unauthorized:**
-Verify the `Authorization: Bearer <key>` header. Retrieve the auto-generated key with:
+The REST API uses a separate API key (not the browser password). Generate one with:
 ```bash
-cat ~/.sidjua/.system/api-key          # manual install
-docker compose exec sidjua cat /app/.system/api-key  # Docker
+sidjua api-key generate
 ```
+Then pass it as `Authorization: Bearer <key>` in your requests.
 
 **Port 3000 already in use:**
 ```bash
