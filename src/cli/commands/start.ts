@@ -11,7 +11,7 @@
  * - background: forks a detached child, writes PID file
  */
 
-import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, realpathSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, realpathSync, writeFileSync } from "node:fs";
 import { join, extname, resolve as resolvePath } from "node:path";
 import { assertWithinDirectory } from "../../utils/path-utils.js";
 import { buildMcpSecretResolver } from "../../utils/mcp-secret-resolver.js";
@@ -239,29 +239,7 @@ export async function runStartCommand(opts: StartCommandOptions): Promise<number
     initFeatureFlags(opts.workDir, db);
     const registry = db !== null ? new AgentRegistry(db) : undefined;
 
-    // DUAL PATH: cli-server.ts (Docker) does the same. Changes here MUST be mirrored there.
-    // P269 / P316: Scoped token store — enables token-based auth + auto-generates admin token.
     const tokenStore = db !== null ? new TokenStore(db) : null;
-    if (tokenStore !== null && !tokenStore.hasAdminToken()) {
-      const adminTokenFile = join(systemDir, "admin.token");
-      try {
-        const { id, rawToken } = tokenStore.createToken({
-          scope: "admin",
-          label: "auto-generated admin token",
-        });
-        writeFileSync(adminTokenFile, rawToken, { encoding: "utf-8", mode: 0o600 });
-        try { chmodSync(adminTokenFile, 0o600); } catch (_e) { /* best effort */ }
-        logger.info("admin_token_generated", `Admin token created: ${id}`, {
-          metadata: { id, file: adminTokenFile },
-        });
-        process.stderr.write(`[sidjua] Admin token written to: ${adminTokenFile}\n`);
-        process.stderr.write(`[sidjua] WARNING: Protect this file — it grants full admin access.\n`);
-      } catch (e: unknown) {
-        logger.warn("admin_token_failed", "Could not write admin token file", {
-          metadata: { error: e instanceof Error ? e.message : String(e) },
-        });
-      }
-    }
 
     // ── Crash recovery — heal tasks interrupted by unclean shutdown ───────
 
