@@ -151,7 +151,7 @@ function main(): void {
 
   if (!isDry) {
     process.stdout.write(`\nDone: added ${totalAdded} key(s) across ${totalFiles} file(s)\n`);
-    process.stdout.write(`Run: cp src/locales/*.json locales/   to update build output\n`);
+    process.stdout.write(`Run: npm run i18n:sync   (or: mkdir -p dist/locales && cp src/locales/*.json dist/locales/)\n`);
   }
 }
 
