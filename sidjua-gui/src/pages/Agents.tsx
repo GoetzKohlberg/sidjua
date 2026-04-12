@@ -298,7 +298,7 @@ function StarterAgentDetail({ agent, onClose, providerConfigured }: { agent: Sta
           </div>
           <div>
             <h2 className="page-agents--starter-name">
-              {agent.name}
+              {agent.name_key ? t(agent.name_key) : agent.name}
             </h2>
             <p className="page-agents--starter-tier">
               {t(`agent.tier.desc.${agent.tier}`)}
@@ -316,7 +316,7 @@ function StarterAgentDetail({ agent, onClose, providerConfigured }: { agent: Sta
 
       {/* Description */}
       <p className="page-agents--starter-desc">
-        {agent.description}
+        {agent.description_key ? t(agent.description_key) : agent.description}
       </p>
 
       {/* Capabilities */}

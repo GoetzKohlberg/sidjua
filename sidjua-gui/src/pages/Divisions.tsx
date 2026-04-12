@@ -76,7 +76,7 @@ export function Divisions() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text)', margin: 0 }}>
-                  {div.name}
+                  {div.name_key ? t(div.name_key) : div.name}
                 </h2>
                 {div.protected && (
                   <span style={{
@@ -92,7 +92,7 @@ export function Divisions() {
                 )}
               </div>
               <p style={{ fontSize: '15px', color: 'var(--color-text-secondary)', margin: '4px 0 0', lineHeight: 1.5 }}>
-                {div.description}
+                {div.description_key ? t(div.description_key) : div.description}
               </p>
             </div>
             <div style={{ textAlign: 'right', flexShrink: 0, paddingLeft: '16px' }}>

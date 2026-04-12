@@ -52,13 +52,15 @@ export function registerStarterAgentRoutes(app: Hono): void {
   // SCOPE: public (read-only agent catalog, no secrets)
   app.get("/api/v1/starter-divisions", (c) => {
     const divs = divisions().map((d) => ({
-      id:          d.id,
-      name:        d.name,
-      protected:   d.protected,
-      description: d.description,
-      agent_count: d.agents.length,
-      agents:      d.agents,
-      budget:      d.budget,
+      id:              d.id,
+      name:            d.name,
+      name_key:        d.name_key,
+      description_key: d.description_key,
+      protected:       d.protected,
+      description:     d.description,
+      agent_count:     d.agents.length,
+      agents:          d.agents,
+      budget:          d.budget,
     }));
     return c.json({ divisions: divs });
   });
@@ -73,13 +75,15 @@ export function registerStarterAgentRoutes(app: Hono): void {
     }
     return c.json({
       division: {
-        id:          div.id,
-        name:        div.name,
-        protected:   div.protected,
-        description: div.description,
-        agent_count: div.agents.length,
-        agents:      div.agents,
-        budget:      div.budget,
+        id:              div.id,
+        name:            div.name,
+        name_key:        div.name_key,
+        description_key: div.description_key,
+        protected:       div.protected,
+        description:     div.description,
+        agent_count:     div.agents.length,
+        agents:          div.agents,
+        budget:          div.budget,
       },
     });
   });

@@ -15,6 +15,7 @@ import { createLogger } from "../../core/logger.js";
 import { hasTable } from "../../core/db/helpers.js";
 import { notFound } from "../utils/responses.js";
 import { requireScope } from "../middleware/require-scope.js";
+import { PROTECTED_DIVISION_CODES } from "../../apply/database.js";
 
 const logger = createLogger("api-divisions");
 
@@ -35,7 +36,18 @@ export function registerDivisionRoutes(app: Hono, services: DivisionRouteService
       return c.json({ divisions: [] });
     }
     const rows = db.prepare("SELECT * FROM divisions ORDER BY code").all() as Record<string, unknown>[];
-    return c.json({ divisions: rows });
+    const enriched = rows.map((row) => {
+      const code = row["code"] as string | undefined;
+      if (code && PROTECTED_DIVISION_CODES.has(code)) {
+        return {
+          ...row,
+          name_key:        `gui.divisions.system_seed.${code}.name`,
+          description_key: `gui.divisions.system_seed.${code}.description`,
+        };
+      }
+      return row;
+    });
+    return c.json({ divisions: enriched });
   });
 
   // ---- GET /api/v1/divisions/:name ---------------------------------------
@@ -52,6 +64,14 @@ export function registerDivisionRoutes(app: Hono, services: DivisionRouteService
     if (row === undefined) {
       return notFound(c, `Division ${name} not found`);
     }
-    return c.json({ division: row });
+    const code = row["code"] as string | undefined;
+    const enrichedRow = (code && PROTECTED_DIVISION_CODES.has(code))
+      ? {
+          ...row,
+          name_key:        `gui.divisions.system_seed.${code}.name`,
+          description_key: `gui.divisions.system_seed.${code}.description`,
+        }
+      : row;
+    return c.json({ division: enrichedRow });
   });
 }

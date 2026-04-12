@@ -264,7 +264,7 @@ export function Dashboard() {
                       onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = ''; }}
                     >
                       <td style={{ padding: '8px 0', fontSize: '15px', color: 'var(--color-text)' }}>
-                        {div.name || div.code}
+                        {div.name_key ? t(div.name_key) : (div.name || div.code)}
                       </td>
                       <td style={{ padding: '8px 0', fontSize: '15px', color: 'var(--color-text-secondary)' }}>
                         {divAgents.length}

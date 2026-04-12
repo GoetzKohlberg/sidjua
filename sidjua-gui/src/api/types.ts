@@ -27,6 +27,8 @@ export interface SystemInfo {
 export interface Division {
   code: string;
   name: string;
+  name_key?: string;
+  description_key?: string;
   active: boolean;
   scope?: string;
   required?: boolean;
@@ -81,15 +83,17 @@ export interface AgentResponse {
 // ---- Starter agents --------------------------------------------------------
 
 export interface StarterAgent {
-  id:           string;
-  name:         string;
-  description:  string;
-  icon:         string;
-  tier:         1 | 2 | 3;
-  division:     string;
-  domains:      string[];
-  capabilities: string[];
-  status:       'active' | 'inactive';
+  id:               string;
+  name:             string;
+  name_key?:        string;
+  description_key?: string;
+  description:      string;
+  icon:             string;
+  tier:             1 | 2 | 3;
+  division:         string;
+  domains:          string[];
+  capabilities:     string[];
+  status:           'active' | 'inactive';
 }
 
 export interface StarterAgentsResponse {
@@ -101,12 +105,14 @@ export interface StarterAgentResponse {
 }
 
 export interface StarterDivision {
-  id:          string;
-  name:        string;
-  protected:   boolean;
-  description: string;
-  agent_count: number;
-  agents:      string[];
+  id:               string;
+  name:             string;
+  name_key?:        string;
+  description_key?: string;
+  protected:        boolean;
+  description:      string;
+  agent_count:      number;
+  agents:           string[];
   budget: {
     daily_limit_usd: number;
     monthly_cap_usd: number;

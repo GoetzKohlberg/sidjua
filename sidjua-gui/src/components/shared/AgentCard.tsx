@@ -4,17 +4,20 @@
 
 import React from 'react';
 import { AgentIcon } from './AgentIcon';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export interface StarterAgentData {
-  id:           string;
-  name:         string;
-  description:  string;
-  icon:         string;
-  tier:         1 | 2 | 3;
-  division:     string;
-  domains:      string[];
-  capabilities: string[];
-  status:       'active' | 'inactive';
+  id:               string;
+  name:             string;
+  name_key?:        string;
+  description:      string;
+  description_key?: string;
+  icon:             string;
+  tier:             1 | 2 | 3;
+  division:         string;
+  domains:          string[];
+  capabilities:     string[];
+  status:           'active' | 'inactive';
 }
 
 interface AgentCardProps {
@@ -32,6 +35,7 @@ const TIER_COLORS: Record<number, { bg: string; text: string; label: string }> =
 };
 
 export function AgentCard({ agent, selected = false, onClick, llmStatus, providerLabel }: AgentCardProps) {
+  const { t }  = useTranslation();
   const tier   = TIER_COLORS[agent.tier] ?? TIER_COLORS[2]!;
   const active = agent.status === 'active';
 
@@ -87,7 +91,7 @@ export function AgentCard({ agent, selected = false, onClick, llmStatus, provide
             overflow:     'hidden',
             textOverflow: 'ellipsis',
           }}>
-            {agent.name}
+            {agent.name_key ? t(agent.name_key) : agent.name}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px' }}>

@@ -30,6 +30,10 @@ export interface RoleToolConfig {
 export interface AgentRole {
   id:                string;
   name:              string;
+  /** i18n key for the role name (e.g. gui.roles.system_seed.guide.name). */
+  name_key?:         string;
+  /** i18n key for the role description. */
+  description_key?:  string;
   tier:              1 | 2 | 3;
   division:          string;
   description:       string;
@@ -47,25 +51,33 @@ export interface DivisionBudget {
 }
 
 export interface Division {
-  id:          string;
-  name:        string;
-  protected:   boolean;
-  description: string;
-  budget:      DivisionBudget;
-  agents:      string[];
+  id:               string;
+  name:             string;
+  /** i18n key for the division name (e.g. gui.divisions.system_seed.executive.name). */
+  name_key?:        string;
+  /** i18n key for the division description. */
+  description_key?: string;
+  protected:        boolean;
+  description:      string;
+  budget:           DivisionBudget;
+  agents:           string[];
 }
 
 /** A ready-to-render starter agent definition (GUI-friendly shape). */
 export interface StarterAgent {
-  id:           string;
-  name:         string;
-  description:  string;
-  icon:         string;
-  tier:         1 | 2 | 3;
-  division:     string;
-  domains:      string[];
-  capabilities: string[];
-  status:       "active" | "inactive";
+  id:               string;
+  name:             string;
+  /** i18n key for the agent/role name. */
+  name_key?:        string;
+  /** i18n key for the agent/role description. */
+  description_key?: string;
+  description:      string;
+  icon:             string;
+  tier:             1 | 2 | 3;
+  division:         string;
+  domains:          string[];
+  capabilities:     string[];
+  status:           "active" | "inactive";
 }
 
 
@@ -146,16 +158,19 @@ function parseRoleFile(filePath: string): AgentRole {
     throw new Error(`[defaults/loader] Missing "recommended_model" in ${filePath}`);
   }
 
+  const id = requireString(role, "id", filePath);
   return {
-    id:           requireString(role, "id",           filePath),
-    name:         requireString(role, "name",         filePath),
-    tier:         validateTier(role["tier"],           filePath),
-    division:     requireString(role, "division",     filePath),
-    description:  requireString(role, "description",  filePath),
-    icon:         requireString(role, "icon",         filePath),
-    domains:      requireStringArray(role, "domains", filePath),
-    status:       validateStatus(role["status"],      filePath),
-    capabilities: requireStringArray(role, "capabilities", filePath),
+    id,
+    name:             requireString(role, "name",         filePath),
+    name_key:         `gui.roles.system_seed.${id}.name`,
+    description_key:  `gui.roles.system_seed.${id}.description`,
+    tier:             validateTier(role["tier"],           filePath),
+    division:         requireString(role, "division",     filePath),
+    description:      requireString(role, "description",  filePath),
+    icon:             requireString(role, "icon",         filePath),
+    domains:          requireStringArray(role, "domains", filePath),
+    status:           validateStatus(role["status"],      filePath),
+    capabilities:     requireStringArray(role, "capabilities", filePath),
     recommended_model: {
       min_quality: requireString(recommended, "min_quality", filePath),
       suggested:   requireString(recommended, "suggested",   filePath),
@@ -184,12 +199,15 @@ function parseDivisionFile(filePath: string): Division {
     throw new Error(`[defaults/loader] Field "protected" must be a boolean in ${filePath}`);
   }
 
+  const id = requireString(div, "id", filePath);
   return {
-    id:          requireString(div, "id",          filePath),
-    name:        requireString(div, "name",        filePath),
-    protected:   protected_,
-    description: requireString(div, "description", filePath),
-    agents:      requireStringArray(div, "agents", filePath),
+    id,
+    name:             requireString(div, "name",        filePath),
+    name_key:         `gui.divisions.system_seed.${id}.name`,
+    description_key:  `gui.divisions.system_seed.${id}.description`,
+    protected:        protected_,
+    description:      requireString(div, "description", filePath),
+    agents:           requireStringArray(div, "agents", filePath),
     budget: {
       daily_limit_usd: requireNumber(budget, "daily_limit_usd", filePath),
       monthly_cap_usd: requireNumber(budget, "monthly_cap_usd", filePath),
@@ -240,6 +258,8 @@ export function getStarterAgents(): StarterAgent[] {
       domains:      r.domains,
       capabilities: r.capabilities,
       status:       r.status,
+      ...(r.name_key        !== undefined ? { name_key:        r.name_key        } : {}),
+      ...(r.description_key !== undefined ? { description_key: r.description_key } : {}),
     }));
 }
 
