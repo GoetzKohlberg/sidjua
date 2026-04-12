@@ -103,8 +103,18 @@ RUN addgroup -g 1001 sidjua && \
 
 WORKDIR /app
 
-# Create runtime data directories (volumes will be mounted here)
+# Create runtime data directories with correct ownership upfront.
+# Non-recursive chown on created dirs only — avoids O(N) traversal over content.
 RUN mkdir -p \
+    /app/data/backups \
+    /app/data/knowledge \
+    /app/data/governance-snapshots \
+    /app/config \
+    /app/logs \
+    /app/defaults \
+ && chown sidjua:sidjua \
+    /app \
+    /app/data \
     /app/data/backups \
     /app/data/knowledge \
     /app/data/governance-snapshots \
@@ -113,27 +123,32 @@ RUN mkdir -p \
     /app/defaults
 
 # Copy compiled artifacts + production node_modules from builder
-COPY --from=builder /build/dist/             ./dist/
-COPY --from=builder /build/node_modules/     ./node_modules/
-COPY --from=builder /build/package.json      ./
+# --chown bakes ownership into the COPY layer; no post-copy chown RUN needed.
+COPY --chown=sidjua:sidjua --from=builder /build/dist/             ./dist/
+COPY --chown=sidjua:sidjua --from=builder /build/node_modules/     ./node_modules/
+COPY --chown=sidjua:sidjua --from=builder /build/package.json      ./
 # Copy GUI build (served at / by `sidjua server start`)
-COPY --from=builder /build/sidjua-gui/dist/  ./sidjua-gui/dist/
+COPY --chown=sidjua:sidjua --from=builder /build/sidjua-gui/dist/  ./sidjua-gui/dist/
 # Copy locale JSON files (loader resolves ../locales/ relative to dist/index.js = /app/locales/)
-COPY --from=builder /build/src/locales/      ./locales/
+COPY --chown=sidjua:sidjua --from=builder /build/src/locales/      ./locales/
 # Copy static assets (org-public.ts resolves ../static/glasscheibe-widget.js relative to dist/index.js = /app/static/)
-COPY --from=builder /build/src/api/static/   ./static/
+COPY --chown=sidjua:sidjua --from=builder /build/src/api/static/   ./static/
 
 # Copy entrypoint and bundled default configs
-COPY docker-entrypoint.sh ./
+COPY --chown=sidjua:sidjua docker-entrypoint.sh ./
 RUN chmod +x /app/docker-entrypoint.sh
-COPY defaults/ ./defaults/
-COPY docs/    ./docs/
-COPY system/  ./system/
-COPY NOTICE ./
+COPY --chown=sidjua:sidjua defaults/ ./defaults/
+COPY --chown=sidjua:sidjua docs/    ./docs/
+COPY --chown=sidjua:sidjua system/  ./system/
+COPY --chown=sidjua:sidjua NOTICE ./
 
-# Embed build metadata for runtime verification
+# Embed build metadata + set read-only app directories in one merged layer (Option A).
+# Merging chmod into the same RUN as build-meta saves one layer vs a standalone chmod RUN.
+# Writable at runtime: /app/.system  /app/config  /app/logs  /app/data  /data
 RUN printf '{"version":"%s","build":"%s","ref":"%s","vendor":"sidjua","sig":"%s","build_number":%s}\n' \
-    "${VERSION}" "${BUILD_DATE}" "${VCS_REF}" "${BUILD_SIGNATURE}" "${BUILD_NUMBER}" > /app/.build-meta
+    "${VERSION}" "${BUILD_DATE}" "${VCS_REF}" "${BUILD_SIGNATURE}" "${BUILD_NUMBER}" > /app/.build-meta \
+ && chown sidjua:sidjua /app/.build-meta \
+ && chmod -R 555 /app/dist /app/node_modules /app/locales /app/static /app/sidjua-gui /app/defaults /app/docs
 
 # Install sidjua as a global CLI binary
 RUN printf '#!/bin/sh\nexec node /app/dist/index.js "$@"\n' > /usr/local/bin/sidjua \
@@ -141,26 +156,27 @@ RUN printf '#!/bin/sh\nexec node /app/dist/index.js "$@"\n' > /usr/local/bin/sid
     && cat /usr/local/bin/sidjua \
     && sidjua --version
 
-# Pre-create persistent directories so Docker named volumes initialize with correct ownership
+# Pre-create persistent directories with correct ownership
 RUN mkdir -p \
     /app/.system \
     /app/agents/skills \
     /app/agents/definitions \
     /app/agents/templates \
+    /app/governance/audit \
+ && chown sidjua:sidjua \
+    /app/.system \
+    /app/agents \
+    /app/agents/skills \
+    /app/agents/definitions \
+    /app/agents/templates \
+    /app/governance \
     /app/governance/audit
 
-# Persistent data volume (SQLite databases, agent configs, knowledge base)
-# /data is declared as a VOLUME so Docker creates a named volume for it.
-RUN mkdir -p /data
+# Persistent data volume (SQLite databases, agent configs, knowledge base).
+# install -d sets ownership at creation time; avoids a post-VOLUME chown layer.
+RUN install -d -o sidjua -g sidjua -m 755 /data
 
 VOLUME ["/data"]
-
-# Make read-only app directories non-writable (defence-in-depth)
-# Writable at runtime: /app/.system  /app/config  /app/logs  /app/data  /data
-RUN chmod -R 555 /app/dist /app/node_modules /app/locales /app/static /app/sidjua-gui /app/defaults /app/docs
-
-# Transfer ownership to non-root user before switching
-RUN chown -R sidjua:sidjua /app /data
 
 USER sidjua
 
