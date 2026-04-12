@@ -1,6 +1,11 @@
 /* SIDJUA GUI — Shared Component Styles
  * Extracted from inline styles in page components.
  * Named using .sidjua-* for shared utilities and .page-{page}--{element} for page-specific.
+ *
+ * P441 (#792): font-size scale bump per CEO request (2026-04-12).
+ *   10px → 12px  (action badges, section-step badges, micro labels)
+ *   12px → 14px  (table cells, code blocks, card titles, date rows, stat labels, etc.)
+ * Inline-style fontSize values in .tsx components are not covered here — see tech-debt note in p441-artifacts/REPORT.md.
  */
 
 /* ── Shared card shell ─────────────────────────────────────────────────────── */
@@ -31,7 +36,7 @@
 }
 
 .sidjua-card-title {
-  font-size:      12px;
+  font-size:      14px;
   font-weight:    600;
   color:          var(--color-text-secondary);
   text-transform: uppercase;
@@ -151,7 +156,7 @@
   border-radius: var(--radius-md);
   padding:       16px;
   overflow-x:    auto;
-  font-size:     12px;
+  font-size:     14px;
   line-height:   1.6;
   font-family:   "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   margin:        0;
@@ -194,7 +199,7 @@
 }
 
 .page-config--logging-meta-label {
-  font-size: 12px;
+  font-size: 14px;
   color:     var(--color-text-secondary);
 }
 
@@ -229,13 +234,13 @@
 
 .page-config--overrides-td {
   padding:     7px 0;
-  font-size:   12px;
+  font-size:   14px;
   font-family: monospace;
   color:       var(--color-text);
 }
 
 .page-config--log-note {
-  font-size:  12px;
+  font-size:  14px;
   color:      var(--color-text-muted);
   margin-top: 12px;
 }
@@ -248,7 +253,7 @@
 }
 
 .page-config--log-label {
-  font-size:     12px;
+  font-size:     14px;
   color:         var(--color-text-secondary);
   margin-bottom: 6px;
 }
@@ -261,7 +266,7 @@
 }
 
 .page-config--log-cmd-code {
-  font-size:     12px;
+  font-size:     14px;
   flex:          1;
   color:         var(--color-text);
   background:    var(--color-bg);
@@ -277,7 +282,7 @@
 
 .page-config--td-code {
   padding:     8px 12px;
-  font-size:   12px;
+  font-size:   14px;
   font-family: monospace;
   color:       var(--color-accent);
 }
@@ -290,12 +295,12 @@
 
 .page-config--td-status {
   padding:   8px 12px;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .page-config--td-secondary {
   padding:   8px 12px;
-  font-size: 12px;
+  font-size: 14px;
   color:     var(--color-text-secondary);
 }
 
@@ -352,14 +357,14 @@
 .page-cost--date-row {
   display:         flex;
   justify-content: space-between;
-  font-size:       12px;
+  font-size:       14px;
   margin-bottom:   4px;
 }
 
 .page-cost--date-row-last {
   display:         flex;
   justify-content: space-between;
-  font-size:       12px;
+  font-size:       14px;
 }
 
 .page-cost--date-label {
@@ -409,7 +414,7 @@
   display:         flex;
   justify-content: space-between;
   margin-bottom:   4px;
-  font-size:       12px;
+  font-size:       14px;
 }
 
 .page-cost--div-name {
@@ -446,7 +451,7 @@
 
 .page-cost--agent-td-div {
   padding:   9px 12px;
-  font-size: 12px;
+  font-size: 14px;
   color:     var(--color-text-secondary);
 }
 
@@ -459,7 +464,7 @@
 
 .page-cost--agent-td-calls {
   padding:   9px 12px;
-  font-size: 12px;
+  font-size: 14px;
   color:     var(--color-text-secondary);
 }
 
@@ -508,7 +513,7 @@
 }
 
 .page-gov--stat-label {
-  font-size:  12px;
+  font-size:  14px;
   color:      var(--color-text-secondary);
   margin-top: 4px;
 }
@@ -552,13 +557,13 @@
 }
 
 .page-gov--step-label {
-  font-size:   12px;
+  font-size:   14px;
   font-weight: 700;
   color:       var(--color-accent);
 }
 
 .page-gov--step-desc {
-  font-size:     12px;
+  font-size:     14px;
   color:         var(--color-text-secondary);
   margin-bottom: 8px;
   line-height:   1.4;
@@ -566,7 +571,7 @@
 
 .page-gov--action-badge {
   display:       inline-block;
-  font-size:     10px;
+  font-size:     12px;
   font-weight:   600;
   padding:       2px 6px;
   border-radius: var(--radius-sm);
@@ -582,7 +587,7 @@
   padding:       12px;
   background:    var(--color-surface-alt);
   border-radius: var(--radius-md);
-  font-size:     12px;
+  font-size:     14px;
 }
 
 .page-gov--legend-item {
@@ -619,7 +624,7 @@
   padding:       12px 20px;
   text-align:    left;
   font-family:   monospace;
-  font-size:     12px;
+  font-size:     14px;
   color:         var(--color-text);
 }
 
@@ -645,7 +650,7 @@
   border-radius:   50%;
   background:      var(--color-accent-muted);
   color:           var(--color-accent);
-  font-size:       12px;
+  font-size:       14px;
   font-weight:     700;
   flex-shrink:     0;
 }
@@ -663,7 +668,7 @@
 }
 
 .page-gov--snapshot-ts {
-  font-size:   12px;
+  font-size:   14px;
   color:       var(--color-text-secondary);
   white-space: nowrap;
 }
@@ -742,7 +747,7 @@
 
 .page-agents--table-footer {
   padding:    8px 16px;
-  font-size:  12px;
+  font-size:  14px;
   color:      var(--color-text-muted);
   background: var(--color-surface-alt);
 }
@@ -795,13 +800,13 @@
 
 .page-agents--td-model {
   padding:   12px 8px;
-  font-size: 12px;
+  font-size: 14px;
   color:     var(--color-text-muted);
 }
 
 .page-agents--td-updated {
   padding:    12px 8px;
-  font-size:  12px;
+  font-size:  14px;
   color:      var(--color-text-secondary);
   text-align: right;
 }
@@ -835,7 +840,7 @@
 }
 
 .page-agents--detail-sub {
-  font-size: 12px;
+  font-size: 14px;
   color:     var(--color-text-secondary);
 }
 
@@ -931,7 +936,7 @@
 }
 
 .page-agents--starter-tier {
-  font-size: 12px;
+  font-size: 14px;
   color:     var(--color-text-secondary);
   margin:    2px 0 0;
 }
@@ -1223,7 +1228,7 @@
   border-radius: var(--radius-md);
   color:         var(--color-text-muted);
   cursor:        pointer;
-  font-size:     12px;
+  font-size:     14px;
   padding:       5px 12px;
 }
 
@@ -1244,7 +1249,7 @@
   border-radius: var(--radius-md);
   background:    var(--color-surface-alt, #f3f4f6);
   border:        1px solid var(--color-border);
-  font-size:     12px;
+  font-size:     14px;
   color:         var(--color-text-muted);
   font-family:   monospace;
 }
@@ -1257,7 +1262,7 @@
 }
 
 .page-chat--tool-icon {
-  font-size: 10px;
+  font-size: 12px;
   opacity:   0.7;
 }
 
@@ -1291,7 +1296,7 @@
 }
 
 .page-chat--disabled-msg {
-  font-size:     12px;
+  font-size:     14px;
   color:         var(--color-text-muted);
   margin-bottom: 8px;
   text-align:    center;
@@ -1313,7 +1318,7 @@
 
 .page-chat--footer-version {
   display:    block;
-  font-size:  10px;
+  font-size:  12px;
   opacity:    0.7;
   margin-top: 2px;
 }
@@ -1349,7 +1354,7 @@
 }
 
 .page-settings--provider-tier {
-  font-size: 12px;
+  font-size: 14px;
   color:     var(--color-text-secondary);
 }
 
@@ -1359,7 +1364,7 @@
 }
 
 .page-settings--provider-hint {
-  font-size:  12px;
+  font-size:  14px;
   color:      var(--color-text-secondary);
   margin-top: 4px;
 }
@@ -1399,7 +1404,7 @@
 }
 
 .page-settings--note {
-  font-size:   12px;
+  font-size:   14px;
   color:       var(--color-text-muted);
   margin-top:  12px;
   line-height: 1.6;
@@ -1554,7 +1559,7 @@
   border-radius: var(--radius-md);
   color:         var(--color-success);
   cursor:        pointer;
-  font-size:     12px;
+  font-size:     14px;
   padding:       2px 8px;
 }
 
@@ -1580,7 +1585,7 @@
 }
 
 .page-settings--signup-link {
-  font-size:       12px;
+  font-size:       14px;
   color:           var(--color-accent);
   text-decoration: none;
 }
@@ -1642,7 +1647,7 @@
 .page-settings--provider-rec-badge {
   background:     var(--color-llm-warn-bg);
   color:          var(--color-llm-warn-text);
-  font-size:      10px;
+  font-size:      12px;
   font-weight:    700;
   padding:        1px 6px;
   border-radius:  4px;
@@ -1652,7 +1657,7 @@
 .page-settings--provider-free-badge {
   background:    var(--color-success-bg);
   color:         var(--color-success);
-  font-size:     10px;
+  font-size:     12px;
   font-weight:   700;
   padding:       1px 6px;
   border-radius: 4px;
@@ -1700,7 +1705,7 @@
 }
 
 .page-settings--help-body {
-  font-size:   12px;
+  font-size:   14px;
   color:       var(--color-text-secondary);
   line-height: 1.7;
 }
@@ -1719,7 +1724,7 @@
 }
 
 .page-settings--help-section-text {
-  font-size:   12px;
+  font-size:   14px;
   color:       var(--color-text-secondary);
   line-height: 1.5;
 }
@@ -1792,7 +1797,7 @@
 }
 
 .page-settings--lang-list-header {
-  font-size:     12px;
+  font-size:     14px;
   font-weight:   600;
   color:         var(--color-text-muted);
   margin-bottom: 4px;
@@ -1852,19 +1857,19 @@
 }
 
 .page-settings--toggle-desc {
-  font-size: 12px;
+  font-size: 14px;
   color:     var(--color-text-secondary);
   margin:    4px 0 0;
 }
 
 .page-settings--toggle-note {
-  font-size: 12px;
+  font-size: 14px;
   color:     var(--color-text-muted);
   margin:    0;
 }
 
 .page-settings--error-msg-sm {
-  font-size: 12px;
+  font-size: 14px;
   color:     var(--color-danger);
   margin:    0;
 }
@@ -1896,19 +1901,19 @@
 }
 
 .page-settings--about-label {
-  font-size:  12px;
+  font-size:  14px;
   color:      var(--color-text-muted);
   min-width:  64px;
 }
 
 .page-settings--about-value {
-  font-size:   12px;
+  font-size:   14px;
   color:       var(--color-text);
   font-family: monospace;
 }
 
 .page-settings--dev-mode-note {
-  font-size: 12px;
+  font-size: 14px;
   color:     var(--color-text-muted);
   margin:    0;
 }
