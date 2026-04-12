@@ -7,7 +7,8 @@
  *
  * Cookie: sidjua_sid=<base64url_id>.<base64url_hmac_sha256>
  *   - HMAC key: sessionSecret from ConfigManager (base64-decoded)
- *   - HttpOnly, SameSite=Strict, Secure (when non-localhost)
+ *   - HttpOnly, SameSite=Strict, Secure (when the request was served over HTTPS —
+ *     plain-HTTP deployments omit Secure so the browser will send the cookie back)
  *   - Max-Age: SESSION_TTL_MS (8 hours default)
  *
  * FileSessionStore: .system/sessions/<id>.json
@@ -245,24 +246,42 @@ export function sessionMiddleware(
 
 /**
  * Build a Set-Cookie header value for the session cookie.
- * Secure flag is set unless the host is localhost or 127.0.0.1.
+ *
+ * The Secure flag is set iff the originating request was served over HTTPS.
+ * Plain-HTTP deployments (LAN Docker, dev loopback) must NOT set Secure because
+ * browsers would refuse to send the cookie back on subsequent HTTP requests,
+ * producing a silent authentication failure that looks like "session expired".
+ *
+ * Scheme is determined at the call site from the current request's URL, not
+ * from the Host header (hostname tells you nothing about transport security).
+ * Reverse-proxy TLS termination via X-Forwarded-Proto is NOT trusted here —
+ * that is a separate future feature gated behind an explicit SIDJUA_TRUSTED_PROXIES
+ * allowlist.
+ *
+ * @param signedValue  The signed session ID cookie value.
+ * @param isHttps      Whether the current request arrived over HTTPS.
+ * @param ttlMs        Cookie lifetime in milliseconds (default: SESSION_TTL_MS).
  */
 export function buildSessionCookieHeader(
   signedValue: string,
-  host: string,
-  ttlMs: number = SESSION_TTL_MS,
+  isHttps:     boolean,
+  ttlMs:       number = SESSION_TTL_MS,
 ): string {
-  const isLocalhost = host === "localhost" || host === "127.0.0.1" || host.startsWith("localhost:") || host.startsWith("127.0.0.1:");
-  const maxAge      = Math.floor(ttlMs / 1000);
-  const secure      = isLocalhost ? "" : "; Secure";
+  const maxAge = Math.floor(ttlMs / 1000);
+  const secure = isHttps ? "; Secure" : "";
   return `${SESSION_COOKIE}=${signedValue}; HttpOnly; SameSite=Strict; Path=/${secure}; Max-Age=${maxAge}`;
 }
 
 /**
  * Build a Set-Cookie header to clear the session cookie.
+ * Must mirror the Secure flag of the original Set-Cookie so the browser matches
+ * and clears the cookie (a clear-cookie without Secure is ignored for Secure cookies).
+ *
+ * @param isHttps  Whether the current request arrived over HTTPS.
  */
-export function clearSessionCookieHeader(): string {
-  return `${SESSION_COOKIE}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0`;
+export function clearSessionCookieHeader(isHttps: boolean): string {
+  const secure = isHttps ? "; Secure" : "";
+  return `${SESSION_COOKIE}=; HttpOnly; SameSite=Strict; Path=/${secure}; Max-Age=0`;
 }
 
 // ── Internal helpers ──────────────────────────────────────────────────────────

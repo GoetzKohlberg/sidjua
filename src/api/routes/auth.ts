@@ -116,8 +116,8 @@ export function registerAuthRoutes(app: Hono, services: AuthRouteServices): void
     // Create first session
     const session   = await sessionStore.create(SESSION_TTL_MS);
     const signed    = signSessionId(session.id, sessionSecret);
-    const host      = c.req.header("host") ?? "localhost";
-    const cookieHdr = buildSessionCookieHeader(signed, host);
+    const isHttps   = new URL(c.req.url, "http://localhost").protocol === "https:";
+    const cookieHdr = buildSessionCookieHeader(signed, isHttps);
     c.header("Set-Cookie", cookieHdr);
 
     logger.info("auth_setup_complete", "Admin password set — server configured", { correlationId: requestId });
@@ -199,8 +199,8 @@ export function registerAuthRoutes(app: Hono, services: AuthRouteServices): void
 
     const session   = await sessionStore.create(SESSION_TTL_MS);
     const signed    = signSessionId(session.id, sessionSecret);
-    const host      = c.req.header("host") ?? "localhost";
-    const cookieHdr = buildSessionCookieHeader(signed, host);
+    const isHttps   = new URL(c.req.url, "http://localhost").protocol === "https:";
+    const cookieHdr = buildSessionCookieHeader(signed, isHttps);
     c.header("Set-Cookie", cookieHdr);
 
     logger.info("auth_login_success", "Successful login", { correlationId: requestId });
@@ -216,7 +216,8 @@ export function registerAuthRoutes(app: Hono, services: AuthRouteServices): void
     if (session !== undefined) {
       await sessionStore.delete(session.id);
     }
-    c.header("Set-Cookie", clearSessionCookieHeader());
+    const isHttps = new URL(c.req.url, "http://localhost").protocol === "https:";
+    c.header("Set-Cookie", clearSessionCookieHeader(isHttps));
     return c.json({ ok: true });
   });
 
