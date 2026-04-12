@@ -904,5 +904,25 @@
   "cli.webhook.create_header_label": "Use as:  X-Sidjua-Token:",
   "cli.webhook.list_empty": "No webhook tokens found.",
   "cli.webhook.revoke_success": "Webhook token {id} revoked.",
-  "cli.webhook.revoke_not_found": "Error: no webhook token found with ID {id}"
+  "cli.webhook.revoke_not_found": "Error: no webhook token found with ID {id}",
+
+  "gui.divisions.system_seed.executive.name": "Executive",
+  "gui.divisions.system_seed.executive.description": "Strategic leadership, vision, and oversight. Ships with every SIDJUA installation.",
+  "gui.divisions.system_seed.system.name": "System",
+  "gui.divisions.system_seed.system.description": "Built-in division providing core infrastructure services. Ships with every SIDJUA installation. Cannot be deleted.",
+  "gui.divisions.system_seed.workspace.name": "Workspace",
+  "gui.divisions.system_seed.workspace.description": "Default workspace for user-created agents. All new agents land here unless assigned to a division.",
+
+  "gui.roles.system_seed.guide.name": "Guide",
+  "gui.roles.system_seed.guide.description": "Your first point of contact. Explains SIDJUA concepts, answers questions, and routes complex requests to the right agent.",
+  "gui.roles.system_seed.hr.name": "HR Manager",
+  "gui.roles.system_seed.hr.description": "Manages agent lifecycle — defines roles, assigns skills, handles onboarding and offboarding of new agents.",
+  "gui.roles.system_seed.it.name": "IT Administrator",
+  "gui.roles.system_seed.it.description": "System administrator — handles infrastructure, provisioning, Docker containers, system health, and backups.",
+  "gui.roles.system_seed.auditor.name": "Auditor",
+  "gui.roles.system_seed.auditor.description": "Compliance officer — monitors audit trails, budget enforcement, governance compliance, and generates reports. Cross-domain: covers both financial and IT auditing.",
+  "gui.roles.system_seed.finance.name": "Financial Controller",
+  "gui.roles.system_seed.finance.description": "Tracks budgets, generates cost reports, monitors spending across agents and divisions, and handles invoicing.",
+  "gui.roles.system_seed.librarian.name": "Librarian",
+  "gui.roles.system_seed.librarian.description": "Knowledge curator — manages documents, maintains the archive, handles search and retrieval, and keeps the knowledge base organized."
 }
