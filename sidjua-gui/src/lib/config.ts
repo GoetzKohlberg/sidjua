@@ -200,13 +200,14 @@ export function AppConfigProvider({ children }: { children: ReactNode }) {
     }
   }, [client]);
 
-  // Auto-check whenever we have credentials (runs on mount AND after bootstrap sets the key)
+  // P443: Auto-check on mount and whenever server URL or API key changes.
+  // Health endpoint is public — no API key required. Session-based auth (empty apiKey)
+  // is now the primary model; removing the apiKey gate ensures the indicator always
+  // reflects actual server reachability.
   useEffect(() => {
-    if (config.apiKey) {
-      void testConnection();
-    }
+    void testConnection();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config.apiKey]);
+  }, [config.serverUrl, config.apiKey]);
 
   // Fetch build info from public /health endpoint (no auth required)
   useEffect(() => {

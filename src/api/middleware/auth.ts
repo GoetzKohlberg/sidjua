@@ -52,6 +52,10 @@ const PUBLIC_PATHS = new Set([
   "/api/v1/auth/login",
   "/api/v1/auth/logout",
   "/api/v1/auth/verify",
+  // P443: CSRF token fetch — called by auth.ts checkAuth() step 3 using raw fetch()
+  // (no Authorization header). Auth middleware Bearer gate would block it before
+  // session check runs; adding to PUBLIC_PATHS lets the session middleware resolve it.
+  "/api/v1/auth/csrf",
 ]);
 
 /** Path prefixes that bypass authentication (GUI static files, SPA routes) */

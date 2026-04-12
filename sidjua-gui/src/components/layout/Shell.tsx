@@ -52,7 +52,10 @@ export function Shell() {
   const { t }    = useTranslation();
   const location = useLocation();
   const isSettings = location.pathname === '/settings';
-  const showBanner = !isSettings && (status === 'error' || !config.apiKey);
+  // P443: only show the "not connected" banner when the server is actually unreachable.
+  // Removing the `!config.apiKey` clause prevents the banner appearing in session-based
+  // auth (where apiKey is always empty string but the server is reachable).
+  const showBanner = !isSettings && status === 'error';
 
   // Responsive state
   const [isMobile,    setIsMobile]    = useState(() => window.innerWidth <= 767);
