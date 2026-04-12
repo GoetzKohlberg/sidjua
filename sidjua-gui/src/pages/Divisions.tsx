@@ -82,7 +82,7 @@ export function Divisions() {
                   <span style={{
                     background:   'var(--color-tier-1-bg)',
                     color:        'var(--color-tier-1-text)',
-                    fontSize:     '10px',
+                    fontSize:     '12px',
                     fontWeight:   700,
                     padding:      '2px 6px',
                     borderRadius: '4px',
@@ -111,7 +111,7 @@ export function Divisions() {
               borderRadius: 'var(--radius-md)',
               padding:      '8px 12px',
             }}>
-              <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>{t('gui.divisions.daily_limit')}</div>
+              <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>{t('gui.divisions.daily_limit')}</div>
               <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text)' }}>
                 ${div.budget.daily_limit_usd.toFixed(2)}
               </div>
@@ -122,7 +122,7 @@ export function Divisions() {
               borderRadius: 'var(--radius-md)',
               padding:      '8px 12px',
             }}>
-              <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>{t('gui.divisions.monthly_cap')}</div>
+              <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>{t('gui.divisions.monthly_cap')}</div>
               <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text)' }}>
                 ${div.budget.monthly_cap_usd.toFixed(2)}
               </div>
@@ -143,7 +143,7 @@ export function Divisions() {
                   border:       '1px solid var(--color-border)',
                   borderRadius: 'var(--radius-md)',
                   padding:      '5px 10px',
-                  fontSize:     '12px',
+                  fontSize:     '14px',
                   color:        'var(--color-text-secondary)',
                 }}
               >

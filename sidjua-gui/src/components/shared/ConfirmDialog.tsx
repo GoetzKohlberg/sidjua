@@ -130,7 +130,7 @@ export function ConfirmDialog({
         {/* requireInput field */}
         {requireInput && (
           <div style={{ marginBottom: '16px' }}>
-            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '6px' }}>
+            <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', marginBottom: '6px' }}>
               Type{' '}
               <strong style={{ fontFamily: 'monospace', color: 'var(--color-text)' }}>
                 {requireInput}

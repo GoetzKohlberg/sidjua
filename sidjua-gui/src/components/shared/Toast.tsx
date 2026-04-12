@@ -201,7 +201,7 @@ function ToastItem({
                 border:       `1px solid ${borderColor}`,
                 background:   bgColor,
                 color:        borderColor,
-                fontSize:     '12px',
+                fontSize:     '14px',
                 fontWeight:   600,
                 cursor:       'pointer',
               }}

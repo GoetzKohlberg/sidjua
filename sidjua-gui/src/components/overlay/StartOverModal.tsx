@@ -266,7 +266,7 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
                 borderRadius: 'var(--radius-sm)',
                 padding:      '10px 14px',
                 fontFamily:   'monospace',
-                fontSize:     '12px',
+                fontSize:     '14px',
                 color:        'var(--color-text)',
                 wordBreak:    'break-all',
               }}>
@@ -282,7 +282,7 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
               border:       '1px solid var(--color-border)',
               borderRadius: 'var(--radius-md)',
               padding:      '12px 14px',
-              fontSize:     '12px',
+              fontSize:     '14px',
               color:        'var(--color-text-secondary)',
             }}>
               {t('gui.start_over.backup_saved')}<br />
@@ -314,7 +314,7 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
               borderRadius: 'var(--radius-sm)',
               padding:      '10px 14px',
               fontFamily:   'monospace',
-              fontSize:     '12px',
+              fontSize:     '14px',
               wordBreak:    'break-all',
             }}>
               {backupPath}
@@ -360,7 +360,7 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
               borderRadius: 'var(--radius-sm)',
               padding:      '10px 14px',
               fontFamily:   'monospace',
-              fontSize:     '12px',
+              fontSize:     '14px',
               wordBreak:    'break-all',
             }}>
               {backupPath}

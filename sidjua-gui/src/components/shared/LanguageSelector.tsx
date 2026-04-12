@@ -156,7 +156,7 @@ export function LanguageSelector() {
           borderRadius:    'var(--radius-md)',
           backgroundColor: 'var(--color-surface)',
           color:           'var(--color-text-secondary)',
-          fontSize:        '12px',
+          fontSize:        '14px',
           fontWeight:      600,
           letterSpacing:   '0.04em',
           cursor:          'pointer',
@@ -192,7 +192,7 @@ export function LanguageSelector() {
               {/* Region header */}
               <div style={{
                 padding:    '6px 10px 3px',
-                fontSize:   '10px',
+                fontSize:   '12px',
                 fontWeight: 700,
                 letterSpacing: '0.08em',
                 color:      'var(--color-text-muted)',

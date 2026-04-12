@@ -129,7 +129,7 @@ export function OrgChart() {
             </div>
           )}
           {tree && (
-            <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+            <span style={{ fontSize: '14px', color: 'var(--color-text-muted)' }}>
               {totalAgents} agent{totalAgents !== 1 ? 's' : ''}
               {' · '}
               {totalDivisions} division{totalDivisions !== 1 ? 's' : ''}
@@ -172,7 +172,7 @@ export function OrgChart() {
         return (
           <div style={{ marginTop: '24px' }}>
             <div style={{
-              fontSize:     '12px',
+              fontSize:     '14px',
               fontWeight:   600,
               color:        'var(--color-text-muted)',
               textTransform: 'uppercase',

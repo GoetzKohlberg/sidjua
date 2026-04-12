@@ -45,7 +45,7 @@ export function MetricCard({ title, value, subtitle, icon, onClick }: Props) {
     >
       <div>
         <p style={{
-          fontSize:     '12px',
+          fontSize:     '14px',
           fontWeight:   500,
           color:        'var(--color-text-secondary)',
           textTransform: 'uppercase',
@@ -64,7 +64,7 @@ export function MetricCard({ title, value, subtitle, icon, onClick }: Props) {
           {value}
         </p>
         {subtitle && (
-          <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
+          <p style={{ fontSize: '14px', color: 'var(--color-text-secondary)', marginTop: '4px' }}>
             {subtitle}
           </p>
         )}

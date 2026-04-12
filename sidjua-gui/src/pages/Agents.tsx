@@ -158,7 +158,7 @@ function AgentDetail({ agentId, onClose }: { agentId: string; onClose: () => voi
       </div>
 
       {patchError && (
-        <p style={{ color: 'var(--color-danger)', fontSize: '12px', marginBottom: '10px' }}>{patchError}</p>
+        <p style={{ color: 'var(--color-danger)', fontSize: '14px', marginBottom: '10px' }}>{patchError}</p>
       )}
 
       <div className="page-agents--detail-grid">

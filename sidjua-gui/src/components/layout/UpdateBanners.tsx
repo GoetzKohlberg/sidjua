@@ -70,7 +70,7 @@ export function UpdateBanner() {
             color:        '#fff',
             cursor:       'pointer',
             padding:      '4px 12px',
-            fontSize:     '12px',
+            fontSize:     '14px',
             fontWeight:   600,
           }}
         >
@@ -85,7 +85,7 @@ export function UpdateBanner() {
             color:        'var(--color-info, #1565c0)',
             cursor:       'pointer',
             padding:      '4px 10px',
-            fontSize:     '12px',
+            fontSize:     '14px',
           }}
         >
           {t('update.later')}
@@ -330,7 +330,7 @@ export function UpdateProgressDialog({ targetVersion, onClose }: UpdateProgressD
         <div style={{
           maxHeight:  '200px',
           overflowY:  'auto',
-          fontSize:   '12px',
+          fontSize:   '14px',
           fontFamily: 'monospace',
           background: 'var(--color-code-bg, #f5f5f5)',
           borderRadius: '4px',

@@ -95,7 +95,7 @@ export function AgentCard({ agent, selected = false, onClick, llmStatus, provide
             <span style={{
               background:   tier.bg,
               color:        tier.text,
-              fontSize:     '10px',
+              fontSize:     '12px',
               fontWeight:   700,
               padding:      '2px 6px',
               borderRadius: '4px',

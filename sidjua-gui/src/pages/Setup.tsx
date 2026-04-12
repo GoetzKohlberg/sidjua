@@ -235,7 +235,7 @@ export function Setup() {
 
         <p style={{
           marginTop:  '20px',
-          fontSize:   '12px',
+          fontSize:   '14px',
           color:      'var(--color-text-muted)',
           textAlign:  'center',
           lineHeight: 1.5,

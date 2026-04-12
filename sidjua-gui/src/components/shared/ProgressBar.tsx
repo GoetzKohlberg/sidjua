@@ -27,7 +27,7 @@ export function ProgressBar({ value, label, color }: Props) {
         justifyContent: 'space-between',
         alignItems:     'center',
         marginBottom:   '6px',
-        fontSize:       '12px',
+        fontSize:       '14px',
         color:          'var(--color-text-secondary)',
       }}>
         {label && <span>{label}</span>}

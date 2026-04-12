@@ -160,7 +160,7 @@ export function Sidebar({ drawerOpen = false, isMobile = false, onClose }: Sideb
                     <span style={{
                       background:   'var(--color-sidebar-badge-bg)',
                       borderRadius: '999px',
-                      fontSize:     '10px',
+                      fontSize:     '12px',
                       fontWeight:   700,
                       padding:      '1px 6px',
                       minWidth:     '18px',

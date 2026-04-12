@@ -36,7 +36,7 @@ function NotConnectedBanner() {
           color:          'var(--color-warning)',
           cursor:         'pointer',
           padding:        '2px 10px',
-          fontSize:       '12px',
+          fontSize:       '14px',
           fontWeight:     600,
           whiteSpace:     'nowrap',
         }}

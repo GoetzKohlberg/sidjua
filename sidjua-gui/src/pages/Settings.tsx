@@ -100,7 +100,7 @@ function ProviderCard({ provider, selected, onClick }: ProviderCardProps) {
           )}
 
           <span style={{
-            fontSize:   '10px',
+            fontSize:   '12px',
             fontWeight: 700,
             color:      qualityColor,
             padding:    '1px 5px',
@@ -1258,7 +1258,7 @@ export function Settings() {
               borderRadius: 'var(--radius-md)',
               maxHeight:    '200px',
               overflowY:    'auto',
-              fontSize:     '12px',
+              fontSize:     '14px',
             }}>
               {recentErrors === null || errorsLoading ? (
                 <div style={{ padding: '12px', color: 'var(--color-text-secondary)' }}>

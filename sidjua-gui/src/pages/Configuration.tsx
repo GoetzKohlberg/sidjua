@@ -45,7 +45,7 @@ function CopyButton({ text }: { text: string }) {
         background:   'var(--color-surface)',
         color:        copied ? 'var(--color-success)' : 'var(--color-text-secondary)',
         cursor:       'pointer',
-        fontSize:     '12px',
+        fontSize:     '14px',
         transition:   'all var(--transition-fast)',
       }}
     >
@@ -233,7 +233,7 @@ function LoggingTab() {
                   {Object.entries(status.components).map(([comp, level]) => (
                     <tr key={comp} className="page-config--overrides-tr">
                       <td className="page-config--overrides-td">{comp}</td>
-                      <td style={{ padding: '7px 0', textAlign: 'right', fontSize: '12px', fontWeight: 700, color: LEVEL_COLORS[level] ?? 'var(--color-text)' }}>
+                      <td style={{ padding: '7px 0', textAlign: 'right', fontSize: '14px', fontWeight: 700, color: LEVEL_COLORS[level] ?? 'var(--color-text)' }}>
                         {level.toUpperCase()}
                       </td>
                     </tr>
@@ -254,7 +254,7 @@ function LoggingTab() {
       <div className="sidjua-card sidjua-card--info">
         <p className="sidjua-card-title">{t('gui.config.log_files_title')}</p>
         <div className="page-config--log-info-row">
-          <code style={{ fontSize: '12px', flex: 1, color: 'var(--color-text)' }}>
+          <code style={{ fontSize: '14px', flex: 1, color: 'var(--color-text)' }}>
             {t('gui.config.log_error_path')}
           </code>
         </div>

@@ -295,7 +295,7 @@ export function Dashboard() {
               onClick={() => navigate('/audit')}
               style={{
                 background: 'none', border: 'none', color: 'var(--color-accent)',
-                cursor: 'pointer', fontSize: '12px',
+                cursor: 'pointer', fontSize: '14px',
               }}
             >
               {t('gui.dashboard.section.view_all')}
@@ -398,7 +398,7 @@ function ErrorText({ message, onRetry }: { message: string; onRetry: () => void 
       <span>{message}</span>
       <button
         onClick={onRetry}
-        style={{ background: 'none', border: 'none', color: 'var(--color-accent)', cursor: 'pointer', textDecoration: 'underline', fontSize: '12px' }}
+        style={{ background: 'none', border: 'none', color: 'var(--color-accent)', cursor: 'pointer', textDecoration: 'underline', fontSize: '14px' }}
       >
         Retry
       </button>

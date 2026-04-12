@@ -76,7 +76,7 @@ function AgentSwitcher({
               background:     isActive ? 'var(--color-accent-muted)' : 'var(--color-surface)',
               color:          isActive ? 'var(--color-accent)' : 'var(--color-text-secondary)',
               cursor:         'pointer',
-              fontSize:       '12px',
+              fontSize:       '14px',
               fontWeight:     isActive ? 600 : 400,
               whiteSpace:     'nowrap',
               flexShrink:     0,
@@ -156,7 +156,7 @@ function ChatHeader({
                         applyState === 'error'   ? 'var(--color-danger, #dc2626)' :
                         'var(--color-text-muted)',
           cursor:       applyState === 'running' ? 'not-allowed' : 'pointer',
-          fontSize:     '12px',
+          fontSize:     '14px',
           opacity:      applyState === 'running' ? 0.6 : 1,
         }}
       >
@@ -205,7 +205,7 @@ function ToolResultCard({ message }: { message: Message }) {
         borderRadius: 'var(--radius-md)',
         background:   success ? 'var(--color-success-bg, #f0fdf4)' : 'var(--color-danger-bg, #fef2f2)',
         border:       `1px solid ${success ? 'var(--color-success-border, #bbf7d0)' : 'var(--color-danger-border, #fecaca)'}`,
-        fontSize:     '12px',
+        fontSize:     '14px',
         color:        success ? 'var(--color-success, #15803d)' : 'var(--color-danger, #dc2626)',
         fontFamily:   'monospace',
       }}>

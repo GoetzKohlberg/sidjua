@@ -63,7 +63,7 @@ function HighlightedMessage({
       >
         {text.slice(m.start, m.end)}
         <sub style={{
-          fontSize:   '10px',
+          fontSize:   '12px',
           color:      'var(--color-warning, #ca8a04)',
           fontWeight: 600,
           marginLeft: '2px',
@@ -168,7 +168,7 @@ export function RedactionDialog({
 
         {/* Original message with highlights */}
         <div>
-          <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: '6px', marginTop: 0 }}>
+          <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: '6px', marginTop: 0 }}>
             {t('gui.bouncer.dialog_body')}
           </p>
           <div style={{
@@ -190,7 +190,7 @@ export function RedactionDialog({
 
         {/* Redacted preview */}
         <div>
-          <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: '6px', marginTop: 0 }}>
+          <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: '6px', marginTop: 0 }}>
             {t('gui.bouncer.preview_label')}
           </p>
           <div style={{
