@@ -35,9 +35,11 @@ import { setCsrfToken, getCsrfToken } from './csrf';
 // ---------------------------------------------------------------------------
 
 export interface AuthState {
-  status:         'loading' | 'authenticated' | 'unauthenticated';
-  isFirstRun:     boolean;
-  isRecoveryMode: boolean;
+  status:             'loading' | 'authenticated' | 'unauthenticated';
+  isFirstRun:         boolean;
+  isRecoveryMode:     boolean;
+  /** P440: workspace first-run overlay completed — derived from GET /api/v1/health (public). */
+  firstRunCompleted:  boolean;
 }
 
 export interface AuthContextValue {
@@ -55,7 +57,7 @@ export interface AuthContextValue {
 // ---------------------------------------------------------------------------
 
 const DEFAULT_VALUE: AuthContextValue = {
-  authState:      { status: 'loading', isFirstRun: false, isRecoveryMode: false },
+  authState:      { status: 'loading', isFirstRun: false, isRecoveryMode: false, firstRunCompleted: false },
   csrfToken:      null,
   onLoginSuccess: () => undefined,
   logout:         async () => undefined,
@@ -89,14 +91,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const health    = healthRes.ok
         ? (await healthRes.json() as Record<string, unknown>)
         : {};
-      const isFirstRun     = Boolean(health['setup_required']);
-      const isRecoveryMode = Boolean(health['recovery_mode']);
+      const isFirstRun      = Boolean(health['setup_required']);
+      const isRecoveryMode  = Boolean(health['recovery_mode']);
+      const firstRunCompleted = Boolean(health['first_run_completed']);
 
       // 2. Auth verify → is there an active session?
       const verifyRes = await fetch(API_PATHS.authVerify());
       if (!verifyRes.ok) {
         applyToken(null);
-        setAuthState({ status: 'unauthenticated', isFirstRun, isRecoveryMode });
+        setAuthState({ status: 'unauthenticated', isFirstRun, isRecoveryMode, firstRunCompleted });
         return;
       }
 
@@ -106,10 +109,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ? (await csrfRes.json() as { csrfToken?: string })
         : {};
       applyToken(csrfData.csrfToken ?? null);
-      setAuthState({ status: 'authenticated', isFirstRun, isRecoveryMode });
+      setAuthState({ status: 'authenticated', isFirstRun, isRecoveryMode, firstRunCompleted });
     } catch {
       applyToken(null);
-      setAuthState({ status: 'unauthenticated', isFirstRun: false, isRecoveryMode: false });
+      setAuthState({ status: 'unauthenticated', isFirstRun: false, isRecoveryMode: false, firstRunCompleted: false });
     }
   }, [applyToken]);
 
@@ -150,20 +153,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     } catch { /* ignore — session is cleared client-side regardless */ }
 
-    // Re-check health so isFirstRun stays accurate after logout
-    let isFirstRun     = false;
-    let isRecoveryMode = false;
+    // Re-check health so isFirstRun/firstRunCompleted stay accurate after logout
+    let isFirstRun      = false;
+    let isRecoveryMode  = false;
+    let firstRunCompleted = false;
     try {
       const healthRes = await fetch(API_PATHS.health());
       if (healthRes.ok) {
-        const health   = await healthRes.json() as Record<string, unknown>;
-        isFirstRun     = Boolean(health['setup_required']);
-        isRecoveryMode = Boolean(health['recovery_mode']);
+        const health    = await healthRes.json() as Record<string, unknown>;
+        isFirstRun      = Boolean(health['setup_required']);
+        isRecoveryMode  = Boolean(health['recovery_mode']);
+        firstRunCompleted = Boolean(health['first_run_completed']);
       }
     } catch { /* ignore */ }
 
     applyToken(null);
-    setAuthState({ status: 'unauthenticated', isFirstRun, isRecoveryMode });
+    setAuthState({ status: 'unauthenticated', isFirstRun, isRecoveryMode, firstRunCompleted });
   }, [applyToken]);
 
   const value: AuthContextValue = {

@@ -68,25 +68,17 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 type FirstRunState = 'loading' | 'completed' | 'pending' | 'error';
 
 function ProtectedApp() {
-  const { client } = useAppConfig();
-  const [firstRunState, setFirstRunState] = useState<FirstRunState>('loading');
+  const { client }    = useAppConfig();
+  const { authState } = useAuth();
+  // Local override: once dismissed, stay completed without waiting for authState refresh.
+  const [dismissed, setDismissed] = useState(false);
 
-  const checkFirstRun = useCallback(async () => {
-    setFirstRunState('loading');
-    try {
-      const res = await client!.getWorkspaceConfig();
-      setFirstRunState(res.firstRunCompleted ? 'completed' : 'pending');
-    } catch {
-      setFirstRunState('error');
-    }
-  }, [client]);
-
-  useEffect(() => {
-    void checkFirstRun();
-  }, [checkFirstRun]);
+  // P440: derive from public health endpoint (via AuthProvider) — no auth-gated fetch.
+  const firstRunState: FirstRunState =
+    dismissed || authState.firstRunCompleted ? 'completed' : 'pending';
 
   const handleDismiss = useCallback(async () => {
-    setFirstRunState('completed');
+    setDismissed(true);
     try {
       await client!.completeFirstRun();
     } catch {
@@ -98,7 +90,7 @@ function ProtectedApp() {
     <AppRoutes
       firstRunState={firstRunState}
       onDismiss={handleDismiss}
-      onRetry={checkFirstRun}
+      onRetry={() => undefined}
     />
   );
 }

@@ -21,7 +21,7 @@ function ensureMigrated(db: Database): void {
   runWorkspaceConfigMigration(db);
 }
 
-function getFirstRunCompleted(db: Database): boolean {
+export function getFirstRunCompleted(db: Database): boolean {
   ensureMigrated(db);
   const row = db
     .prepare<[], { value: string }>(

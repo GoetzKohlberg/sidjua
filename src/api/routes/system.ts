@@ -99,6 +99,18 @@ export function setHealthAuthProvider(fn: (() => HealthAuthFields) | null): void
   _healthAuthProvider = fn;
 }
 
+/**
+ * P440: Inject workspace first-run completion state into GET /health.
+ * Called by registerAllRoutes when a database is available.
+ * Allows the GUI to derive first-run overlay state from the public health
+ * endpoint instead of the auth-gated GET /api/v1/config.
+ */
+let _firstRunCompletedProvider: (() => boolean) | null = null;
+
+export function setFirstRunCompletedProvider(fn: (() => boolean) | null): void {
+  _firstRunCompletedProvider = fn;
+}
+
 export function createSystemRoutes(getApiKey?: () => string): Hono {
   const app = new Hono();
 
@@ -109,8 +121,9 @@ export function createSystemRoutes(getApiKey?: () => string): Hono {
    */
   // SCOPE: public (intentional, no auth required)
   app.get("/health", async (c) => {
-    const deep = _deepHealthProvider ? await _deepHealthProvider() : null;
-    const auth = _healthAuthProvider ? _healthAuthProvider() : null;
+    const deep            = _deepHealthProvider          ? await _deepHealthProvider()          : null;
+    const auth            = _healthAuthProvider           ? _healthAuthProvider()                : null;
+    const firstRunDone    = _firstRunCompletedProvider    ? _firstRunCompletedProvider()         : null;
     return c.json({
       status:        "ok",
       version:       VERSION,
@@ -121,6 +134,7 @@ export function createSystemRoutes(getApiKey?: () => string): Hono {
       components:    {},
       ...(deep ?? {}),
       ...(auth ?? {}),
+      ...(firstRunDone !== null ? { first_run_completed: firstRunDone } : {}),
     });
   });
 

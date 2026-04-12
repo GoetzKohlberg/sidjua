@@ -42,7 +42,7 @@ import { registerStarterAgentRoutes }  from "./starter-agents.js";
 import { registerProviderRoutes }      from "./provider.js";
 import { registerChatRoutes }          from "./chat.js";
 import { registerAgentToolRoutes }     from "./agent-tools.js";
-import { registerWorkspaceConfigRoutes } from "./workspace-config.js";
+import { registerWorkspaceConfigRoutes, getFirstRunCompleted } from "./workspace-config.js";
 import { registerLocaleRoutes }          from "./locale.js";
 import { registerDaemonRoutes }          from "./daemon.js";
 import { registerBackupRoutes }          from "./backup.js";
@@ -64,7 +64,7 @@ import { registerUpdaterRoutes }         from "./updater.js";
 import { registerUpdateLifecycleRoutes } from "./update-lifecycle.js";
 import { registerSystemLifecycleRoutes } from "./system-lifecycle.js";
 import type { BackpressureManager }      from "../../core/runtime/backpressure.js";
-import { setDeepHealthProvider }         from "./system.js";
+import { setDeepHealthProvider, setFirstRunCompletedProvider } from "./system.js";
 import { checkDeepHealth }              from "../../core/health/deep-health.js";
 import { isReadOnlyMode }               from "../middleware/readonly.js";
 import { registerUploadRoutes }          from "./upload.js";
@@ -201,6 +201,9 @@ export function registerAllRoutes(app: Hono, services: AllRouteServices = {}): v
   // with fields the blue/green sidecar checks: healthy, migration_complete, db_read, etc.
   if (db !== null) {
     setDeepHealthProvider(() => checkDeepHealth(db, workDir, workDir, isReadOnlyMode()));
+    // P440: expose first_run_completed so the GUI can derive overlay state from the
+    // public health endpoint instead of the auth-gated GET /api/v1/config.
+    setFirstRunCompletedProvider(() => getFirstRunCompleted(db));
   }
 
   // P434b: GUI auth routes (setup, login, logout, verify, csrf, settings/password)
