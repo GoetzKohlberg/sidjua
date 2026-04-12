@@ -6,8 +6,7 @@
  * SIDJUA — CSRF origin-validation + double-submit middleware
  *
  * Validates the Origin (or Referer) header for state-changing requests
- * (POST/PUT/DELETE/PATCH). Blocks cross-origin requests from non-localhost
- * origins.
+ * (POST/PUT/DELETE/PATCH). Blocks cross-origin requests.
  *
  * ORIGIN VALIDATION (highest priority):
  *   When an Origin header IS present it is ALWAYS validated against the allowlist.
@@ -33,18 +32,27 @@
  *   Form-POST CSRF attacks may omit Origin in some browser/proxy configurations.
  *
  * Allowed origins (when Origin IS present):
- *   - http(s)://localhost[:<port>] — local dev server
- *   - http(s)://127.0.0.1[:<port>] — loopback alias
+ *   - Same-origin: the Origin header must match the request's own Host header
+ *     (scheme, host, and port all equal). This is the W3C same-origin definition
+ *     and works for any deployment — localhost, LAN IP, public hostname, IPv6.
+ *   - Loopback safety net: http(s)://localhost[:<port>], http(s)://127.0.0.1[:<port>],
+ *     and http(s)://[::1][:<port>] are always allowed regardless of Host, to
+ *     keep the Desktop-App use case working if the Host header is ever rewritten
+ *     by a local tool.
+ *
+ * Reverse proxies (X-Forwarded-Host, X-Forwarded-Proto) are NOT trusted by this
+ * middleware. P438 assumes direct container exposure. A proxy-aware mode is a
+ * future feature and requires an explicit SIDJUA_TRUSTED_PROXIES allowlist.
  *
  * Fallback: if Origin is absent but Referer is present, the origin component
- *   of the Referer URL is validated against the same allowlist.
+ *   of the Referer URL is validated against the same same-origin + loopback rules.
  */
 
-import { timingSafeEqual }       from "node:crypto";
-import type { MiddlewareHandler } from "hono";
-import { createLogger }           from "../../core/logger.js";
-import { SESSION_KEY }            from "./session.js";
-import type { SessionData }       from "./session.js";
+import { timingSafeEqual }                from "node:crypto";
+import type { MiddlewareHandler, Context } from "hono";
+import { createLogger }                    from "../../core/logger.js";
+import { SESSION_KEY }                     from "./session.js";
+import type { SessionData }                from "./session.js";
 
 const logger = createLogger("api-server");
 
@@ -53,12 +61,66 @@ const logger = createLogger("api-server");
 const MUTATING_METHODS = new Set(["POST", "PUT", "DELETE", "PATCH"]);
 
 /**
- * Regex matching allowed origins.
- * - http(s)://localhost[:<port>] — local dev server / loopback
- * - http(s)://127.0.0.1[:<port>] — loopback alias
+ * Safety-net allowlist for loopback origins. Used when Host header is absent
+ * or when the request genuinely came from the local machine (Desktop-App use case).
+ * Everything else is validated by same-origin comparison against the Host header.
+ * Covers IPv6 loopback [::1] in addition to the IPv4 aliases.
  */
-const ALLOWED_ORIGIN_RE =
-  /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+const LOOPBACK_ORIGIN_RE =
+  /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/;
+
+/** Parsed representation of an HTTP/HTTPS origin. */
+interface ParsedOrigin {
+  scheme: string;
+  host:   string;
+  port:   string | null;
+}
+
+/**
+ * Parse an origin-like string into canonical {scheme, host, port} parts.
+ * Returns null on parse failure or for non-HTTP(S) schemes.
+ */
+function parseOrigin(value: string): ParsedOrigin | null {
+  try {
+    const u = new URL(value);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+    return {
+      scheme: u.protocol.replace(":", ""),
+      host:   u.hostname.toLowerCase(),
+      port:   u.port || null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Build the canonical origin of the current request from its Host header.
+ * Assumes the server is directly exposed (no reverse proxy).
+ * Returns null if the Host header is missing or malformed.
+ */
+function getRequestOrigin(c: Context): ParsedOrigin | null {
+  const hostHeader = c.req.header("host");
+  if (!hostHeader) return null;
+  // Derive scheme from the request URL (http: in direct-exposure mode).
+  const requestUrl = new URL(c.req.url, "http://localhost");
+  return parseOrigin(`${requestUrl.protocol}//${hostHeader}`);
+}
+
+/** True iff two parsed origins share protocol, host, and port. */
+function isSameOrigin(a: ParsedOrigin, b: ParsedOrigin): boolean {
+  return a.scheme === b.scheme && a.host === b.host && a.port === b.port;
+}
+
+/**
+ * Validate an origin string (already parsed) against the current request.
+ * Returns true if the origin is allowed (same-origin OR loopback safety net).
+ */
+function isOriginAllowed(parsedOrigin: ParsedOrigin, rawOrigin: string, c: Context): boolean {
+  if (LOOPBACK_ORIGIN_RE.test(rawOrigin)) return true;
+  const requestOrigin = getRequestOrigin(c);
+  return requestOrigin !== null && isSameOrigin(parsedOrigin, requestOrigin);
+}
 
 
 /**
@@ -77,9 +139,21 @@ export const csrfMiddleware: MiddlewareHandler = async (c, next) => {
   // Browser extensions can inject Authorization headers cross-origin, so
   // checking Authorization/Content-Type before Origin would be exploitable.
   if (origin !== undefined) {
-    if (!ALLOWED_ORIGIN_RE.test(origin)) {
-      logger.warn("csrf_origin_rejected", "CSRF: request from disallowed origin blocked", {
+    const parsedOrigin = parseOrigin(origin);
+    if (parsedOrigin === null) {
+      logger.warn("csrf_origin_malformed", "CSRF: malformed origin header", {
         metadata: { origin, method: c.req.method, path: c.req.path },
+      });
+      return c.json({ error: "CSRF: invalid origin" }, 403);
+    }
+    if (!isOriginAllowed(parsedOrigin, origin, c)) {
+      logger.warn("csrf_origin_rejected", "CSRF: cross-origin request blocked", {
+        metadata: {
+          origin,
+          request_origin: (() => { const ro = getRequestOrigin(c); return ro ? `${ro.scheme}://${ro.host}${ro.port ? ":" + ro.port : ""}` : null; })(),
+          method: c.req.method,
+          path:   c.req.path,
+        },
       });
       return c.json({ error: "CSRF: invalid origin" }, 403);
     }
@@ -141,7 +215,8 @@ export const csrfMiddleware: MiddlewareHandler = async (c, next) => {
       return c.json({ error: "CSRF validation failed: malformed Referer header" }, 403);
     }
 
-    if (!ALLOWED_ORIGIN_RE.test(refererOrigin)) {
+    const parsedRefererOrigin = parseOrigin(refererOrigin);
+    if (parsedRefererOrigin === null || !isOriginAllowed(parsedRefererOrigin, refererOrigin, c)) {
       logger.warn("csrf_referer_rejected", "CSRF: request from disallowed Referer origin blocked", {
         metadata: { refererOrigin, method: c.req.method, path: c.req.path },
       });
