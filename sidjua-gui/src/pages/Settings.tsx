@@ -685,14 +685,14 @@ function SettingsHelpPanel() {
       <div className="sidjua-card">
         <h3 className="page-settings--help-heading">{t('gui.settings.help.getting_started')}</h3>
 
-        {/* API key callout — prominent */}
+        {/* Login / setup callout */}
         <div className="page-settings--api-callout">
           <div className="page-settings--callout-heading">
             {t('gui.settings.help.where_apikey')}
           </div>
-          <code className="page-settings--callout-code">
+          <div className="page-settings--callout-code">
             {t('gui.settings.help.apikey_command')}
-          </code>
+          </div>
           <div className="page-settings--callout-note">
             {t('gui.settings.help.container_note')}
           </div>

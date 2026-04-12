@@ -27,17 +27,17 @@ export const GUI_ERRORS = {
 
   // ── Authentication ────────────────────────────────────────────────────────
 
-  /** No API key configured yet (fresh install / Settings not filled in). */
+  /** Session not established (fresh load, not yet logged in). */
   'GUI-AUTH-001': {
-    message:         'No API key configured.',
-    suggestion:      'Go to Settings and enter your SIDJUA API key.',
-    technicalDetail: 'HTTP 401/403 — no key in config',
+    message:         'Not logged in.',
+    suggestion:      'Please log in at /login or complete first-run setup at /setup.',
+    technicalDetail: 'HTTP 401/403 — no session',
   },
 
-  /** API key is set but rejected by the server (expired, rotated, wrong). */
+  /** Session expired or access denied. */
   'GUI-AUTH-002': {
-    message:         'Access denied — your API key is invalid or has expired.',
-    suggestion:      'Go to Settings and enter a valid API key, or generate a new one with: sidjua api-key generate',
+    message:         'Session expired or access denied.',
+    suggestion:      'Please log in again. Go to /login or reload the page.',
     technicalDetail: 'HTTP 401/403 — authentication failed',
   },
 
@@ -46,14 +46,14 @@ export const GUI_ERRORS = {
   /** Server unreachable — Docker not running, wrong URL, firewall, etc. */
   'GUI-CONN-001': {
     message:         'Cannot connect to the SIDJUA server.',
-    suggestion:      'Make sure the SIDJUA container is running: docker start $(docker ps -aq -f name=sidjua) (or docker compose up)',
+    suggestion:      'Make sure the SIDJUA container is running: docker start <container-name> (or docker compose up)',
     technicalDetail: 'Network error — connection refused or DNS failure',
   },
 
   /** Server returned a 5xx internal error. */
   'GUI-CONN-002': {
     message:         'The server encountered an internal error.',
-    suggestion:      'Try again in a moment, or restart SIDJUA: docker restart $(docker ps -aq -f name=sidjua)',
+    suggestion:      'Try again in a moment, or restart SIDJUA: docker restart <container-name>',
     technicalDetail: 'HTTP 5xx — server-side error',
   },
 
@@ -71,10 +71,10 @@ export const GUI_ERRORS = {
     technicalDetail: 'AbortError / request cancelled',
   },
 
-  /** Client not initialised — no server URL or API key set at all. */
+  /** Client not initialised — no server URL configured. */
   'GUI-CONN-005': {
     message:         'Not connected to any SIDJUA server.',
-    suggestion:      'Open Settings and enter your server URL and API key.',
+    suggestion:      'Open Settings and verify the server URL.',
     technicalDetail: 'No client configured',
   },
 
@@ -168,7 +168,7 @@ export const GUI_ERRORS = {
   /** Connection test from Settings page failed. */
   'GUI-SETTINGS-002': {
     message:         'Connection test failed.',
-    suggestion:      'Check that the server URL and API key are correct.',
+    suggestion:      'Check that the server URL is correct and the SIDJUA container is running.',
     technicalDetail: 'Health check failed during settings test',
   },
 
@@ -184,14 +184,14 @@ export const GUI_ERRORS = {
   /** Workspace backup failed. */
   'GUI-WORKSPACE-001': {
     message:         'Failed to create a workspace backup.',
-    suggestion:      'Check disk space and try again. Run: docker exec $(docker ps -q -f name=sidjua) sidjua backup create',
+    suggestion:      'Check disk space and try again.',
     technicalDetail: 'POST /workspace/backup failed',
   },
 
   /** Workspace wipe failed. */
   'GUI-WORKSPACE-002': {
     message:         'Failed to wipe the workspace.',
-    suggestion:      'Try again or manually run: docker restart $(docker ps -aq -f name=sidjua)',
+    suggestion:      'Try again or manually run: docker restart <container-name>',
     technicalDetail: 'POST /workspace/wipe failed',
   },
 
@@ -209,7 +209,7 @@ export const GUI_ERRORS = {
   /** Catch-all for unexpected errors. */
   'GUI-GENERIC-001': {
     message:         'Something went wrong.',
-    suggestion:      'Try reloading the page. If the problem persists, restart SIDJUA: docker restart $(docker ps -aq -f name=sidjua)',
+    suggestion:      'Try reloading the page. If the problem persists, restart SIDJUA: docker restart <container-name>',
     technicalDetail: 'Unknown error',
   },
 
