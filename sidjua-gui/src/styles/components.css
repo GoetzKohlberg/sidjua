@@ -1875,16 +1875,15 @@
 }
 
 .page-settings--sensitivity-row {
-  display:     flex;
-  align-items: center;
-  gap:         10px;
-  margin-top:  4px;
+  display:        flex;
+  flex-direction: column;
+  gap:            6px;
+  margin-top:     4px;
 }
 
 .page-settings--sensitivity-label {
   font-size: 15px;
   color:     var(--color-text-secondary);
-  flex:      1;
 }
 
 /* About section */
