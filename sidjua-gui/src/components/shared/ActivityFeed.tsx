@@ -50,7 +50,7 @@ export function ActivityFeed({ events, maxItems = 20, showAgent = false, autoScr
 
   if (displayed.length === 0) {
     return (
-      <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', padding: '16px 0' }}>
+      <p style={{ fontSize: '15px', color: 'var(--color-text-muted)', padding: '16px 0' }}>
         No recent activity.
       </p>
     );
@@ -83,7 +83,7 @@ export function ActivityFeed({ events, maxItems = 20, showAgent = false, autoScr
           <OutcomeIcon outcome={ev.outcome} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{
-              fontSize:     '13px',
+              fontSize:     '15px',
               color:        'var(--color-text)',
               whiteSpace:   'nowrap',
               overflow:     'hidden',
@@ -92,14 +92,14 @@ export function ActivityFeed({ events, maxItems = 20, showAgent = false, autoScr
               {ev.description}
             </p>
             {showAgent && ev.agentId && (
-              <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '1px' }}>
+              <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginTop: '1px' }}>
                 {ev.agentId}
               </p>
             )}
           </div>
           <time
             dateTime={ev.timestamp}
-            style={{ fontSize: '11px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}
+            style={{ fontSize: '13px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}
           >
             {formatTime(ev.timestamp)}
           </time>

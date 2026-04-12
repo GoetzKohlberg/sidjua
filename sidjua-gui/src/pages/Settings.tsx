@@ -58,7 +58,7 @@ function ProviderCard({ provider, selected, onClick }: ProviderCardProps) {
           right:        '10px',
           color:        'var(--color-accent)',
           fontWeight:   700,
-          fontSize:     '14px',
+          fontSize:     '16px',
         }}>
           ✓
         </div>
@@ -100,7 +100,7 @@ function ProviderCard({ provider, selected, onClick }: ProviderCardProps) {
           )}
 
           <span style={{
-            fontSize:   '12px',
+            fontSize:   '14px',
             fontWeight: 700,
             color:      qualityColor,
             padding:    '1px 5px',
@@ -308,7 +308,7 @@ function ApiKeySection({ provider, isCustom, onSaved }: ApiKeySectionProps) {
               border:     'none',
               cursor:     'pointer',
               color:      'var(--color-text-muted)',
-              fontSize:   '14px',
+              fontSize:   '16px',
               padding:    '2px 4px',
             }}
           >
@@ -564,7 +564,7 @@ function ProviderSettings({ onConfigChange }: ProviderSettingsProps) {
               color:        mode === m ? 'var(--color-accent)' : 'var(--color-text)',
               fontWeight:   mode === m ? 600 : 400,
               cursor:       'pointer',
-              fontSize:     '13px',
+              fontSize:     '15px',
             }}
           >
             {m === 'simple' ? t('gui.settings.provider.mode_simple') : t('gui.settings.provider.mode_advanced')}
@@ -1011,7 +1011,7 @@ export function Settings() {
         {/* LLM Provider */}
         <section className="page-settings--section">
           <h2 className="page-settings--section-h2">{t('gui.settings.llm_provider')}</h2>
-          <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '16px' }}>
+          <p style={{ fontSize: '15px', color: 'var(--color-text-secondary)', marginBottom: '16px' }}>
             {t('gui.settings.llm_provider_desc')}
           </p>
           <ProviderSettings key={providerKey} onConfigChange={() => setProviderKey((k) => k + 1)} />
@@ -1022,7 +1022,7 @@ export function Settings() {
           <h2 className="page-settings--section-h2">{t('gui.settings.workspace')}</h2>
 
           {/* Backup guidance */}
-          <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '16px', lineHeight: 1.6 }}>
+          <p style={{ fontSize: '15px', color: 'var(--color-text-secondary)', marginBottom: '16px', lineHeight: 1.6 }}>
             {t('gui.settings.workspace_backup_hint')}
           </p>
           <div className="page-settings--workspace-actions">
@@ -1046,7 +1046,7 @@ export function Settings() {
           <div className="page-settings--separator" />
 
           {/* Reset / Start Over */}
-          <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '12px', lineHeight: 1.6 }}>
+          <p style={{ fontSize: '15px', color: 'var(--color-text-secondary)', marginBottom: '12px', lineHeight: 1.6 }}>
             {t('gui.settings.workspace_reset_warning')}
           </p>
           <button
@@ -1060,7 +1060,7 @@ export function Settings() {
         {/* Language */}
         <section className="page-settings--section">
           <h2 className="page-settings--section-h2">{t('gui.settings.language')}</h2>
-          <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '16px' }}>
+          <p style={{ fontSize: '15px', color: 'var(--color-text-secondary)', marginBottom: '16px' }}>
             {t('gui.settings.language_desc')}
           </p>
           <LanguageSelector />
@@ -1076,7 +1076,7 @@ export function Settings() {
               </div>
               {installedLangs.map((code) => (
                 <div key={code} className="page-settings--lang-row">
-                  <span style={{ fontSize: '13px', color: 'var(--color-text)' }}>
+                  <span style={{ fontSize: '15px', color: 'var(--color-text)' }}>
                     {code}
                     {code === activeLang && (
                       <span className="page-settings--lang-active">
@@ -1095,7 +1095,7 @@ export function Settings() {
                         borderRadius: 'var(--radius-sm)',
                         cursor:       langBusy ? 'default' : 'pointer',
                         padding:      '2px 8px',
-                        fontSize:     '11px',
+                        fontSize:     '13px',
                         color:        'var(--color-text-muted)',
                         opacity:      langBusy ? 0.5 : 1,
                       }}
@@ -1134,7 +1134,7 @@ export function Settings() {
                         background:   'var(--color-accent-muted)',
                         color:        'var(--color-accent)',
                         cursor:       langBusy || addLangCode === '' ? 'default' : 'pointer',
-                        fontSize:     '13px',
+                        fontSize:     '15px',
                         opacity:      langBusy || addLangCode === '' ? 0.5 : 1,
                       }}
                     >
@@ -1169,7 +1169,7 @@ export function Settings() {
                   color:        theme === thm ? 'var(--color-accent)' : 'var(--color-text)',
                   fontWeight:   theme === thm ? 600 : 400,
                   cursor:       'pointer',
-                  fontSize:     '14px',
+                  fontSize:     '16px',
                   transition:   'all var(--transition-fast)',
                 }}
               >
@@ -1230,21 +1230,21 @@ export function Settings() {
             )}
             <p className="page-settings--toggle-note">
               {t('gui.settings.error_logging_retrieve')}{' '}
-              <code style={{ fontSize: '11px' }}>{t('gui.settings.error_logging_retrieve_cmd')}</code>.
+              <code style={{ fontSize: '13px' }}>{t('gui.settings.error_logging_retrieve_cmd')}</code>.
             </p>
           </div>
 
           {/* Recent Errors */}
           <div style={{ marginTop: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text)' }}>
+              <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text)' }}>
                 {t('gui.settings.recent_errors')}
               </span>
               <button
                 onClick={() => { void loadRecentErrors(); }}
                 disabled={errorsLoading}
                 style={{
-                  fontSize: '11px', padding: '2px 8px', borderRadius: '4px',
+                  fontSize: '13px', padding: '2px 8px', borderRadius: '4px',
                   border: '1px solid var(--color-border)', background: 'transparent',
                   color: 'var(--color-text-secondary)', cursor: errorsLoading ? 'default' : 'pointer',
                 }}
@@ -1258,7 +1258,7 @@ export function Settings() {
               borderRadius: 'var(--radius-md)',
               maxHeight:    '200px',
               overflowY:    'auto',
-              fontSize:     '14px',
+              fontSize:     '16px',
             }}>
               {recentErrors === null || errorsLoading ? (
                 <div style={{ padding: '12px', color: 'var(--color-text-secondary)' }}>
@@ -1529,7 +1529,7 @@ function primaryButtonStyle(disabled: boolean): React.CSSProperties {
     background:      disabled ? 'var(--color-border)' : 'var(--color-accent)',
     color:           disabled ? 'var(--color-text-muted)' : 'var(--color-on-accent)',
     fontWeight:      600,
-    fontSize:        '14px',
+    fontSize:        '16px',
     cursor:          disabled ? 'not-allowed' : 'pointer',
     transition:      'background var(--transition-fast)',
     display:         'inline-flex',

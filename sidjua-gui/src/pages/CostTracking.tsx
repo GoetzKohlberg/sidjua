@@ -210,7 +210,7 @@ export function CostTracking() {
               background:   period === p ? 'var(--color-accent-muted)' : 'var(--color-surface)',
               color:        period === p ? 'var(--color-accent)' : 'var(--color-text-secondary)',
               cursor:       'pointer',
-              fontSize:     '13px',
+              fontSize:     '15px',
               fontWeight:   period === p ? 600 : 400,
               transition:   'all var(--transition-fast)',
             }}

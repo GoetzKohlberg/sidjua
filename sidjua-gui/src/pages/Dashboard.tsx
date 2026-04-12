@@ -35,7 +35,7 @@ const cardStyle: React.CSSProperties = {
 };
 
 const cardTitleStyle: React.CSSProperties = {
-  fontSize:      '13px',
+  fontSize:      '15px',
   fontWeight:    600,
   color:         'var(--color-text-secondary)',
   textTransform: 'uppercase',
@@ -168,7 +168,7 @@ export function Dashboard() {
             background:   'var(--color-surface)',
             color:        'var(--color-text-secondary)',
             cursor:       refreshing ? 'default' : 'pointer',
-            fontSize:     '13px',
+            fontSize:     '15px',
             opacity:      refreshing ? 0.6 : 1,
           }}
         >
@@ -236,7 +236,7 @@ export function Dashboard() {
                   ].map((h) => (
                     <th key={h} style={{
                       textAlign:  'left',
-                      fontSize:   '11px',
+                      fontSize:   '13px',
                       color:      'var(--color-text-muted)',
                       fontWeight: 600,
                       padding:    '0 0 8px',
@@ -263,10 +263,10 @@ export function Dashboard() {
                       onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = 'var(--color-bg-hover)'; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = ''; }}
                     >
-                      <td style={{ padding: '8px 0', fontSize: '13px', color: 'var(--color-text)' }}>
+                      <td style={{ padding: '8px 0', fontSize: '15px', color: 'var(--color-text)' }}>
                         {div.name || div.code}
                       </td>
-                      <td style={{ padding: '8px 0', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
+                      <td style={{ padding: '8px 0', fontSize: '15px', color: 'var(--color-text-secondary)' }}>
                         {divAgents.length}
                       </td>
                       <td style={{ padding: '8px 0' }}>
@@ -295,7 +295,7 @@ export function Dashboard() {
               onClick={() => navigate('/audit')}
               style={{
                 background: 'none', border: 'none', color: 'var(--color-accent)',
-                cursor: 'pointer', fontSize: '14px',
+                cursor: 'pointer', fontSize: '16px',
               }}
             >
               {t('gui.dashboard.section.view_all')}
@@ -360,7 +360,7 @@ export function Dashboard() {
       {buildInfo && (
         <div style={{
           textAlign:  'center',
-          fontSize:   '11px',
+          fontSize:   '13px',
           color:      'var(--color-text-muted)',
           paddingTop: '8px',
         }}>
@@ -377,8 +377,8 @@ export function Dashboard() {
 function HealthRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-      <span style={{ fontSize: '13px', color: 'var(--color-text-secondary)' }}>{label}</span>
-      <span style={{ fontSize: '13px', color: 'var(--color-text)', fontWeight: 500 }}>{value}</span>
+      <span style={{ fontSize: '15px', color: 'var(--color-text-secondary)' }}>{label}</span>
+      <span style={{ fontSize: '15px', color: 'var(--color-text)', fontWeight: 500 }}>{value}</span>
     </div>
   );
 }
@@ -386,19 +386,19 @@ function HealthRow({ label, value }: { label: string; value: React.ReactNode }) 
 function GovRow({ label, value, color }: { label: string; value: React.ReactNode; color?: string }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-      <span style={{ fontSize: '13px', color: 'var(--color-text-secondary)' }}>{label}</span>
-      <span style={{ fontSize: '13px', fontWeight: 600, color: color ?? 'var(--color-text)' }}>{value}</span>
+      <span style={{ fontSize: '15px', color: 'var(--color-text-secondary)' }}>{label}</span>
+      <span style={{ fontSize: '15px', fontWeight: 600, color: color ?? 'var(--color-text)' }}>{value}</span>
     </div>
   );
 }
 
 function ErrorText({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
-    <div style={{ color: 'var(--color-danger)', fontSize: '13px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+    <div style={{ color: 'var(--color-danger)', fontSize: '15px', display: 'flex', gap: '8px', alignItems: 'center' }}>
       <span>{message}</span>
       <button
         onClick={onRetry}
-        style={{ background: 'none', border: 'none', color: 'var(--color-accent)', cursor: 'pointer', textDecoration: 'underline', fontSize: '14px' }}
+        style={{ background: 'none', border: 'none', color: 'var(--color-accent)', cursor: 'pointer', textDecoration: 'underline', fontSize: '16px' }}
       >
         Retry
       </button>
@@ -407,6 +407,6 @@ function ErrorText({ message, onRetry }: { message: string; onRetry: () => void 
 }
 
 function EmptyState({ message }: { message: string }) {
-  return <p style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>{message}</p>;
+  return <p style={{ fontSize: '15px', color: 'var(--color-text-muted)' }}>{message}</p>;
 }
 

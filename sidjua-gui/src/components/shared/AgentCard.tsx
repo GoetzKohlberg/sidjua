@@ -81,7 +81,7 @@ export function AgentCard({ agent, selected = false, onClick, llmStatus, provide
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
             fontWeight:   700,
-            fontSize:     '14px',
+            fontSize:     '16px',
             color:        'var(--color-text)',
             whiteSpace:   'nowrap',
             overflow:     'hidden',
@@ -95,7 +95,7 @@ export function AgentCard({ agent, selected = false, onClick, llmStatus, provide
             <span style={{
               background:   tier.bg,
               color:        tier.text,
-              fontSize:     '12px',
+              fontSize:     '14px',
               fontWeight:   700,
               padding:      '2px 6px',
               borderRadius: '4px',
@@ -111,7 +111,7 @@ export function AgentCard({ agent, selected = false, onClick, llmStatus, provide
                 display:      'inline-flex',
                 alignItems:   'center',
                 gap:          '4px',
-                fontSize:     '11px',
+                fontSize:     '13px',
                 color:        active ? 'var(--color-success)' : 'var(--color-text-muted)',
               }}
             >
@@ -134,7 +134,7 @@ export function AgentCard({ agent, selected = false, onClick, llmStatus, provide
           display:      'flex',
           alignItems:   'center',
           gap:          '5px',
-          fontSize:     '11px',
+          fontSize:     '13px',
           fontWeight:   600,
           color:        llmStatus === 'configured' ? 'var(--color-success)' : 'var(--color-llm-warn-text)',
           background:   llmStatus === 'configured' ? 'var(--color-llm-ready-bg)' : 'var(--color-llm-warn-bg)',
@@ -158,7 +158,7 @@ export function AgentCard({ agent, selected = false, onClick, llmStatus, provide
               background:   'var(--color-bg, #f9fafb)',
               border:       '1px solid var(--color-border)',
               borderRadius: '999px',
-              fontSize:     '11px',
+              fontSize:     '13px',
               color:        'var(--color-text-secondary)',
               padding:      '2px 8px',
               whiteSpace:   'nowrap',

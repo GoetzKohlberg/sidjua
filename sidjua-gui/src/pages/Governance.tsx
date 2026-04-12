@@ -211,7 +211,7 @@ function StatusRow({ label, value, mono = false }: { label: string; value: strin
     <div>
       <p className="page-gov--status-label">{label}</p>
       <p style={{
-        fontSize:   '13px',
+        fontSize:   '15px',
         color:      'var(--color-text)',
         fontWeight: 500,
         fontFamily: mono ? 'monospace' : 'inherit',
@@ -286,7 +286,7 @@ export function Governance() {
                 border:       'none',
                 background:   'none',
                 cursor:       'pointer',
-                fontSize:     '13px',
+                fontSize:     '15px',
                 fontWeight:   tab === tabItem.id ? 700 : 400,
                 color:        tab === tabItem.id ? 'var(--color-accent)' : 'var(--color-text-secondary)',
                 borderBottom: tab === tabItem.id ? '2px solid var(--color-accent)' : '2px solid transparent',

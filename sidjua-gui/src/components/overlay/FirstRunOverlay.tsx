@@ -126,7 +126,7 @@ export function FirstRunOverlay({ onDismiss, onGoToSettings, networkError = fals
             key={i}
             style={{
               color:      'var(--color-text)',
-              fontSize:   '15px',
+              fontSize:   '17px',
               lineHeight: 1.7,
               margin:     '0 0 16px 0',
             }}
@@ -152,7 +152,7 @@ export function FirstRunOverlay({ onDismiss, onGoToSettings, networkError = fals
         <p
           style={{
             color:        'var(--color-accent)',
-            fontSize:     '16px',
+            fontSize:     '18px',
             fontWeight:   600,
             lineHeight:   1.5,
             margin:       '0 0 32px 0',
@@ -177,7 +177,7 @@ export function FirstRunOverlay({ onDismiss, onGoToSettings, networkError = fals
               gap:          '12px',
             }}
           >
-            <p style={{ margin: 0, fontSize: '14px', color: 'var(--color-danger)' }}>
+            <p style={{ margin: 0, fontSize: '16px', color: 'var(--color-danger)' }}>
               {t('gui.first_run.connection_error')}{' '}<code>docker start sidjua</code>
             </p>
             {onRetry && (
@@ -189,7 +189,7 @@ export function FirstRunOverlay({ onDismiss, onGoToSettings, networkError = fals
                   border:       'none',
                   borderRadius: 'var(--radius-sm)',
                   padding:      '6px 14px',
-                  fontSize:     '13px',
+                  fontSize:     '15px',
                   fontWeight:   600,
                   cursor:       'pointer',
                   flexShrink:   0,
@@ -222,7 +222,7 @@ export function FirstRunOverlay({ onDismiss, onGoToSettings, networkError = fals
               border:        'none',
               borderRadius:  'var(--radius-md)',
               padding:       '12px 28px',
-              fontSize:      '15px',
+              fontSize:      '17px',
               fontWeight:    600,
               cursor:        canProceed ? 'pointer' : 'not-allowed',
               transition:    'background 300ms ease, color 300ms ease',

@@ -20,7 +20,7 @@ function NotConnectedBanner() {
       borderRadius: 'var(--radius-md)',
       padding:      '10px 16px',
       marginBottom: '20px',
-      fontSize:     '13px',
+      fontSize:     '15px',
       color:        'var(--color-warning)',
       display:      'flex',
       alignItems:   'center',
@@ -36,7 +36,7 @@ function NotConnectedBanner() {
           color:          'var(--color-warning)',
           cursor:         'pointer',
           padding:        '2px 10px',
-          fontSize:       '14px',
+          fontSize:       '16px',
           fontWeight:     600,
           whiteSpace:     'nowrap',
         }}
@@ -138,7 +138,7 @@ export function Shell() {
             marginTop:  '24px',
             paddingTop: '12px',
             borderTop:  '1px solid var(--color-border)',
-            fontSize:   '11px',
+            fontSize:   '13px',
             color:      'var(--color-text-muted)',
             textAlign:  'center',
           }}

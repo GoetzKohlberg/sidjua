@@ -138,7 +138,7 @@ export function ChatUploadZone({
           borderRadius:   'var(--radius-md)',
           color:          'var(--color-accent)',
           fontWeight:     500,
-          fontSize:       '14px',
+          fontSize:       '16px',
           zIndex:         10,
           pointerEvents:  'none',
         }}>
@@ -161,7 +161,7 @@ export function ChatUploadZone({
           padding:      '6px 12px',
           background:   'var(--color-surface-alt)',
           borderRadius: 'var(--radius-md)',
-          fontSize:     '13px',
+          fontSize:     '15px',
           marginBottom: '4px',
           color:        'var(--color-text)',
         }}>
@@ -188,7 +188,7 @@ export function ChatUploadZone({
           background:     'var(--color-error-bg, #fef2f2)',
           color:          'var(--color-error, #dc2626)',
           borderRadius:   'var(--radius-md)',
-          fontSize:       '13px',
+          fontSize:       '15px',
           marginBottom:   '4px',
         }}>
           <span>{error}</span>
@@ -200,7 +200,7 @@ export function ChatUploadZone({
               cursor:     'pointer',
               color:      'inherit',
               padding:    '0 0 0 8px',
-              fontSize:   '16px',
+              fontSize:   '18px',
               lineHeight: 1,
             }}
           >×</button>

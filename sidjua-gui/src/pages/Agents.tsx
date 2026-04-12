@@ -158,7 +158,7 @@ function AgentDetail({ agentId, onClose }: { agentId: string; onClose: () => voi
       </div>
 
       {patchError && (
-        <p style={{ color: 'var(--color-danger)', fontSize: '14px', marginBottom: '10px' }}>{patchError}</p>
+        <p style={{ color: 'var(--color-danger)', fontSize: '16px', marginBottom: '10px' }}>{patchError}</p>
       )}
 
       <div className="page-agents--detail-grid">
@@ -279,7 +279,7 @@ function DetailRow({ label, value, color }: { label: string; value: string; colo
   return (
     <div>
       <p className="page-agents--field-label" style={{ marginBottom: '2px' }}>{label}</p>
-      <p style={{ fontSize: '13px', color: color ?? 'var(--color-text)', fontWeight: 500 }}>{value}</p>
+      <p style={{ fontSize: '15px', color: color ?? 'var(--color-text)', fontWeight: 500 }}>{value}</p>
     </div>
   );
 }
@@ -365,7 +365,7 @@ function StarterAgentDetail({ agent, onClose, providerConfigured }: { agent: Sta
             border: providerConfigured ? 'none' : '1px solid var(--color-border)',
             color: providerConfigured ? 'var(--color-on-accent)' : 'var(--color-text-muted)',
             cursor: providerConfigured ? 'pointer' : 'not-allowed',
-            fontSize: '13px', fontWeight: providerConfigured ? 600 : 400,
+            fontSize: '15px', fontWeight: providerConfigured ? 600 : 400,
           }}
         >
           Chat with {agent.name}
@@ -417,7 +417,7 @@ function YourTeamPanel() {
               background:   llmStatus === 'configured' ? 'var(--color-accent)' : 'var(--color-surface)',
               color:        llmStatus === 'configured' ? 'var(--color-text-inverse)' : 'var(--color-text-secondary)',
               cursor:       'pointer',
-              fontSize:     '13px',
+              fontSize:     '15px',
             }}
           >
             <Plus size={14} />
@@ -744,7 +744,7 @@ const detailSelectStyle: React.CSSProperties = {
   border:       '1px solid var(--color-border)',
   background:   'var(--color-bg)',
   color:        'var(--color-text)',
-  fontSize:     '13px',
+  fontSize:     '15px',
   outline:      'none',
   fontWeight:   500,
 };
@@ -755,7 +755,7 @@ const selectStyle: React.CSSProperties = {
   border:       '1px solid var(--color-border)',
   background:   'var(--color-bg)',
   color:        'var(--color-text)',
-  fontSize:     '13px',
+  fontSize:     '15px',
   outline:      'none',
 };
 

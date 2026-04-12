@@ -188,7 +188,7 @@ function ToastItem({
         <span style={{ color: borderColor, flexShrink: 0, marginTop: '1px' }}>
           {TYPE_ICONS[toast.type]}
         </span>
-        <span style={{ fontSize: '13px', color: 'var(--color-text)', flex: 1, lineHeight: 1.4 }}>
+        <span style={{ fontSize: '15px', color: 'var(--color-text)', flex: 1, lineHeight: 1.4 }}>
           {toast.message}
         </span>
         <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
@@ -201,7 +201,7 @@ function ToastItem({
                 border:       `1px solid ${borderColor}`,
                 background:   bgColor,
                 color:        borderColor,
-                fontSize:     '14px',
+                fontSize:     '16px',
                 fontWeight:   600,
                 cursor:       'pointer',
               }}

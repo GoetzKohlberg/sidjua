@@ -76,7 +76,7 @@ function AgentSwitcher({
               background:     isActive ? 'var(--color-accent-muted)' : 'var(--color-surface)',
               color:          isActive ? 'var(--color-accent)' : 'var(--color-text-secondary)',
               cursor:         'pointer',
-              fontSize:       '14px',
+              fontSize:       '16px',
               fontWeight:     isActive ? 600 : 400,
               whiteSpace:     'nowrap',
               flexShrink:     0,
@@ -156,7 +156,7 @@ function ChatHeader({
                         applyState === 'error'   ? 'var(--color-danger, #dc2626)' :
                         'var(--color-text-muted)',
           cursor:       applyState === 'running' ? 'not-allowed' : 'pointer',
-          fontSize:     '14px',
+          fontSize:     '16px',
           opacity:      applyState === 'running' ? 0.6 : 1,
         }}
       >
@@ -205,7 +205,7 @@ function ToolResultCard({ message }: { message: Message }) {
         borderRadius: 'var(--radius-md)',
         background:   success ? 'var(--color-success-bg, #f0fdf4)' : 'var(--color-danger-bg, #fef2f2)',
         border:       `1px solid ${success ? 'var(--color-success-border, #bbf7d0)' : 'var(--color-danger-border, #fecaca)'}`,
-        fontSize:     '14px',
+        fontSize:     '16px',
         color:        success ? 'var(--color-success, #15803d)' : 'var(--color-danger, #dc2626)',
         fontFamily:   'monospace',
       }}>
@@ -265,7 +265,7 @@ function MessageBubble({ message }: { message: Message }) {
             ? 'var(--color-accent)'
             : 'var(--color-surface-alt, #f3f4f6)',
           color:        isUser ? 'var(--color-on-accent)' : 'var(--color-text)',
-          fontSize:     '14px',
+          fontSize:     '16px',
           lineHeight:   1.55,
           whiteSpace:   'pre-wrap',
           wordBreak:    'break-word',
@@ -450,7 +450,7 @@ function ChatInput({
             border:      '1px solid var(--color-border)',
             background:  disabled ? 'var(--color-bg)' : 'var(--color-surface)',
             color:       'var(--color-text)',
-            fontSize:    '14px',
+            fontSize:    '16px',
             lineHeight:  1.5,
             outline:     'none',
             minHeight:   '40px',
@@ -471,7 +471,7 @@ function ChatInput({
             background:   disabled || value.trim() === '' ? 'var(--color-border)' : 'var(--color-accent)',
             color:        disabled || value.trim() === '' ? 'var(--color-text-muted)' : 'var(--color-on-accent)',
             cursor:       disabled || value.trim() === '' ? 'not-allowed' : 'pointer',
-            fontSize:     '13px',
+            fontSize:     '15px',
             fontWeight:   600,
             display:      'flex',
             alignItems:   'center',
@@ -859,7 +859,7 @@ export function Chat() {
           border:      'none',
           borderBottom: '1px solid var(--color-info-border)',
           padding:     '10px 16px',
-          fontSize:    '13px',
+          fontSize:    '15px',
           color:       'var(--color-info)',
           display:     'flex',
           alignItems:  'center',

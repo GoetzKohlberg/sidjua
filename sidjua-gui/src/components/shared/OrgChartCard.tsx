@@ -103,7 +103,7 @@ export function OrgChartCard({ node, isSelected, onClick, hasChildren, agentStat
         textAlign:     'left',
         color:         'var(--color-text)',
         fontFamily:    'inherit',
-        fontSize:      '13px',
+        fontSize:      '15px',
         position:      'relative',
       }}
       onMouseEnter={(e) => {
@@ -134,7 +134,7 @@ export function OrgChartCard({ node, isSelected, onClick, hasChildren, agentStat
         <div style={{ overflow: 'hidden' }}>
           <div style={{
             fontWeight:    600,
-            fontSize:      '13px',
+            fontSize:      '15px',
             whiteSpace:    'nowrap',
             overflow:      'hidden',
             textOverflow:  'ellipsis',
@@ -144,7 +144,7 @@ export function OrgChartCard({ node, isSelected, onClick, hasChildren, agentStat
           </div>
           {div.head_role && (
             <div style={{
-              fontSize:     '11px',
+              fontSize:     '13px',
               color:        'var(--color-text-secondary)',
               whiteSpace:   'nowrap',
               overflow:     'hidden',
@@ -158,7 +158,7 @@ export function OrgChartCard({ node, isSelected, onClick, hasChildren, agentStat
 
       {/* Agent count */}
       {node.agents.length > 0 && (
-        <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+        <div style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>
           {node.agents.length} agent{node.agents.length !== 1 ? 's' : ''}
         </div>
       )}
@@ -174,7 +174,7 @@ export function OrgChartCard({ node, isSelected, onClick, hasChildren, agentStat
                 <AgentStatusDot status={st} />
                 {st.recent_task_count > 0 && (
                   <span style={{
-                    fontSize:     '9px',
+                    fontSize:     '11px',
                     color:        'var(--color-text-muted)',
                     background:   'var(--color-surface-alt, rgba(0,0,0,0.08))',
                     borderRadius: '4px',
@@ -192,7 +192,7 @@ export function OrgChartCard({ node, isSelected, onClick, hasChildren, agentStat
 
       {/* Expand indicator */}
       {hasChildren && (
-        <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+        <div style={{ fontSize: '14px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
           ▾ {node.children.length} sub-division{node.children.length !== 1 ? 's' : ''}
         </div>
       )}

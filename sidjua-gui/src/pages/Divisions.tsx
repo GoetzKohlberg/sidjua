@@ -20,7 +20,7 @@ const cardStyle: React.CSSProperties = {
 };
 
 const cardTitleStyle: React.CSSProperties = {
-  fontSize:      '13px',
+  fontSize:      '15px',
   fontWeight:    600,
   color:         'var(--color-text-secondary)',
   textTransform: 'uppercase',
@@ -51,7 +51,7 @@ export function Divisions() {
         borderRadius: 'var(--radius-lg)',
         padding:      '20px',
         color:        'var(--color-warning)',
-        fontSize:     '13px',
+        fontSize:     '15px',
       }}>
         <strong>{GUI_ERRORS['GUI-CONN-005'].message}</strong> {GUI_ERRORS['GUI-CONN-005'].suggestion}
       </div>
@@ -75,14 +75,14 @@ export function Divisions() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text)', margin: 0 }}>
+                <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text)', margin: 0 }}>
                   {div.name}
                 </h2>
                 {div.protected && (
                   <span style={{
                     background:   'var(--color-tier-1-bg)',
                     color:        'var(--color-tier-1-text)',
-                    fontSize:     '12px',
+                    fontSize:     '14px',
                     fontWeight:   700,
                     padding:      '2px 6px',
                     borderRadius: '4px',
@@ -91,7 +91,7 @@ export function Divisions() {
                   </span>
                 )}
               </div>
-              <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', margin: '4px 0 0', lineHeight: 1.5 }}>
+              <p style={{ fontSize: '15px', color: 'var(--color-text-secondary)', margin: '4px 0 0', lineHeight: 1.5 }}>
                 {div.description}
               </p>
             </div>
@@ -99,7 +99,7 @@ export function Divisions() {
               <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--color-text)' }}>
                 {div.agent_count}
               </div>
-              <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{t('gui.divisions.agents_count')}</div>
+              <div style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>{t('gui.divisions.agents_count')}</div>
             </div>
           </div>
 
@@ -111,8 +111,8 @@ export function Divisions() {
               borderRadius: 'var(--radius-md)',
               padding:      '8px 12px',
             }}>
-              <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>{t('gui.divisions.daily_limit')}</div>
-              <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text)' }}>
+              <div style={{ fontSize: '14px', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>{t('gui.divisions.daily_limit')}</div>
+              <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text)' }}>
                 ${div.budget.daily_limit_usd.toFixed(2)}
               </div>
             </div>
@@ -122,8 +122,8 @@ export function Divisions() {
               borderRadius: 'var(--radius-md)',
               padding:      '8px 12px',
             }}>
-              <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>{t('gui.divisions.monthly_cap')}</div>
-              <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-text)' }}>
+              <div style={{ fontSize: '14px', color: 'var(--color-text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>{t('gui.divisions.monthly_cap')}</div>
+              <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text)' }}>
                 ${div.budget.monthly_cap_usd.toFixed(2)}
               </div>
             </div>
@@ -143,7 +143,7 @@ export function Divisions() {
                   border:       '1px solid var(--color-border)',
                   borderRadius: 'var(--radius-md)',
                   padding:      '5px 10px',
-                  fontSize:     '14px',
+                  fontSize:     '16px',
                   color:        'var(--color-text-secondary)',
                 }}
               >

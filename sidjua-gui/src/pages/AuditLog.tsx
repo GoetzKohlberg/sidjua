@@ -27,11 +27,11 @@ const OUTCOME_COLORS: Record<string, string> = {
 };
 
 function OutcomeBadge({ outcome }: { outcome?: string }) {
-  if (!outcome) return <span style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>—</span>;
+  if (!outcome) return <span style={{ color: 'var(--color-text-muted)', fontSize: '16px' }}>—</span>;
   const color = OUTCOME_COLORS[outcome.toLowerCase()] ?? 'var(--color-text-secondary)';
   return (
     <span style={{
-      fontSize:      '11px',
+      fontSize:      '13px',
       fontWeight:    600,
       color,
       textTransform: 'uppercase',
@@ -80,7 +80,7 @@ function ExportMenu({ entries }: { entries: AuditEntry[] }) {
           background:   'var(--color-surface)',
           color:        'var(--color-text-secondary)',
           cursor:       'pointer',
-          fontSize:     '13px',
+          fontSize:     '15px',
         }}
       >
         <Download size={14} />
@@ -121,7 +121,7 @@ function ExportMenu({ entries }: { entries: AuditEntry[] }) {
                   background: 'none',
                   border:     'none',
                   cursor:     'pointer',
-                  fontSize:   '13px',
+                  fontSize:   '15px',
                   color:      'var(--color-text)',
                 }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg-hover)'; }}
@@ -157,8 +157,8 @@ function DetailPanel({ entry, onClose }: { entry: AuditEntry; onClose: () => voi
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
         <div>
-          <p style={{ fontSize: '15px', fontWeight: 700, color: 'var(--color-text)' }}>{entry.action_type}</p>
-          <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+          <p style={{ fontSize: '17px', fontWeight: 700, color: 'var(--color-text)' }}>{entry.action_type}</p>
+          <p style={{ fontSize: '16px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
             {entry.timestamp}
           </p>
         </div>
@@ -180,22 +180,22 @@ function DetailPanel({ entry, onClose }: { entry: AuditEntry; onClose: () => voi
           { label: 'Task',        value: entry.parent_task_id ?? '—' },
         ].map(({ label, value }) => (
           <div key={label}>
-            <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '2px' }}>{label}</p>
-            <p style={{ fontSize: '13px', color: 'var(--color-text)', fontWeight: 500, wordBreak: 'break-all' }}>{value}</p>
+            <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '2px' }}>{label}</p>
+            <p style={{ fontSize: '15px', color: 'var(--color-text)', fontWeight: 500, wordBreak: 'break-all' }}>{value}</p>
           </div>
         ))}
       </div>
 
       {parsedMeta !== null && (
         <div>
-          <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase' }}>
+          <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase' }}>
             {t('gui.audit.metadata')}
           </p>
           <pre style={{
             background:   'var(--color-surface-alt)',
             borderRadius: 'var(--radius-md)',
             padding:      '12px',
-            fontSize:     '14px',
+            fontSize:     '16px',
             color:        'var(--color-text)',
             overflowX:    'auto',
             whiteSpace:   'pre-wrap',
@@ -288,7 +288,7 @@ export function AuditLog() {
     border:       '1px solid var(--color-border)',
     background:   'var(--color-bg)',
     color:        'var(--color-text)',
-    fontSize:     '13px',
+    fontSize:     '15px',
     outline:      'none',
   };
 
@@ -308,7 +308,7 @@ export function AuditLog() {
         alignItems:   'center',
       }}>
         <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} aria-label="From date" style={inputStyle} />
-        <span style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>to</span>
+        <span style={{ color: 'var(--color-text-muted)', fontSize: '16px' }}>to</span>
         <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} aria-label="To date" style={inputStyle} />
 
         <select value={division} onChange={(e) => setDivision(e.target.value)} aria-label="Division" style={inputStyle}>
@@ -345,7 +345,7 @@ export function AuditLog() {
             background:   'var(--color-accent)',
             color:        'var(--color-text-inverse)',
             cursor:       'pointer',
-            fontSize:     '13px',
+            fontSize:     '15px',
             fontWeight:   600,
           }}
         >
@@ -371,15 +371,15 @@ export function AuditLog() {
           </div>
         )}
         {error && (
-          <div style={{ padding: '20px', color: 'var(--color-danger)', fontSize: '13px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div style={{ padding: '20px', color: 'var(--color-danger)', fontSize: '15px', display: 'flex', gap: '8px', alignItems: 'center' }}>
             <span>{error}</span>
-            <button onClick={() => void fetch(offset)} style={{ background: 'none', border: 'none', color: 'var(--color-accent)', cursor: 'pointer', textDecoration: 'underline', fontSize: '14px' }}>
+            <button onClick={() => void fetch(offset)} style={{ background: 'none', border: 'none', color: 'var(--color-accent)', cursor: 'pointer', textDecoration: 'underline', fontSize: '16px' }}>
               Retry
             </button>
           </div>
         )}
         {!loading && !error && entries.length === 0 && (
-          <p style={{ padding: '40px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '13px' }}>
+          <p style={{ padding: '40px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '15px' }}>
             {t('gui.audit.no_entries')}
           </p>
         )}
@@ -392,7 +392,7 @@ export function AuditLog() {
                     <th key={h} style={{
                       textAlign:     'left',
                       padding:       '9px 12px',
-                      fontSize:      '11px',
+                      fontSize:      '13px',
                       color:         'var(--color-text-muted)',
                       fontWeight:    600,
                       textTransform: 'uppercase',
@@ -421,16 +421,16 @@ export function AuditLog() {
                       onMouseEnter={(e2) => { if (!isSelected) (e2.currentTarget as HTMLTableRowElement).style.background = 'var(--color-bg-hover)'; }}
                       onMouseLeave={(e2) => { if (!isSelected) (e2.currentTarget as HTMLTableRowElement).style.background = ''; }}
                     >
-                      <td style={{ padding: '9px 12px', fontSize: '14px', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '9px 12px', fontSize: '16px', color: 'var(--color-text-secondary)', whiteSpace: 'nowrap' }}>
                         {formatTime(e.timestamp)}
                       </td>
-                      <td style={{ padding: '9px 12px', fontSize: '13px', color: 'var(--color-text)', fontWeight: 500 }}>
+                      <td style={{ padding: '9px 12px', fontSize: '15px', color: 'var(--color-text)', fontWeight: 500 }}>
                         {e.action_type}
                       </td>
-                      <td style={{ padding: '9px 12px', fontSize: '14px', color: 'var(--color-text-secondary)' }}>
+                      <td style={{ padding: '9px 12px', fontSize: '16px', color: 'var(--color-text-secondary)' }}>
                         {e.agent_id ?? '—'}
                       </td>
-                      <td style={{ padding: '9px 12px', fontSize: '14px', color: 'var(--color-text-secondary)' }}>
+                      <td style={{ padding: '9px 12px', fontSize: '16px', color: 'var(--color-text-secondary)' }}>
                         {e.division_code ?? '—'}
                       </td>
                       <td style={{ padding: '9px 12px' }}>
@@ -452,7 +452,7 @@ export function AuditLog() {
           padding:        '10px 16px',
           borderTop:      entries.length > 0 ? '1px solid var(--color-border)' : 'none',
           background:     'var(--color-surface-alt)',
-          fontSize:       '14px',
+          fontSize:       '16px',
           color:          'var(--color-text-secondary)',
         }}>
           <span>
@@ -476,7 +476,7 @@ export function AuditLog() {
             >
               <ChevronLeft size={14} />
             </button>
-            <span style={{ padding: '4px 8px', fontSize: '14px' }}>
+            <span style={{ padding: '4px 8px', fontSize: '16px' }}>
               {currentPage} / {totalPages || 1}
             </span>
             <button

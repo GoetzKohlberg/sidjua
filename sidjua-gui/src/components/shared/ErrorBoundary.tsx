@@ -48,7 +48,7 @@ export class ErrorBoundary extends Component<Props, State> {
           }}
         >
           <p style={{ fontWeight: 600, marginBottom: '8px' }}>{GUI_ERRORS['GUI-GENERIC-001'].message}</p>
-          <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '16px' }}>
+          <p style={{ fontSize: '15px', color: 'var(--color-text-secondary)', marginBottom: '16px' }}>
             {this.state.error?.message ?? GUI_ERRORS['GUI-GENERIC-001'].suggestion}
           </p>
           <button

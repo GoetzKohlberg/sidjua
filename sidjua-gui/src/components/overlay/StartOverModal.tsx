@@ -182,7 +182,7 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
               >
                 {t('gui.start_over.title')}
               </h2>
-              <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)' }}>
+              <p style={{ fontSize: '15px', color: 'var(--color-text-secondary)' }}>
                 {t('gui.start_over.subtitle')}
               </p>
             </div>
@@ -193,7 +193,7 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
                 border:       '1px solid var(--color-border)',
                 borderRadius: 'var(--radius-md)',
                 padding:      '16px',
-                fontSize:     '13px',
+                fontSize:     '15px',
                 lineHeight:   '1.7',
                 color:        'var(--color-text-secondary)',
               }}>
@@ -212,7 +212,7 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
               border:       '1px solid #f59e0b',
               borderRadius: 'var(--radius-md)',
               padding:      '14px 16px',
-              fontSize:     '13px',
+              fontSize:     '15px',
               color:        '#92400e',
               lineHeight:   '1.6',
             }}>
@@ -256,7 +256,7 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
           <>
             <h2 id="start-over-title" style={headingStyle}>{t('gui.start_over.before_continue_title')}</h2>
 
-            <div style={{ fontSize: '14px', color: 'var(--color-text)', lineHeight: '1.7' }}>
+            <div style={{ fontSize: '16px', color: 'var(--color-text)', lineHeight: '1.7' }}>
               <p style={{ marginBottom: '12px' }}>
                 {t('gui.start_over.learn_body_1')}
               </p>
@@ -266,7 +266,7 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
                 borderRadius: 'var(--radius-sm)',
                 padding:      '10px 14px',
                 fontFamily:   'monospace',
-                fontSize:     '14px',
+                fontSize:     '16px',
                 color:        'var(--color-text)',
                 wordBreak:    'break-all',
               }}>
@@ -282,7 +282,7 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
               border:       '1px solid var(--color-border)',
               borderRadius: 'var(--radius-md)',
               padding:      '12px 14px',
-              fontSize:     '14px',
+              fontSize:     '16px',
               color:        'var(--color-text-secondary)',
             }}>
               {t('gui.start_over.backup_saved')}<br />
@@ -314,7 +314,7 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
               borderRadius: 'var(--radius-sm)',
               padding:      '10px 14px',
               fontFamily:   'monospace',
-              fontSize:     '14px',
+              fontSize:     '16px',
               wordBreak:    'break-all',
             }}>
               {backupPath}
@@ -360,7 +360,7 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
               borderRadius: 'var(--radius-sm)',
               padding:      '10px 14px',
               fontFamily:   'monospace',
-              fontSize:     '14px',
+              fontSize:     '16px',
               wordBreak:    'break-all',
             }}>
               {backupPath}
@@ -375,7 +375,7 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
                   background:   'var(--color-accent)',
                   color:        'var(--color-on-accent)',
                   fontWeight:   600,
-                  fontSize:     '14px',
+                  fontSize:     '16px',
                   cursor:       'pointer',
                 }}
               >
@@ -389,7 +389,7 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
         {phase === 'error' && (
           <>
             <h2 id="start-over-title" style={headingStyle}>{t('gui.start_over.error_title')}</h2>
-            <p style={{ fontSize: '13px', color: 'var(--color-danger)', lineHeight: '1.6' }}>
+            <p style={{ fontSize: '15px', color: 'var(--color-danger)', lineHeight: '1.6' }}>
               {error}
             </p>
             <p style={bodyStyle}>
@@ -416,7 +416,7 @@ const headingStyle: React.CSSProperties = {
 };
 
 const bodyStyle: React.CSSProperties = {
-  fontSize:   '14px',
+  fontSize:   '16px',
   color:      'var(--color-text-secondary)',
   lineHeight: '1.6',
   margin:     0,
@@ -429,7 +429,7 @@ const cancelButtonStyle: React.CSSProperties = {
   background:   'var(--color-surface)',
   color:        'var(--color-text)',
   fontWeight:   500,
-  fontSize:     '14px',
+  fontSize:     '16px',
   cursor:       'pointer',
 };
 
@@ -441,7 +441,7 @@ function amberButtonStyle(disabled: boolean): React.CSSProperties {
     background:   disabled ? 'var(--color-border)' : '#f59e0b',
     color:        disabled ? 'var(--color-text-muted)' : '#1a1200',
     fontWeight:   600,
-    fontSize:     '14px',
+    fontSize:     '16px',
     cursor:       disabled ? 'not-allowed' : 'pointer',
     transition:   'background 0.15s ease',
   };

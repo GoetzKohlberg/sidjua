@@ -85,7 +85,7 @@ export function OrgChart() {
             padding:      '4px 10px',
             color:        'var(--color-text)',
             fontFamily:   'inherit',
-            fontSize:     '13px',
+            fontSize:     '15px',
           }}
         >
           Retry
@@ -112,7 +112,7 @@ export function OrgChart() {
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           {/* Status legend */}
           {agentStatuses !== null && (
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', fontSize: '11px', color: 'var(--color-text-muted)' }}>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', fontSize: '13px', color: 'var(--color-text-muted)' }}>
               <span style={{ fontWeight: 600 }}>{t('gui.org.status_legend')}:</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--color-success, #22c55e)', display: 'inline-block' }} />
@@ -129,7 +129,7 @@ export function OrgChart() {
             </div>
           )}
           {tree && (
-            <span style={{ fontSize: '14px', color: 'var(--color-text-muted)' }}>
+            <span style={{ fontSize: '16px', color: 'var(--color-text-muted)' }}>
               {totalAgents} agent{totalAgents !== 1 ? 's' : ''}
               {' · '}
               {totalDivisions} division{totalDivisions !== 1 ? 's' : ''}
@@ -172,7 +172,7 @@ export function OrgChart() {
         return (
           <div style={{ marginTop: '24px' }}>
             <div style={{
-              fontSize:     '14px',
+              fontSize:     '16px',
               fontWeight:   600,
               color:        'var(--color-text-muted)',
               textTransform: 'uppercase',
@@ -192,7 +192,7 @@ export function OrgChart() {
                       background:   'var(--color-surface)',
                       border:       '1px solid var(--color-border)',
                       borderRadius: 'var(--radius-md)',
-                      fontSize:     '13px',
+                      fontSize:     '15px',
                       minWidth:     '160px',
                     }}
                   >
@@ -215,11 +215,11 @@ export function OrgChart() {
                       <div style={{ fontWeight: 600, color: 'var(--color-text)' }}>{agent.name}</div>
                     </div>
                     {agent.role_title && (
-                      <div style={{ fontSize: '11px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
+                      <div style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginTop: '2px' }}>
                         {agent.role_title}
                       </div>
                     )}
-                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+                    <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
                       Tier {agent.tier}
                       {!agent.active && (
                         <span style={{ marginLeft: '6px', color: 'var(--color-text-muted)' }}>· inactive</span>

@@ -63,7 +63,7 @@ function HighlightedMessage({
       >
         {text.slice(m.start, m.end)}
         <sub style={{
-          fontSize:   '12px',
+          fontSize:   '14px',
           color:      'var(--color-warning, #ca8a04)',
           fontWeight: 600,
           marginLeft: '2px',
@@ -161,14 +161,14 @@ export function RedactionDialog({
             <span style={{ color: 'var(--color-warning, #ca8a04)', fontSize: '18px' }}>⚠</span>
             {t('gui.bouncer.dialog_title')}
           </h2>
-          <p style={{ fontSize: '13px', color: 'var(--color-text-secondary)', margin: 0 }}>
+          <p style={{ fontSize: '15px', color: 'var(--color-text-secondary)', margin: 0 }}>
             {t('gui.bouncer.match_count').replace('{count}', String(matchCount))}
           </p>
         </div>
 
         {/* Original message with highlights */}
         <div>
-          <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: '6px', marginTop: 0 }}>
+          <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: '6px', marginTop: 0 }}>
             {t('gui.bouncer.dialog_body')}
           </p>
           <div style={{
@@ -176,7 +176,7 @@ export function RedactionDialog({
             border:       '1px solid var(--color-border)',
             borderRadius: 'var(--radius-md)',
             padding:      '12px 14px',
-            fontSize:     '13px',
+            fontSize:     '15px',
             color:        'var(--color-text)',
             lineHeight:   '1.7',
             whiteSpace:   'pre-wrap',
@@ -190,7 +190,7 @@ export function RedactionDialog({
 
         {/* Redacted preview */}
         <div>
-          <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: '6px', marginTop: 0 }}>
+          <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: '6px', marginTop: 0 }}>
             {t('gui.bouncer.preview_label')}
           </p>
           <div style={{
@@ -198,7 +198,7 @@ export function RedactionDialog({
             border:       '1px solid var(--color-border)',
             borderRadius: 'var(--radius-md)',
             padding:      '12px 14px',
-            fontSize:     '13px',
+            fontSize:     '15px',
             color:        'var(--color-text-secondary)',
             lineHeight:   '1.7',
             whiteSpace:   'pre-wrap',
@@ -222,7 +222,7 @@ export function RedactionDialog({
               background:   'var(--color-surface)',
               color:        'var(--color-text-secondary)',
               fontWeight:   500,
-              fontSize:     '13px',
+              fontSize:     '15px',
               cursor:       'pointer',
             }}
           >
@@ -240,7 +240,7 @@ export function RedactionDialog({
                 background:   'var(--color-surface)',
                 color:        'var(--color-text)',
                 fontWeight:   500,
-                fontSize:     '13px',
+                fontSize:     '15px',
                 cursor:       'pointer',
               }}
             >
@@ -258,7 +258,7 @@ export function RedactionDialog({
                 background:   'var(--color-accent)',
                 color:        'var(--color-on-accent)',
                 fontWeight:   600,
-                fontSize:     '13px',
+                fontSize:     '15px',
                 cursor:       'pointer',
               }}
             >

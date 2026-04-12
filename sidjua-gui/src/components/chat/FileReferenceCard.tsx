@@ -60,16 +60,16 @@ function FileIcon({ mimetype }: { mimetype: string }) {
 
 function StatusBadge({ status }: { status?: string }) {
   if (!status || status === 'pending') {
-    return <span style={{ color: 'var(--color-text-muted)', fontSize: '11px' }}>pending</span>;
+    return <span style={{ color: 'var(--color-text-muted)', fontSize: '13px' }}>pending</span>;
   }
   if (status === 'done') {
-    return <span style={{ color: 'var(--color-success, #22c55e)', fontSize: '11px' }}>✓ extracted</span>;
+    return <span style={{ color: 'var(--color-success, #22c55e)', fontSize: '13px' }}>✓ extracted</span>;
   }
   if (status === 'processing') {
-    return <span style={{ color: 'var(--color-accent)', fontSize: '11px' }}>processing…</span>;
+    return <span style={{ color: 'var(--color-accent)', fontSize: '13px' }}>processing…</span>;
   }
   if (status === 'failed') {
-    return <span style={{ color: 'var(--color-error, #dc2626)', fontSize: '11px' }}>extraction failed</span>;
+    return <span style={{ color: 'var(--color-error, #dc2626)', fontSize: '13px' }}>extraction failed</span>;
   }
   return null;
 }
@@ -97,7 +97,7 @@ export function FileReferenceCard({
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <span style={{
-          fontSize:     '13px',
+          fontSize:     '15px',
           fontWeight:   500,
           whiteSpace:   'nowrap',
           overflow:     'hidden',
@@ -107,7 +107,7 @@ export function FileReferenceCard({
           {filename}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+          <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>
             {formatSize(sizeBytes)}
           </span>
           <StatusBadge status={extractionStatus} />

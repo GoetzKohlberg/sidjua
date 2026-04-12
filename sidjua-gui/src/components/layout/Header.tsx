@@ -55,7 +55,7 @@ function ConnectionIndicator({ status, t }: { status: ConnectionStatus; t: (key:
     <span
       title={label}
       aria-label={t('gui.connection.status_aria').replace('{status}', label)}
-      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--color-text-secondary)' }}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '15px', color: 'var(--color-text-secondary)' }}
     >
       <span
         aria-hidden
@@ -128,7 +128,7 @@ export function Header({ showMenuButton = false, onMenuToggle }: HeaderProps) {
           textDecoration: 'none',
           color:          'var(--color-accent)',
           fontWeight:     700,
-          fontSize:       '15px',
+          fontSize:       '17px',
           flexShrink:     0,
           letterSpacing:  '-0.02em',
         }}
@@ -150,13 +150,13 @@ export function Header({ showMenuButton = false, onMenuToggle }: HeaderProps) {
                 />
               )}
               {isLast ? (
-                <span style={{ fontSize: '15px', fontWeight: 600, color: 'var(--color-text)' }}>
+                <span style={{ fontSize: '17px', fontWeight: 600, color: 'var(--color-text)' }}>
                   {crumb.label}
                 </span>
               ) : (
                 <Link
                   to={crumb.to}
-                  style={{ fontSize: '13px', color: 'var(--color-text-secondary)', textDecoration: 'none' }}
+                  style={{ fontSize: '15px', color: 'var(--color-text-secondary)', textDecoration: 'none' }}
                 >
                   {crumb.label}
                 </Link>
@@ -171,7 +171,7 @@ export function Header({ showMenuButton = false, onMenuToggle }: HeaderProps) {
         {buildInfo && (
           <span
             title={buildInfo.buildDate ?? undefined}
-            style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontFamily: 'monospace', userSelect: 'none' }}
+            style={{ fontSize: '13px', color: 'var(--color-text-muted)', fontFamily: 'monospace', userSelect: 'none' }}
           >
             v{buildInfo.version}{buildInfo.buildNumber ? `-${buildInfo.buildNumber}` : ''}
           </span>

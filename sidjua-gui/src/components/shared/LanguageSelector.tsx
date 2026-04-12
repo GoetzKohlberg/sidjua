@@ -156,7 +156,7 @@ export function LanguageSelector() {
           borderRadius:    'var(--radius-md)',
           backgroundColor: 'var(--color-surface)',
           color:           'var(--color-text-secondary)',
-          fontSize:        '14px',
+          fontSize:        '16px',
           fontWeight:      600,
           letterSpacing:   '0.04em',
           cursor:          'pointer',
@@ -192,7 +192,7 @@ export function LanguageSelector() {
               {/* Region header */}
               <div style={{
                 padding:    '6px 10px 3px',
-                fontSize:   '12px',
+                fontSize:   '14px',
                 fontWeight: 700,
                 letterSpacing: '0.08em',
                 color:      'var(--color-text-muted)',
@@ -219,7 +219,7 @@ export function LanguageSelector() {
                         border:       'none',
                         borderRadius: 'var(--radius-sm)',
                         color:        isSelected ? 'var(--color-sidebar-logo)' : 'var(--color-text)',
-                        fontSize:     '13px',
+                        fontSize:     '15px',
                         fontWeight:   isSelected ? 600 : 400,
                         cursor:       'pointer',
                         textAlign:    'left',
@@ -228,13 +228,13 @@ export function LanguageSelector() {
                       <span style={{ flex: 1 }}>
                         {meta?.nativeName ?? code}
                         {' '}
-                        <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                        <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>
                           ({meta?.name ?? code})
                         </span>
                       </span>
                       {meta?.aiGenerated && (
                         <span style={{
-                          fontSize:     '9px',
+                          fontSize:     '11px',
                           fontWeight:   700,
                           color:        'var(--color-text-muted)',
                           background:   'var(--color-border)',

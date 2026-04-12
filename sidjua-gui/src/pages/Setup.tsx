@@ -94,7 +94,7 @@ export function Setup() {
             SIDJUA
           </h1>
           <p style={{
-            fontSize:  '14px',
+            fontSize:  '16px',
             color:     'var(--color-text-secondary)',
             marginTop: '6px',
           }}>
@@ -107,7 +107,7 @@ export function Setup() {
           <label style={{ display: 'block', marginBottom: '16px' }}>
             <span style={{
               display:      'block',
-              fontSize:     '13px',
+              fontSize:     '15px',
               fontWeight:   600,
               color:        'var(--color-text)',
               marginBottom: '6px',
@@ -130,7 +130,7 @@ export function Setup() {
                   border:       '1px solid var(--color-border)',
                   background:   'var(--color-bg)',
                   color:        'var(--color-text)',
-                  fontSize:     '14px',
+                  fontSize:     '16px',
                   boxSizing:    'border-box',
                   outline:      'none',
                 }}
@@ -148,7 +148,7 @@ export function Setup() {
                   border:     'none',
                   cursor:     'pointer',
                   color:      'var(--color-text-muted)',
-                  fontSize:   '13px',
+                  fontSize:   '15px',
                   padding:    '2px',
                 }}
               >
@@ -161,7 +161,7 @@ export function Setup() {
           <label style={{ display: 'block', marginBottom: '20px' }}>
             <span style={{
               display:      'block',
-              fontSize:     '13px',
+              fontSize:     '15px',
               fontWeight:   600,
               color:        'var(--color-text)',
               marginBottom: '6px',
@@ -183,7 +183,7 @@ export function Setup() {
                 border:       '1px solid var(--color-border)',
                 background:   'var(--color-bg)',
                 color:        'var(--color-text)',
-                fontSize:     '14px',
+                fontSize:     '16px',
                 boxSizing:    'border-box',
                 outline:      'none',
               }}
@@ -197,7 +197,7 @@ export function Setup() {
               border:       '1px solid var(--color-danger)',
               borderRadius: 'var(--radius-md)',
               padding:      '10px 12px',
-              fontSize:     '13px',
+              fontSize:     '15px',
               color:        'var(--color-danger)',
               marginBottom: '16px',
             }}>
@@ -216,7 +216,7 @@ export function Setup() {
               border:       'none',
               background:   loading || !password || !confirm ? 'var(--color-border)' : 'var(--color-accent)',
               color:        loading || !password || !confirm ? 'var(--color-text-muted)' : '#fff',
-              fontSize:     '14px',
+              fontSize:     '16px',
               fontWeight:   600,
               cursor:       loading || !password || !confirm ? 'default' : 'pointer',
               display:      'flex',
@@ -235,7 +235,7 @@ export function Setup() {
 
         <p style={{
           marginTop:  '20px',
-          fontSize:   '14px',
+          fontSize:   '16px',
           color:      'var(--color-text-muted)',
           textAlign:  'center',
           lineHeight: 1.5,

@@ -145,7 +145,7 @@ export function Sidebar({ drawerOpen = false, isMobile = false, onClose }: Sideb
                 color:          isActive ? 'var(--color-sidebar-logo)' : 'var(--color-sidebar-text)',
                 background:     isActive ? 'var(--color-sidebar-active)' : 'transparent',
                 fontWeight:     isActive ? 600 : 400,
-                fontSize:       '14px',
+                fontSize:       '16px',
                 textDecoration: 'none',
                 transition:     'background var(--transition-fast), color var(--transition-fast)',
                 marginBottom:   '2px',
@@ -160,7 +160,7 @@ export function Sidebar({ drawerOpen = false, isMobile = false, onClose }: Sideb
                     <span style={{
                       background:   'var(--color-sidebar-badge-bg)',
                       borderRadius: '999px',
-                      fontSize:     '12px',
+                      fontSize:     '14px',
                       fontWeight:   700,
                       padding:      '1px 6px',
                       minWidth:     '18px',
@@ -181,7 +181,7 @@ export function Sidebar({ drawerOpen = false, isMobile = false, onClose }: Sideb
         <div
           style={{
             padding:    '12px 20px',
-            fontSize:   '11px',
+            fontSize:   '13px',
             color:      'var(--color-sidebar-footer-text)',
             borderTop:  '1px solid var(--color-sidebar-divider)',
             flexShrink: 0,

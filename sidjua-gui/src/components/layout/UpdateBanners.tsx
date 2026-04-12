@@ -52,7 +52,7 @@ export function UpdateBanner() {
         borderRadius: 'var(--radius-md, 6px)',
         padding:      '10px 16px',
         marginBottom: '12px',
-        fontSize:     '13px',
+        fontSize:     '15px',
         color:        'var(--color-info, #1565c0)',
         display:      'flex',
         alignItems:   'center',
@@ -70,7 +70,7 @@ export function UpdateBanner() {
             color:        '#fff',
             cursor:       'pointer',
             padding:      '4px 12px',
-            fontSize:     '14px',
+            fontSize:     '16px',
             fontWeight:   600,
           }}
         >
@@ -85,7 +85,7 @@ export function UpdateBanner() {
             color:        'var(--color-info, #1565c0)',
             cursor:       'pointer',
             padding:      '4px 10px',
-            fontSize:     '14px',
+            fontSize:     '16px',
           }}
         >
           {t('update.later')}
@@ -139,7 +139,7 @@ export function MaintenanceBanner() {
       borderRadius: 'var(--radius-md, 6px)',
       padding:      '10px 16px',
       marginBottom: '12px',
-      fontSize:     '13px',
+      fontSize:     '15px',
       color:        'var(--color-warning, #e65100)',
       display:      'flex',
       alignItems:   'center',
@@ -191,7 +191,7 @@ export function AgentsPausedBadge() {
       border:       '1px solid var(--color-warning, #ff8f00)',
       borderRadius: '12px',
       padding:      '2px 8px',
-      fontSize:     '11px',
+      fontSize:     '13px',
       color:        'var(--color-warning, #e65100)',
       fontWeight:   600,
     }}>
@@ -323,14 +323,14 @@ export function UpdateProgressDialog({ targetVersion, onClose }: UpdateProgressD
         maxWidth:     '480px',
         boxShadow:    '0 8px 32px rgba(0,0,0,0.2)',
       }}>
-        <h3 style={{ margin: '0 0 16px', fontSize: '16px' }}>
+        <h3 style={{ margin: '0 0 16px', fontSize: '18px' }}>
           {t('update.progress.title')}
         </h3>
 
         <div style={{
           maxHeight:  '200px',
           overflowY:  'auto',
-          fontSize:   '14px',
+          fontSize:   '16px',
           fontFamily: 'monospace',
           background: 'var(--color-code-bg, #f5f5f5)',
           borderRadius: '4px',
@@ -355,7 +355,7 @@ export function UpdateProgressDialog({ targetVersion, onClose }: UpdateProgressD
                 color:        '#fff',
                 cursor:       'pointer',
                 padding:      '6px 14px',
-                fontSize:     '13px',
+                fontSize:     '15px',
               }}
             >
               {t('update.rollback')}
@@ -371,7 +371,7 @@ export function UpdateProgressDialog({ targetVersion, onClose }: UpdateProgressD
                 color:        '#fff',
                 cursor:       'pointer',
                 padding:      '6px 14px',
-                fontSize:     '13px',
+                fontSize:     '15px',
               }}
             >
               {t('gui.common.close')}

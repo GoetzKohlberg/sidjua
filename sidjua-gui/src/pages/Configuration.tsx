@@ -45,7 +45,7 @@ function CopyButton({ text }: { text: string }) {
         background:   'var(--color-surface)',
         color:        copied ? 'var(--color-success)' : 'var(--color-text-secondary)',
         cursor:       'pointer',
-        fontSize:     '14px',
+        fontSize:     '16px',
         transition:   'all var(--transition-fast)',
       }}
     >
@@ -86,7 +86,7 @@ function DivisionsTab() {
         </div>
 
         {divRes.error && (
-          <p style={{ color: 'var(--color-danger)', fontSize: '13px', marginBottom: '12px' }}>{divRes.error}</p>
+          <p style={{ color: 'var(--color-danger)', fontSize: '15px', marginBottom: '12px' }}>{divRes.error}</p>
         )}
 
         {!divRes.loading && divisions.length === 0 && !divRes.error && (
@@ -207,7 +207,7 @@ function LoggingTab() {
           <>
             <div className="page-config--logging-header">
               <span className="page-config--system-label">{t('gui.config.global_level')}</span>
-              <span style={{ fontSize: '13px', fontWeight: 700, color: LEVEL_COLORS[status.global] ?? 'var(--color-text)' }}>
+              <span style={{ fontSize: '15px', fontWeight: 700, color: LEVEL_COLORS[status.global] ?? 'var(--color-text)' }}>
                 {status.global.toUpperCase()}
               </span>
             </div>
@@ -233,7 +233,7 @@ function LoggingTab() {
                   {Object.entries(status.components).map(([comp, level]) => (
                     <tr key={comp} className="page-config--overrides-tr">
                       <td className="page-config--overrides-td">{comp}</td>
-                      <td style={{ padding: '7px 0', textAlign: 'right', fontSize: '14px', fontWeight: 700, color: LEVEL_COLORS[level] ?? 'var(--color-text)' }}>
+                      <td style={{ padding: '7px 0', textAlign: 'right', fontSize: '16px', fontWeight: 700, color: LEVEL_COLORS[level] ?? 'var(--color-text)' }}>
                         {level.toUpperCase()}
                       </td>
                     </tr>
@@ -254,7 +254,7 @@ function LoggingTab() {
       <div className="sidjua-card sidjua-card--info">
         <p className="sidjua-card-title">{t('gui.config.log_files_title')}</p>
         <div className="page-config--log-info-row">
-          <code style={{ fontSize: '14px', flex: 1, color: 'var(--color-text)' }}>
+          <code style={{ fontSize: '16px', flex: 1, color: 'var(--color-text)' }}>
             {t('gui.config.log_error_path')}
           </code>
         </div>
@@ -306,7 +306,7 @@ export function Configuration() {
               border:       'none',
               background:   'none',
               cursor:       'pointer',
-              fontSize:     '13px',
+              fontSize:     '15px',
               fontWeight:   tab === tabItem.id ? 700 : 400,
               color:        tab === tabItem.id ? 'var(--color-accent)' : 'var(--color-text-secondary)',
               borderBottom: tab === tabItem.id ? '2px solid var(--color-accent)' : '2px solid transparent',

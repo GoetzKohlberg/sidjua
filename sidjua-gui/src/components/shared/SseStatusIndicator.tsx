@@ -36,7 +36,7 @@ export function SseStatusIndicator({ status }: Props) {
         display:    'inline-flex',
         alignItems: 'center',
         gap:        '6px',
-        fontSize:   '13px',
+        fontSize:   '15px',
         color:      'var(--color-text-secondary)',
       }}
     >

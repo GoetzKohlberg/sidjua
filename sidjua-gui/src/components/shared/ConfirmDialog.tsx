@@ -111,7 +111,7 @@ export function ConfirmDialog({
           )}
           <h2
             id="confirm-dialog-title"
-            style={{ fontSize: '16px', fontWeight: 700, color: 'var(--color-text)', margin: 0 }}
+            style={{ fontSize: '18px', fontWeight: 700, color: 'var(--color-text)', margin: 0 }}
           >
             {title}
           </h2>
@@ -119,7 +119,7 @@ export function ConfirmDialog({
 
         {/* Message */}
         <div style={{
-          fontSize:     '13px',
+          fontSize:     '15px',
           color:        'var(--color-text-secondary)',
           marginBottom: '16px',
           lineHeight:   1.5,
@@ -130,7 +130,7 @@ export function ConfirmDialog({
         {/* requireInput field */}
         {requireInput && (
           <div style={{ marginBottom: '16px' }}>
-            <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', marginBottom: '6px' }}>
+            <p style={{ fontSize: '16px', color: 'var(--color-text-muted)', marginBottom: '6px' }}>
               Type{' '}
               <strong style={{ fontFamily: 'monospace', color: 'var(--color-text)' }}>
                 {requireInput}
@@ -151,7 +151,7 @@ export function ConfirmDialog({
                 border:       '1px solid var(--color-border)',
                 background:   'var(--color-bg)',
                 color:        'var(--color-text)',
-                fontSize:     '13px',
+                fontSize:     '15px',
                 fontFamily:   'monospace',
                 boxSizing:    'border-box',
                 outline:      'none',
@@ -171,7 +171,7 @@ export function ConfirmDialog({
               border:       '1px solid var(--color-border)',
               background:   'var(--color-surface)',
               color:        'var(--color-text)',
-              fontSize:     '13px',
+              fontSize:     '15px',
               cursor:       'pointer',
             }}
           >
@@ -186,7 +186,7 @@ export function ConfirmDialog({
               border:       'none',
               background:   confirmBg,
               color:        canConfirm ? 'var(--color-on-accent)' : 'var(--color-text-muted)',
-              fontSize:     '13px',
+              fontSize:     '15px',
               fontWeight:   600,
               cursor:       canConfirm ? 'pointer' : 'not-allowed',
               transition:   'background var(--transition-fast)',

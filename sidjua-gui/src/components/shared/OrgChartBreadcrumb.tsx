@@ -24,7 +24,7 @@ export function OrgChartBreadcrumb({ path, onNavigate }: OrgChartBreadcrumbProps
         alignItems: 'center',
         gap:        '4px',
         padding:    '8px 0',
-        fontSize:   '13px',
+        fontSize:   '15px',
         flexWrap:   'wrap',
       }}
     >
@@ -43,7 +43,7 @@ export function OrgChartBreadcrumb({ path, onNavigate }: OrgChartBreadcrumbProps
                 cursor:      'pointer',
                 padding:     '2px 4px',
                 borderRadius: 'var(--radius-sm)',
-                fontSize:    '13px',
+                fontSize:    '15px',
                 fontFamily:  'inherit',
               }}
               onMouseEnter={(e) => { e.currentTarget.style.textDecoration = 'underline'; }}
