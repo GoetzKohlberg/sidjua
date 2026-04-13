@@ -953,5 +953,17 @@
   "gui.chat.calling_tool_prefix": "[BN] Calling tool:",
   "gui.chat.drop_file": "[BN] Drop file to upload",
   "gui.login.subtitle": "[BN] Sign in to continue",
-  "gui.setup.subtitle": "[BN] Set an admin password to continue"
+  "gui.setup.subtitle": "[BN] Set an admin password to continue",
+  "gui.error.agent_not_found": "[BN] Agent not found.",
+  "gui.error.agent_error_state": "[BN] Agent is in an error state and cannot start.",
+  "gui.error.import_unsupported_type": "[BN] Unsupported file type. Please use CSV, XLSX, or JSON.",
+  "gui.error.import_parse_failed": "[BN] Could not read the file. Please check the format.",
+  "gui.error.import_no_rows": "[BN] The file contains no data rows.",
+  "gui.error.import_no_name_column": "[BN] No name column found in the import file.",
+  "gui.error.import_file_too_large": "[BN] File is too large to import.",
+  "gui.error.import_expired": "[BN] Import preview has expired. Please start over.",
+  "gui.error.memory_consolidation_busy": "[BN] Memory consolidation is already running.",
+  "gui.error.rate_limit_sse": "[BN] Too many active connections. Please wait and retry.",
+  "gui.error.rate_limit_request": "[BN] Too many requests. Please slow down.",
+  "gui.error.stream_missing_message": "[BN] Missing message parameter."
 }

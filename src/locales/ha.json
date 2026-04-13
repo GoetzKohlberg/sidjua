@@ -945,5 +945,17 @@
   "gui.chat.calling_tool_prefix": "[HA] Calling tool:",
   "gui.chat.drop_file": "[HA] Drop file to upload",
   "gui.login.subtitle": "[HA] Sign in to continue",
-  "gui.setup.subtitle": "[HA] Set an admin password to continue"
+  "gui.setup.subtitle": "[HA] Set an admin password to continue",
+  "gui.error.agent_not_found": "[HA] Agent not found.",
+  "gui.error.agent_error_state": "[HA] Agent is in an error state and cannot start.",
+  "gui.error.import_unsupported_type": "[HA] Unsupported file type. Please use CSV, XLSX, or JSON.",
+  "gui.error.import_parse_failed": "[HA] Could not read the file. Please check the format.",
+  "gui.error.import_no_rows": "[HA] The file contains no data rows.",
+  "gui.error.import_no_name_column": "[HA] No name column found in the import file.",
+  "gui.error.import_file_too_large": "[HA] File is too large to import.",
+  "gui.error.import_expired": "[HA] Import preview has expired. Please start over.",
+  "gui.error.memory_consolidation_busy": "[HA] Memory consolidation is already running.",
+  "gui.error.rate_limit_sse": "[HA] Too many active connections. Please wait and retry.",
+  "gui.error.rate_limit_request": "[HA] Too many requests. Please slow down.",
+  "gui.error.stream_missing_message": "[HA] Missing message parameter."
 }

@@ -945,5 +945,17 @@
   "gui.chat.calling_tool_prefix": "[TA] Calling tool:",
   "gui.chat.drop_file": "[TA] Drop file to upload",
   "gui.login.subtitle": "[TA] Sign in to continue",
-  "gui.setup.subtitle": "[TA] Set an admin password to continue"
+  "gui.setup.subtitle": "[TA] Set an admin password to continue",
+  "gui.error.agent_not_found": "[TA] Agent not found.",
+  "gui.error.agent_error_state": "[TA] Agent is in an error state and cannot start.",
+  "gui.error.import_unsupported_type": "[TA] Unsupported file type. Please use CSV, XLSX, or JSON.",
+  "gui.error.import_parse_failed": "[TA] Could not read the file. Please check the format.",
+  "gui.error.import_no_rows": "[TA] The file contains no data rows.",
+  "gui.error.import_no_name_column": "[TA] No name column found in the import file.",
+  "gui.error.import_file_too_large": "[TA] File is too large to import.",
+  "gui.error.import_expired": "[TA] Import preview has expired. Please start over.",
+  "gui.error.memory_consolidation_busy": "[TA] Memory consolidation is already running.",
+  "gui.error.rate_limit_sse": "[TA] Too many active connections. Please wait and retry.",
+  "gui.error.rate_limit_request": "[TA] Too many requests. Please slow down.",
+  "gui.error.stream_missing_message": "[TA] Missing message parameter."
 }

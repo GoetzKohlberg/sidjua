@@ -945,5 +945,17 @@
   "gui.chat.calling_tool_prefix": "[TE] Calling tool:",
   "gui.chat.drop_file": "[TE] Drop file to upload",
   "gui.login.subtitle": "[TE] Sign in to continue",
-  "gui.setup.subtitle": "[TE] Set an admin password to continue"
+  "gui.setup.subtitle": "[TE] Set an admin password to continue",
+  "gui.error.agent_not_found": "[TE] Agent not found.",
+  "gui.error.agent_error_state": "[TE] Agent is in an error state and cannot start.",
+  "gui.error.import_unsupported_type": "[TE] Unsupported file type. Please use CSV, XLSX, or JSON.",
+  "gui.error.import_parse_failed": "[TE] Could not read the file. Please check the format.",
+  "gui.error.import_no_rows": "[TE] The file contains no data rows.",
+  "gui.error.import_no_name_column": "[TE] No name column found in the import file.",
+  "gui.error.import_file_too_large": "[TE] File is too large to import.",
+  "gui.error.import_expired": "[TE] Import preview has expired. Please start over.",
+  "gui.error.memory_consolidation_busy": "[TE] Memory consolidation is already running.",
+  "gui.error.rate_limit_sse": "[TE] Too many active connections. Please wait and retry.",
+  "gui.error.rate_limit_request": "[TE] Too many requests. Please slow down.",
+  "gui.error.stream_missing_message": "[TE] Missing message parameter."
 }

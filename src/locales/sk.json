@@ -945,5 +945,17 @@
   "gui.chat.calling_tool_prefix": "[SK] Calling tool:",
   "gui.chat.drop_file": "[SK] Drop file to upload",
   "gui.login.subtitle": "[SK] Sign in to continue",
-  "gui.setup.subtitle": "[SK] Set an admin password to continue"
+  "gui.setup.subtitle": "[SK] Set an admin password to continue",
+  "gui.error.agent_not_found": "[SK] Agent not found.",
+  "gui.error.agent_error_state": "[SK] Agent is in an error state and cannot start.",
+  "gui.error.import_unsupported_type": "[SK] Unsupported file type. Please use CSV, XLSX, or JSON.",
+  "gui.error.import_parse_failed": "[SK] Could not read the file. Please check the format.",
+  "gui.error.import_no_rows": "[SK] The file contains no data rows.",
+  "gui.error.import_no_name_column": "[SK] No name column found in the import file.",
+  "gui.error.import_file_too_large": "[SK] File is too large to import.",
+  "gui.error.import_expired": "[SK] Import preview has expired. Please start over.",
+  "gui.error.memory_consolidation_busy": "[SK] Memory consolidation is already running.",
+  "gui.error.rate_limit_sse": "[SK] Too many active connections. Please wait and retry.",
+  "gui.error.rate_limit_request": "[SK] Too many requests. Please slow down.",
+  "gui.error.stream_missing_message": "[SK] Missing message parameter."
 }

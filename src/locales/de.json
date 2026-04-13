@@ -945,5 +945,17 @@
   "gui.chat.calling_tool_prefix": "Tool wird aufgerufen:",
   "gui.chat.drop_file": "Datei zum Hochladen ablegen",
   "gui.login.subtitle": "Anmelden, um fortzufahren",
-  "gui.setup.subtitle": "Admin-Passwort festlegen, um fortzufahren"
+  "gui.setup.subtitle": "Admin-Passwort festlegen, um fortzufahren",
+  "gui.error.agent_not_found": "Agent nicht gefunden.",
+  "gui.error.agent_error_state": "Der Agent befindet sich in einem Fehlerzustand und kann nicht gestartet werden.",
+  "gui.error.import_unsupported_type": "Nicht unterstützter Dateityp. Bitte CSV, XLSX oder JSON verwenden.",
+  "gui.error.import_parse_failed": "Die Datei konnte nicht gelesen werden. Bitte Format prüfen.",
+  "gui.error.import_no_rows": "Die Datei enthält keine Datenzeilen.",
+  "gui.error.import_no_name_column": "Keine Namensspalte in der Importdatei gefunden.",
+  "gui.error.import_file_too_large": "Die Datei ist zu groß für den Import.",
+  "gui.error.import_expired": "Die Importvorschau ist abgelaufen. Bitte von vorne beginnen.",
+  "gui.error.memory_consolidation_busy": "Die Speicherkonsolidierung läuft bereits.",
+  "gui.error.rate_limit_sse": "Zu viele aktive Verbindungen. Bitte warten und erneut versuchen.",
+  "gui.error.rate_limit_request": "Zu viele Anfragen. Bitte verlangsamen.",
+  "gui.error.stream_missing_message": "Fehlender Nachrichtenparameter."
 }

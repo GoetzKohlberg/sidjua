@@ -4,6 +4,7 @@
 
 import { API_PATHS } from './paths';
 import { GUI_ERRORS } from '../i18n/gui-errors';
+import { ERROR_CODE_MAP } from '../i18n/error-code-map';
 import { getCsrfToken } from '../lib/csrf';
 import type {
   HealthStatus,
@@ -93,6 +94,8 @@ export class ApiError extends Error {
     public readonly retryable: boolean = false,
     /** GUI error catalog code — used by formatGuiError() for i18n-ready display. */
     public readonly guiCode?: string,
+    /** i18n key from ERROR_CODE_MAP — set when the backend returns a known error.code. */
+    public readonly i18nKey?: string,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -106,23 +109,33 @@ export class ApiError extends Error {
 /**
  * Classify an HTTP error response into a typed ApiError.
  * Returns a user-friendly message (see gui-errors.ts) instead of raw status codes.
+ * When the body contains a structured `error.code`, looks it up in ERROR_CODE_MAP
+ * and attaches the i18n key so display sites can call t(error.i18nKey).
  */
-function classifyHttpError(status: number, _body: string): ApiError {
+function classifyHttpError(status: number, body: string): ApiError {
+  // Extract backend error code from JSON body for i18n lookup
+  let i18nKey: string | undefined;
+  try {
+    const parsed = JSON.parse(body) as { error?: { code?: string } };
+    const backendCode = parsed.error?.code;
+    if (backendCode) i18nKey = ERROR_CODE_MAP[backendCode];
+  } catch (_e) { /* non-JSON body — ignore */ }
+
   if (status === 401 || status === 403) {
     return new ApiError(
       `${GUI_ERRORS['GUI-AUTH-002'].message} ${GUI_ERRORS['GUI-AUTH-002'].suggestion}`,
-      ApiErrorType.AUTH, status, false, 'GUI-AUTH-002',
+      ApiErrorType.AUTH, status, false, 'GUI-AUTH-002', i18nKey,
     );
   }
   if (status >= 500) {
     return new ApiError(
       `${GUI_ERRORS['GUI-CONN-002'].message} ${GUI_ERRORS['GUI-CONN-002'].suggestion}`,
-      ApiErrorType.SERVER, status, true, 'GUI-CONN-002',
+      ApiErrorType.SERVER, status, true, 'GUI-CONN-002', i18nKey,
     );
   }
   return new ApiError(
     `${GUI_ERRORS['GUI-CONN-003'].message} ${GUI_ERRORS['GUI-CONN-003'].suggestion}`,
-    ApiErrorType.CLIENT, status, false, 'GUI-CONN-003',
+    ApiErrorType.CLIENT, status, false, 'GUI-CONN-003', i18nKey,
   );
 }
 

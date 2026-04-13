@@ -953,5 +953,17 @@
   "gui.chat.calling_tool_prefix": "[SV] Calling tool:",
   "gui.chat.drop_file": "[SV] Drop file to upload",
   "gui.login.subtitle": "[SV] Sign in to continue",
-  "gui.setup.subtitle": "[SV] Set an admin password to continue"
+  "gui.setup.subtitle": "[SV] Set an admin password to continue",
+  "gui.error.agent_not_found": "[SV] Agent not found.",
+  "gui.error.agent_error_state": "[SV] Agent is in an error state and cannot start.",
+  "gui.error.import_unsupported_type": "[SV] Unsupported file type. Please use CSV, XLSX, or JSON.",
+  "gui.error.import_parse_failed": "[SV] Could not read the file. Please check the format.",
+  "gui.error.import_no_rows": "[SV] The file contains no data rows.",
+  "gui.error.import_no_name_column": "[SV] No name column found in the import file.",
+  "gui.error.import_file_too_large": "[SV] File is too large to import.",
+  "gui.error.import_expired": "[SV] Import preview has expired. Please start over.",
+  "gui.error.memory_consolidation_busy": "[SV] Memory consolidation is already running.",
+  "gui.error.rate_limit_sse": "[SV] Too many active connections. Please wait and retry.",
+  "gui.error.rate_limit_request": "[SV] Too many requests. Please slow down.",
+  "gui.error.stream_missing_message": "[SV] Missing message parameter."
 }

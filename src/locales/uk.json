@@ -953,5 +953,17 @@
   "gui.chat.calling_tool_prefix": "[UK] Calling tool:",
   "gui.chat.drop_file": "[UK] Drop file to upload",
   "gui.login.subtitle": "[UK] Sign in to continue",
-  "gui.setup.subtitle": "[UK] Set an admin password to continue"
+  "gui.setup.subtitle": "[UK] Set an admin password to continue",
+  "gui.error.agent_not_found": "[UK] Agent not found.",
+  "gui.error.agent_error_state": "[UK] Agent is in an error state and cannot start.",
+  "gui.error.import_unsupported_type": "[UK] Unsupported file type. Please use CSV, XLSX, or JSON.",
+  "gui.error.import_parse_failed": "[UK] Could not read the file. Please check the format.",
+  "gui.error.import_no_rows": "[UK] The file contains no data rows.",
+  "gui.error.import_no_name_column": "[UK] No name column found in the import file.",
+  "gui.error.import_file_too_large": "[UK] File is too large to import.",
+  "gui.error.import_expired": "[UK] Import preview has expired. Please start over.",
+  "gui.error.memory_consolidation_busy": "[UK] Memory consolidation is already running.",
+  "gui.error.rate_limit_sse": "[UK] Too many active connections. Please wait and retry.",
+  "gui.error.rate_limit_request": "[UK] Too many requests. Please slow down.",
+  "gui.error.stream_missing_message": "[UK] Missing message parameter."
 }
