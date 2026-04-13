@@ -470,14 +470,16 @@ function YourTeamPanel() {
       {/* Info banner — only shown when no provider is configured yet */}
       {llmStatus !== 'configured' && (
         <div className="page-agents--info-banner">
-          These 6 agents are your starter team. They become fully operational once you{' '}
+          {t('gui.agents.onboarding.no_provider_lead')}{' '}
           <button
             onClick={() => navigate('/settings')}
             className="page-agents--info-link"
           >
-            configure an LLM provider
+            {t('gui.agents.onboarding.no_provider_link')}
           </button>
-          {' '}in Settings. The <strong>Guide</strong> agent is your first point of contact — start there to learn how SIDJUA works.
+          {' '}{t('gui.agents.onboarding.no_provider_mid')}{' '}
+          <strong>{t('gui.agents.onboarding.no_provider_emphasis')}</strong>
+          {' '}{t('gui.agents.onboarding.no_provider_tail')}
         </div>
       )}
     </div>
