@@ -351,101 +351,250 @@ function ApiKeySection({ provider, isCustom, onSaved }: ApiKeySectionProps) {
 }
 
 
-interface AdvancedModeProps {
-  catalog:  ApprovedProvider[];
-  config:   ProviderConfigResponse | null;
-  onSaved:  () => void;
+// Per-agent UI state for advanced mode (D3/D4/D6)
+interface AgentUIState {
+  providerId:  string;
+  model:       string;
+  apiBase:     string;
+  customName:  string;
 }
 
-function AdvancedMode({ catalog, config, onSaved }: AdvancedModeProps) {
+function buildInitialAgentState(
+  catalog:  ApprovedProvider[],
+  config:   ProviderConfigResponse | null,
+  agentIds: readonly string[],
+): Record<string, AgentUIState> {
+  const defaultPid   = config?.default_provider?.provider_id ?? (catalog[0]?.id ?? 'custom');
+  const defaultEntry = catalog.find((p) => p.id === defaultPid);
+  const result: Record<string, AgentUIState> = {};
+  for (const id of agentIds) {
+    const ov = config?.agent_overrides?.[id];
+    if (ov) {
+      const catEntry = catalog.find((p) => p.id === ov.provider_id);
+      result[id] = {
+        providerId:  ov.provider_id,
+        model:       ov.model       ?? catEntry?.model   ?? '',
+        apiBase:     ov.api_base    ?? catEntry?.api_base ?? '',
+        customName:  ov.custom_name ?? '',
+      };
+    } else {
+      result[id] = {
+        providerId: defaultPid,
+        model:      defaultEntry?.model   ?? '',
+        apiBase:    defaultEntry?.api_base ?? '',
+        customName: '',
+      };
+    }
+  }
+  return result;
+}
+
+interface AdvancedModeProps {
+  catalog:         ApprovedProvider[];
+  config:          ProviderConfigResponse | null;
+  configAvailable: boolean;
+  onSaved:         () => void;
+}
+
+function AdvancedMode({ catalog, config, configAvailable, onSaved }: AdvancedModeProps) {
   const { client } = useAppConfig();
   const { t }      = useTranslation();
   const toast      = useToast();
+  const [saving,   setSaving]   = useState(false);
+  const [isDirty,  setIsDirty]  = useState(false);
 
-  const AGENT_IDS = ['guide', 'hr', 'it', 'auditor', 'finance', 'librarian'];
+  const AGENT_IDS = ['guide', 'hr', 'it', 'auditor', 'finance', 'librarian'] as const;
 
   const allOptions = [
     ...catalog.map((p) => ({ value: p.id, label: p.display_name })),
     { value: 'custom', label: t('gui.settings.provider.custom_label') },
   ];
 
-  // Default each agent to the current default provider (explicit, never "Wie Standard")
-  const defaultProviderId = config?.default_provider?.provider_id ?? (catalog[0]?.id ?? 'custom');
+  // D4: hydrate from config.agent_overrides on mount and whenever config changes
+  const [overrides, setOverrides] = useState<Record<string, AgentUIState>>(
+    () => buildInitialAgentState(catalog, config, AGENT_IDS),
+  );
 
-  const [overrides, setOverrides] = useState<Record<string, string>>(() => {
-    const init: Record<string, string> = {};
-    for (const id of AGENT_IDS) init[id] = defaultProviderId;
-    return init;
-  });
+  useEffect(() => {
+    setOverrides(buildInitialAgentState(catalog, config, AGENT_IDS));
+    setIsDirty(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config]);
+
+  function handleProviderChange(agentId: string, newProviderId: string) {
+    const entry = catalog.find((p) => p.id === newProviderId);
+    setOverrides((prev) => ({
+      ...prev,
+      [agentId]: {
+        ...prev[agentId],
+        providerId:  newProviderId,
+        model:       newProviderId === 'custom' ? (prev[agentId]?.model ?? '') : (entry?.model ?? ''),
+        apiBase:     newProviderId === 'custom' ? (prev[agentId]?.apiBase ?? '') : (entry?.api_base ?? ''),
+        customName:  newProviderId === 'custom' ? (prev[agentId]?.customName ?? '') : '',
+      },
+    }));
+    setIsDirty(true);
+  }
+
+  function handleFieldChange(agentId: string, field: 'model' | 'apiBase' | 'customName', value: string) {
+    setOverrides((prev) => ({
+      ...prev,
+      [agentId]: { ...prev[agentId], [field]: value },
+    }));
+    setIsDirty(true);
+  }
 
   async function handleSave() {
-    if (!client) return;
+    if (!client || !configAvailable || saving) return;
 
-    // Warn if any agent is assigned to a provider different from the default
-    const defaultPid = config?.default_provider?.provider_id;
-    const hasMismatch = Object.values(overrides).some((provId) => provId !== defaultPid);
-    if (hasMismatch) {
-      const confirmed = window.confirm(
-        'Warning: Some agents are assigned to providers different from your default. ' +
-        'These agents will use the default provider\'s API key, which may not work if the providers require separate keys. ' +
-        'Ensure the selected providers accept the same API key, or configure each agent separately.\n\nSave anyway?'
-      );
-      if (!confirmed) return;
+    // D6: validate custom fields before save
+    for (const agentId of AGENT_IDS) {
+      const st = overrides[agentId];
+      if (st?.providerId === 'custom') {
+        if (!st.apiBase.trim() || !st.model.trim() || !st.customName.trim()) {
+          toast.error(t('gui.settings.provider.custom_fields_required', { agent: agentId }));
+          return;
+        }
+      }
     }
 
-    const agentOverrides: Record<string, { provider_id: string; api_key: string; api_base?: string }> = {};
-    for (const [agentId, provId] of Object.entries(overrides)) {
-      const entry = catalog.find((p) => p.id === provId);
-      if (!entry) continue;
-      agentOverrides[agentId] = {
-        provider_id: provId,
-        api_key:     config?.default_provider?.api_key_preview ?? '',
-        api_base:    entry.api_base,
-      };
-    }
+    setSaving(true);
     try {
+      // D5: build full hydrated default_provider — api_key OMITTED (server keeps existing)
+      const hydratedDefault = config?.default_provider ? {
+        provider_id: config.default_provider.provider_id,
+        // api_key intentionally OMITTED — D5 mandate: omit = keep existing
+        ...(config.default_provider.api_base    ? { api_base:    config.default_provider.api_base }    : {}),
+        ...(config.default_provider.model       ? { model:       config.default_provider.model }       : {}),
+        ...(config.default_provider.custom_name ? { custom_name: config.default_provider.custom_name } : {}),
+      } : null;
+
+      if (!hydratedDefault) {
+        toast.error(t('gui.settings.provider.config_load_error'));
+        return;
+      }
+
+      // D2/D3/D5/D6: build agent_overrides — no api_key_preview, include model, handle custom
+      const agentOverrides: Record<string, {
+        provider_id:  string;
+        api_base?:    string;
+        model?:       string;
+        custom_name?: string;
+      }> = {};
+
+      for (const agentId of AGENT_IDS) {
+        const st = overrides[agentId];
+        if (!st) continue;
+        if (st.providerId === 'custom') {
+          agentOverrides[agentId] = {
+            provider_id: 'custom',
+            api_base:    st.apiBase.trim(),
+            model:       st.model.trim(),
+            custom_name: st.customName.trim(),
+            // api_key OMITTED — D6: inherits default_provider.api_key at runtime
+          };
+        } else {
+          const entry = catalog.find((p) => p.id === st.providerId);
+          if (!entry) continue;
+          agentOverrides[agentId] = {
+            provider_id: st.providerId,
+            api_base:    entry.api_base,
+            model:       st.model || entry.model,
+            // api_key OMITTED — inherits default_provider key
+          };
+        }
+      }
+
       await client.saveProviderConfig({
         mode:             'advanced',
-        default_provider: config?.default_provider !== null && config?.default_provider !== undefined ? {
-          provider_id: config.default_provider.provider_id,
-          api_key:     '',
-        } : null,
+        default_provider: hydratedDefault,
         agent_overrides:  agentOverrides,
       });
+      setIsDirty(false);
       toast.success('Agent overrides saved.');
       onSaved();
     } catch (err: unknown) {
       toast.error(formatGuiError(err));
+    } finally {
+      setSaving(false);
     }
   }
+
+  const saveDisabled = saving || !configAvailable || !isDirty;
 
   return (
     <div className="page-settings--advanced-list">
       <p className="page-settings--helper-text">
         {t('gui.settings.provider.advanced_desc')}
       </p>
-      {AGENT_IDS.map((agentId) => (
-        <div key={agentId} className="page-settings--agent-row">
-          <span className="page-settings--agent-label">
-            {agentId}
-          </span>
-          <select
-            value={overrides[agentId] ?? 'default'}
-            onChange={(e) => setOverrides((prev) => ({ ...prev, [agentId]: e.target.value }))}
-            className="page-settings--select"
-            style={{ flex: 1 }}
-          >
-            {allOptions.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
-        </div>
-      ))}
+      {AGENT_IDS.map((agentId) => {
+        const st          = overrides[agentId];
+        const isCustom    = st?.providerId === 'custom';
+        return (
+          <div key={agentId}>
+            <div className="page-settings--agent-row">
+              <span className="page-settings--agent-label">{agentId}</span>
+              <select
+                value={st?.providerId ?? 'custom'}
+                onChange={(e) => handleProviderChange(agentId, e.target.value)}
+                className="page-settings--select"
+                style={{ flex: 1 }}
+              >
+                {allOptions.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+            {/* D6: custom fields revealed when custom selected */}
+            {isCustom && (
+              <div style={{ paddingLeft: '16px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label className="page-settings--label" style={{ marginBottom: 0 }}>
+                  {t('gui.settings.provider.api_base')}
+                  <input
+                    type="url"
+                    value={st.apiBase}
+                    onChange={(e) => handleFieldChange(agentId, 'apiBase', e.target.value)}
+                    placeholder={t('gui.settings.provider.api_base_example')}
+                    className="page-settings--input"
+                    spellCheck={false}
+                  />
+                </label>
+                <label className="page-settings--label" style={{ marginBottom: 0 }}>
+                  {t('gui.settings.provider.model')}
+                  <input
+                    type="text"
+                    value={st.model}
+                    onChange={(e) => handleFieldChange(agentId, 'model', e.target.value)}
+                    placeholder={t('gui.settings.provider.model_example')}
+                    className="page-settings--input"
+                    spellCheck={false}
+                  />
+                </label>
+                <label className="page-settings--label" style={{ marginBottom: 0 }}>
+                  {t('gui.settings.provider.name')}
+                  <input
+                    type="text"
+                    value={st.customName}
+                    onChange={(e) => handleFieldChange(agentId, 'customName', e.target.value)}
+                    placeholder={t('gui.settings.provider.custom_name_example')}
+                    className="page-settings--input"
+                    spellCheck={false}
+                  />
+                </label>
+              </div>
+            )}
+          </div>
+        );
+      })}
       <button
         onClick={() => { void handleSave(); }}
-        style={{ ...primaryButtonStyle(false), alignSelf: 'flex-start', marginTop: '8px' }}
+        disabled={saveDisabled}
+        style={{ ...primaryButtonStyle(saveDisabled), alignSelf: 'flex-start', marginTop: '8px' }}
+        title={!configAvailable ? t('gui.settings.provider.advanced_config_required') : undefined}
       >
-        {t('gui.settings.provider.save_overrides')}
+        {saving
+          ? <LoadingSpinner size="sm" label={t('gui.settings.provider.saving')} />
+          : t('gui.settings.provider.save_overrides')}
       </button>
 
       {/* HR agent hint */}
@@ -466,36 +615,58 @@ function ProviderSettings({ onConfigChange }: ProviderSettingsProps) {
   const { t }            = useTranslation();
   const toast            = useToast();
 
-  const [catalog,        setCatalog]       = useState<ApprovedProvider[] | null>(null);
-  const [currentConfig,  setCurrentConfig] = useState<ProviderConfigResponse | null>(null);
+  // Catalog: own state, own error, own loading
+  const [catalog,        setCatalog]        = useState<ApprovedProvider[] | null>(null);
+  const [catalogError,   setCatalogError]   = useState<string | null>(null);
   const [loadingCatalog, setLoadingCatalog] = useState(true);
+
+  // Config: own state, own error, own loading — independent of catalog
+  const [currentConfig,  setCurrentConfig]  = useState<ProviderConfigResponse | null>(null);
+  const [configError,    setConfigError]    = useState<string | null>(null);
+  const [loadingConfig,  setLoadingConfig]  = useState(true);
 
   const [mode,           setMode]          = useState<'simple' | 'advanced'>('simple');
   const [selectedId,     setSelectedId]    = useState<string | null>(null);
   const [showCustom,     setShowCustom]    = useState(false);
 
-  const loadData = useCallback(async () => {
+  const loadCatalog = useCallback(async () => {
     if (!client) return;
     setLoadingCatalog(true);
+    setCatalogError(null);
     try {
-      const [cat, cfg] = await Promise.all([
-        client.getProviderCatalog(),
-        client.getProviderConfig(),
-      ]);
+      const cat = await client.getProviderCatalog();
       setCatalog(cat.providers);
+    } catch (err: unknown) {
+      setCatalogError(formatGuiError(err));
+    } finally {
+      setLoadingCatalog(false);
+    }
+  }, [client]);
+
+  const loadConfig = useCallback(async () => {
+    if (!client) return;
+    setLoadingConfig(true);
+    setConfigError(null);
+    try {
+      const cfg = await client.getProviderConfig();
       setCurrentConfig(cfg);
       if (cfg.configured && cfg.default_provider) {
         setSelectedId(cfg.default_provider.provider_id);
         setMode(cfg.mode);
       }
     } catch (err: unknown) {
-      toast.error(formatGuiError(err));
+      setConfigError(formatGuiError(err));
     } finally {
-      setLoadingCatalog(false);
+      setLoadingConfig(false);
     }
-  }, [client, toast]);
+  }, [client]);
 
-  useEffect(() => { void loadData(); }, [loadData]);
+  const loadData = useCallback(() => {
+    void loadCatalog();
+    void loadConfig();
+  }, [loadCatalog, loadConfig]);
+
+  useEffect(() => { loadData(); }, [loadData]);
 
   async function handleReset() {
     if (!client) return;
@@ -518,10 +689,27 @@ function ProviderSettings({ onConfigChange }: ProviderSettingsProps) {
     );
   }
 
+  // Catalog still loading — show spinner
   if (loadingCatalog) {
     return <LoadingSpinner label={t('gui.settings.llm_provider_loading')} />;
   }
 
+  // configAvailable: true only when config loaded successfully (not loading, no error)
+  const configAvailable = !loadingConfig && configError === null;
+
+  // Catalog error panel — shown independently of config state
+  if (catalogError) {
+    return (
+      <div className="page-settings--error-panel">
+        <span>{t('gui.settings.provider.catalog_load_error')}: {catalogError}</span>
+        <button onClick={() => { void loadCatalog(); }} className="page-settings--retry-btn">
+          {t('gui.common.retry')}
+        </button>
+      </div>
+    );
+  }
+
+  // Should not happen after loadingCatalog cleared, but guard for TS
   if (!catalog) return null;
 
   const freeProviders = catalog.filter((p) => p.tier === 'free');
@@ -531,8 +719,21 @@ function ProviderSettings({ onConfigChange }: ProviderSettingsProps) {
 
   return (
     <div>
+      {/* Config error panel — shown under catalog, non-blocking */}
+      {!loadingConfig && configError && (
+        <div className="page-settings--error-panel" style={{ marginBottom: '12px' }}>
+          <span>{t('gui.settings.provider.config_load_error')}: {configError}</span>
+          <button onClick={() => { void loadConfig(); }} className="page-settings--retry-btn">
+            {t('gui.common.retry')}
+          </button>
+        </div>
+      )}
+      {loadingConfig && (
+        <LoadingSpinner size="sm" label={t('gui.settings.llm_provider_loading')} />
+      )}
+
       {/* Current config banner */}
-      {currentConfig?.configured && currentConfig.default_provider && (
+      {configAvailable && currentConfig?.configured && currentConfig.default_provider && (
         <div className="page-settings--config-banner">
           <span className="page-settings--config-status">
             ✅ {currentConfig.default_provider.display_name} — {currentConfig.default_provider.api_key_preview}
@@ -546,35 +747,48 @@ function ProviderSettings({ onConfigChange }: ProviderSettingsProps) {
         </div>
       )}
 
-      {/* Mode toggle */}
+      {/* Mode toggle — advanced disabled when config not available */}
       <div className="page-settings--mode-toggle-row">
         <span className="page-settings--period-label">
           {t('gui.settings.provider.mode_label')}
         </span>
-        {(['simple', 'advanced'] as const).map((m) => (
+        {(['simple', 'advanced'] as const).map((m) => {
+          const isAdvanced     = m === 'advanced';
+          const advDisabled    = isAdvanced && !configAvailable;
+          const isActive       = mode === m;
+          return (
           <button
             key={m}
-            onClick={() => setMode(m)}
+            onClick={() => { if (!advDisabled) setMode(m); }}
+            disabled={advDisabled}
+            title={advDisabled ? t('gui.settings.provider.advanced_config_required') : undefined}
             style={{
               padding:      '5px 14px',
               borderRadius: 'var(--radius-md)',
               border:       '1px solid',
-              borderColor:  mode === m ? 'var(--color-accent)' : 'var(--color-border)',
-              background:   mode === m ? 'var(--color-accent-muted)' : 'var(--color-surface)',
-              color:        mode === m ? 'var(--color-accent)' : 'var(--color-text)',
-              fontWeight:   mode === m ? 600 : 400,
-              cursor:       'pointer',
+              borderColor:  isActive ? 'var(--color-accent)' : 'var(--color-border)',
+              background:   isActive ? 'var(--color-accent-muted)' : 'var(--color-surface)',
+              color:        advDisabled ? 'var(--color-text-muted)' : (isActive ? 'var(--color-accent)' : 'var(--color-text)'),
+              fontWeight:   isActive ? 600 : 400,
+              cursor:       advDisabled ? 'not-allowed' : 'pointer',
+              opacity:      advDisabled ? 0.5 : 1,
               fontSize:     '15px',
             }}
           >
             {m === 'simple' ? t('gui.settings.provider.mode_simple') : t('gui.settings.provider.mode_advanced')}
           </button>
-        ))}
+          );
+        })}
       </div>
 
-      {/* Advanced mode */}
-      {mode === 'advanced' && (
-        <AdvancedMode catalog={catalog} config={currentConfig} onSaved={() => { void loadData(); onConfigChange(); }} />
+      {/* Advanced mode — only accessible when config loaded successfully */}
+      {mode === 'advanced' && configAvailable && (
+        <AdvancedMode
+          catalog={catalog}
+          config={currentConfig}
+          configAvailable={configAvailable}
+          onSaved={() => { loadData(); onConfigChange(); }}
+        />
       )}
 
       {/* Simple mode: provider cards with inline accordion */}
