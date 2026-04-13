@@ -997,5 +997,16 @@
   "gui.audit.aria_to_date": "结束日期",
   "gui.audit.aria_filter_division": "部门",
   "gui.audit.aria_agent_id": "智能体 ID",
-  "gui.audit.aria_event_type": "事件类型"
+  "gui.audit.aria_event_type": "事件类型",
+  "error.PCFG-006.message": "API 密钥是屏蔽预览，并非真实密钥",
+  "error.PCFG-006.suggestion": "请输入从提供商仪表板获取的完整 API 密钥。预览仅用于显示。",
+  "gui.agents.onboarding.no_provider_emphasis": "指南",
+  "gui.agents.onboarding.no_provider_lead": "这 6 个代理是您的启动团队。一旦您",
+  "gui.agents.onboarding.no_provider_link": "配置 LLM 提供商",
+  "gui.agents.onboarding.no_provider_mid": "在设置中。这些",
+  "gui.agents.onboarding.no_provider_tail": "代理是您的第一个联系点 — 从那里开始了解 SIDJUA 的工作原理。",
+  "gui.settings.provider.advanced_config_required": "首先加载配置以启用高级模式",
+  "gui.settings.provider.catalog_load_error": "加载提供商目录失败",
+  "gui.settings.provider.config_load_error": "加载提供商配置失败",
+  "gui.settings.provider.custom_fields_required": "{agent} 的自定义提供商需要 API 基础 URL、模型和显示名称"
 }

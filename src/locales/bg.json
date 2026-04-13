@@ -989,5 +989,16 @@
   "gui.audit.aria_to_date": "До дата",
   "gui.audit.aria_filter_division": "Отдел",
   "gui.audit.aria_agent_id": "ID на агент",
-  "gui.audit.aria_event_type": "Тип събитие"
+  "gui.audit.aria_event_type": "Тип събитие",
+  "error.PCFG-006.message": "API ключът е маскиран предварителен преглед, не е реалният ключ",
+  "error.PCFG-006.suggestion": "Въведете пълния API ключ от панела за управление на доставчика. Предварителният преглед е само за показване.",
+  "gui.agents.onboarding.no_provider_emphasis": "Ръководство",
+  "gui.agents.onboarding.no_provider_lead": "Тези 6 агента са вашият стартов екип. Те стават напълно оперативни, след като ",
+  "gui.agents.onboarding.no_provider_link": "настроите доставчик на LLM",
+  "gui.agents.onboarding.no_provider_mid": "в Настройки. ",
+  "gui.agents.onboarding.no_provider_tail": "агентът е вашата първа точка на контакт — започнете оттам, за да научите как работи SIDJUA.",
+  "gui.settings.provider.advanced_config_required": "Първо заредете конфигурацията, за да активирате напредналия режим",
+  "gui.settings.provider.catalog_load_error": "Неуспешно зареждане на каталога с доставчици",
+  "gui.settings.provider.config_load_error": "Неуспешно зареждане на конфигурацията на доставчика",
+  "gui.settings.provider.custom_fields_required": "Персонализираният доставчик за {agent} изисква API базов URL, модел и име за показване"
 }

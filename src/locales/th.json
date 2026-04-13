@@ -997,5 +997,16 @@
   "gui.audit.aria_to_date": "ถึงวันที่",
   "gui.audit.aria_filter_division": "หน่วยงาน",
   "gui.audit.aria_agent_id": "ID เอเจนต์",
-  "gui.audit.aria_event_type": "ประเภทเหตุการณ์"
+  "gui.audit.aria_event_type": "ประเภทเหตุการณ์",
+  "error.PCFG-006.message": "คีย์ API เป็นตัวอย่างที่ถูกพราง ไม่ใช่คีย์จริง",
+  "error.PCFG-006.suggestion": "กรุณาใส่คีย์ API เต็มรูปแบบจากแดชบอร์ดผู้ให้บริการ ตัวอย่างนี้ใช้สำหรับแสดงผลเท่านั้น",
+  "gui.agents.onboarding.no_provider_emphasis": "คู่มือ",
+  "gui.agents.onboarding.no_provider_lead": "เอเจนต์ 6 ตัวนี้คือทีมเริ่มต้นของคุณ พวกมันจะทำงานได้เต็มรูปแบบเมื่อคุณ",
+  "gui.agents.onboarding.no_provider_link": "ตั้งค่าผู้ให้บริการ LLM",
+  "gui.agents.onboarding.no_provider_mid": "ในส่วนการตั้งค่า เอเจนต์",
+  "gui.agents.onboarding.no_provider_tail": "คือจุดติดต่อแรกของคุณ — เริ่มต้นที่นั่นเพื่อเรียนรู้ว่า SIDJUA ทำงานอย่างไร",
+  "gui.settings.provider.advanced_config_required": "โหลดการตั้งค่าก่อนเพื่อเปิดใช้งานโหมดขั้นสูง",
+  "gui.settings.provider.catalog_load_error": "โหลดแคตตาล็อกผู้ให้บริการล้มเหลว",
+  "gui.settings.provider.config_load_error": "โหลดการตั้งค่าผู้ให้บริการล้มเหลว",
+  "gui.settings.provider.custom_fields_required": "ผู้ให้บริการแบบกำหนดเองสำหรับ {agent} ต้องการ URL พื้นฐาน API, โมเดล และชื่อที่แสดง"
 }

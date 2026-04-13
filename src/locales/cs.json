@@ -997,5 +997,16 @@
   "gui.audit.aria_to_date": "Do data",
   "gui.audit.aria_filter_division": "Divize",
   "gui.audit.aria_agent_id": "ID agenta",
-  "gui.audit.aria_event_type": "Typ události"
+  "gui.audit.aria_event_type": "Typ události",
+  "error.PCFG-006.message": "API klíč je maskovaný náhled, ne skutečný klíč",
+  "error.PCFG-006.suggestion": "Zadejte úplný API klíč z ovládacího panelu vašeho poskytovatele. Náhlad slouží pouze k zobrazení.",
+  "gui.agents.onboarding.no_provider_emphasis": "Průvodce",
+  "gui.agents.onboarding.no_provider_lead": "Těchto 6 agentů je váš startovní tým. Stanou se plně operačními, jakmile",
+  "gui.agents.onboarding.no_provider_link": "nastavíte poskytovatele LLM",
+  "gui.agents.onboarding.no_provider_mid": "v Nastavení. Průvodce",
+  "gui.agents.onboarding.no_provider_tail": "je vaším prvním kontaktním místem — začněte tam, abyste se dozvěděli, jak SIDJUA funguje.",
+  "gui.settings.provider.advanced_config_required": "Nejprve načtěte konfiguraci pro povolení pokročilého režimu",
+  "gui.settings.provider.catalog_load_error": "Nepodařilo se načíst katalog poskytovatelů",
+  "gui.settings.provider.config_load_error": "Nepodařilo se načíst konfiguraci poskytovatele",
+  "gui.settings.provider.custom_fields_required": "Vlastní poskytovatel pro {agent} vyžaduje základní URL API, model a název pro zobrazení"
 }

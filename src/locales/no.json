@@ -989,5 +989,16 @@
   "gui.audit.aria_to_date": "Til dato",
   "gui.audit.aria_filter_division": "Divisjon",
   "gui.audit.aria_agent_id": "Agent-ID",
-  "gui.audit.aria_event_type": "Hendelsestype"
+  "gui.audit.aria_event_type": "Hendelsestype",
+  "error.PCFG-006.message": "API-nøkkelen er en maskert forhåndsvisning, ikke den ekte nøkkelen",
+  "error.PCFG-006.suggestion": "Skriv inn den fullstendige API-nøkkelen fra leverandørens dashbord. Forhåndsvisningen er kun for visning.",
+  "gui.agents.onboarding.no_provider_emphasis": "Veileder",
+  "gui.agents.onboarding.no_provider_lead": "Disse 6 agentene er ditt startteam. De blir fullt operative når du",
+  "gui.agents.onboarding.no_provider_link": "konfigurerer en LLM-leverandør",
+  "gui.agents.onboarding.no_provider_mid": "i Innstillinger. Den",
+  "gui.agents.onboarding.no_provider_tail": "agenten er ditt første kontaktpunkt — start der for å lære hvordan SIDJUA fungerer.",
+  "gui.settings.provider.advanced_config_required": "Last inn konfigurasjonen først for å aktivere avansert modus",
+  "gui.settings.provider.catalog_load_error": "Kunne ikke laste leverandørkatalogen",
+  "gui.settings.provider.config_load_error": "Kunne ikke laste leverandørkonfigurasjon",
+  "gui.settings.provider.custom_fields_required": "Egendefinert leverandør for {agent} krever API-base-URL, modell og et visningsnavn"
 }

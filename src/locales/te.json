@@ -989,5 +989,16 @@
   "gui.audit.aria_to_date": "తేదీ వరకు",
   "gui.audit.aria_filter_division": "విభాగం",
   "gui.audit.aria_agent_id": "ఏజెంట్ ID",
-  "gui.audit.aria_event_type": "సంఘటన రకం"
+  "gui.audit.aria_event_type": "సంఘటన రకం",
+  "error.PCFG-006.message": "API కీ అనేది మస్క్ చేసిన ప్రివ్యూ మాత్రమే, నిజమైన కీ కాదు",
+  "error.PCFG-006.suggestion": "మీ ప్రొవైడర్ డాష్‌బోర్డ్‌లోని పూర్తి API కీని నమోదు చేయండి. ప్రివ్యూ ప్రదర్శనకు మాత్రమే.",
+  "gui.agents.onboarding.no_provider_emphasis": "మార్గదర్శి",
+  "gui.agents.onboarding.no_provider_lead": "ఈ 6 ఏజెంట్లు మీ ప్రారంభ బృందం. మీరు",
+  "gui.agents.onboarding.no_provider_link": "ఒక LLM ప్రొవైడర్‌ను కాన్ఫిగర్ చేసిన తర్వాత అవి పూర్తిగా పనిచేస్తాయి",
+  "gui.agents.onboarding.no_provider_mid": "సెట్టింగ్స్‌లో. ద",
+  "gui.agents.onboarding.no_provider_tail": "ఏజెంట్ మీ మొదటి సంప్రదింపు పాయింట్ — SIDJUA ఎలా పని చేస్తుందో తెలుసుకోవడానికి అక్కడి నుండి ప్రారంభించండి.",
+  "gui.settings.provider.advanced_config_required": "అడ్వాన్స్‌డ్ మోడ్‌ను చేతన్మాక్కోవడానికి ముందుగా కాన్ఫిగరేషన్‌ను లోడ్ చేయండి",
+  "gui.settings.provider.catalog_load_error": "ప్రొవైడర్ కాటలాగ్‌ను లోడ్ చేయడంలో విఫలమయ్యాం",
+  "gui.settings.provider.config_load_error": "ప్రొవైడర్ కాన్ఫిగరేషన్‌ను లోడ్ చేయడంలో విఫలమయ్యాం",
+  "gui.settings.provider.custom_fields_required": "{agent} కోసం కస్టమ్ ప్రొవైడర్‌కు API బేస్ URL, మోడల్, మరియు డిస్‌ప్లే పేరు అవసరం"
 }

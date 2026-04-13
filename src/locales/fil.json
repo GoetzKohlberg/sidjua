@@ -997,5 +997,16 @@
   "gui.audit.aria_to_date": "Hanggang sa petsa",
   "gui.audit.aria_filter_division": "Dibisyon",
   "gui.audit.aria_agent_id": "ID ng ahente",
-  "gui.audit.aria_event_type": "Uri ng kaganapan"
+  "gui.audit.aria_event_type": "Uri ng kaganapan",
+  "error.PCFG-006.message": "Ang API key ay isang preview na nakatago, hindi ang tunay na key",
+  "error.PCFG-006.suggestion": "Ipasok ang buong API key mula sa dashboard ng inyong provider. Ang preview ay para sa pagpapakita lamang.",
+  "gui.agents.onboarding.no_provider_emphasis": "Gabay",
+  "gui.agents.onboarding.no_provider_lead": "Ang 6 na agent na ito ay ang inyong panimulang team. Magiging ganap na operational ang mga ito kapag kayo ay",
+  "gui.agents.onboarding.no_provider_link": "i-configure ang LLM provider",
+  "gui.agents.onboarding.no_provider_mid": "sa Settings. Ang",
+  "gui.agents.onboarding.no_provider_tail": "agent ay ang inyong unang point of contact — magsimula roon upang matuto kung paano gumagana ang SIDJUA.",
+  "gui.settings.provider.advanced_config_required": "I-load muna ang configuration upang ma-enable ang advanced mode",
+  "gui.settings.provider.catalog_load_error": "Nabigo sa pag-load ng provider catalog",
+  "gui.settings.provider.config_load_error": "Nabigo sa pag-load ng provider configuration",
+  "gui.settings.provider.custom_fields_required": "Ang custom provider para sa {agent} ay nangangailangan ng API base URL, model, at isang display name"
 }

@@ -989,5 +989,16 @@
   "gui.audit.aria_to_date": "Til dato",
   "gui.audit.aria_filter_division": "Division",
   "gui.audit.aria_agent_id": "Agent-ID",
-  "gui.audit.aria_event_type": "Begivenhedstype"
+  "gui.audit.aria_event_type": "Begivenhedstype",
+  "error.PCFG-006.message": "API-nøglen er en maskeret forhåndsvisning, ikke den rigtige nøgle",
+  "error.PCFG-006.suggestion": "Indtast den fulde API-nøgle fra dit udbyderdashboard. Forhåndsvisningen er kun til visning.",
+  "gui.agents.onboarding.no_provider_emphasis": "Vejleder",
+  "gui.agents.onboarding.no_provider_lead": "Disse 6 agenter er dit startteam. De bliver fuldt operationelle, når du",
+  "gui.agents.onboarding.no_provider_link": "konfigurerer en LLM-udbyder",
+  "gui.agents.onboarding.no_provider_mid": "i Indstillinger. Den",
+  "gui.agents.onboarding.no_provider_tail": "agent er dit første kontaktpunkt — start der for at lære, hvordan SIDJUA fungerer.",
+  "gui.settings.provider.advanced_config_required": "Indlæs konfigurationen først for at aktivere avanceret tilstand",
+  "gui.settings.provider.catalog_load_error": "Kunne ikke indlæse udbyderkataloget",
+  "gui.settings.provider.config_load_error": "Kunne ikke indlæse udbyderkonfiguration",
+  "gui.settings.provider.custom_fields_required": "Brugerdefineret udbyder for {agent} kræver API-base-URL, model og et visningsnavn"
 }

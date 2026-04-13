@@ -997,5 +997,16 @@
   "gui.audit.aria_to_date": "結束日期",
   "gui.audit.aria_filter_division": "部門",
   "gui.audit.aria_agent_id": "代理程式 ID",
-  "gui.audit.aria_event_type": "事件類型"
+  "gui.audit.aria_event_type": "事件類型",
+  "error.PCFG-006.message": "API 金鑰為遮罩預覽，並非真實金鑰",
+  "error.PCFG-006.suggestion": "請輸入從您的供應商儀表板取得的完整 API 金鑰。此預覽僅供顯示。",
+  "gui.agents.onboarding.no_provider_emphasis": "指南",
+  "gui.agents.onboarding.no_provider_lead": "這 6 個代理是您的入門團隊。它們將在您",
+  "gui.agents.onboarding.no_provider_link": "設定 LLM 供應商",
+  "gui.agents.onboarding.no_provider_mid": "於「設定」中。該",
+  "gui.agents.onboarding.no_provider_tail": "代理是您的第一個聯絡點 — 請從那裡開始，了解 SIDJUA 的運作方式。",
+  "gui.settings.provider.advanced_config_required": "請先載入設定以啟用進階模式",
+  "gui.settings.provider.catalog_load_error": "無法載入供應商目錄",
+  "gui.settings.provider.config_load_error": "無法載入供應商設定",
+  "gui.settings.provider.custom_fields_required": "{agent} 的自訂供應商需要 API 基底 URL、模型及顯示名稱"
 }

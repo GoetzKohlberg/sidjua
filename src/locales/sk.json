@@ -989,5 +989,16 @@
   "gui.audit.aria_to_date": "Do dátumu",
   "gui.audit.aria_filter_division": "Divízia",
   "gui.audit.aria_agent_id": "ID agenta",
-  "gui.audit.aria_event_type": "Typ udalosti"
+  "gui.audit.aria_event_type": "Typ udalosti",
+  "error.PCFG-006.message": "API kľúč je zamaskovaný náhľad, nie skutočný kľúč",
+  "error.PCFG-006.suggestion": "Zadajte úplný API kľúč z panela vášho poskytovateľa. Náhľad slúži iba na zobrazenie.",
+  "gui.agents.onboarding.no_provider_emphasis": "Sprievodca",
+  "gui.agents.onboarding.no_provider_lead": "Týchto 6 agentov je váš štartovací tím. Stanú sa plne funkčnými, keď",
+  "gui.agents.onboarding.no_provider_link": "nastavíte poskytovateľa LLM",
+  "gui.agents.onboarding.no_provider_mid": "v Nastaveniach. Agent",
+  "gui.agents.onboarding.no_provider_tail": "je váš prvý kontaktný bod — začnite tam, aby ste sa dozvedeli, ako funguje SIDJUA.",
+  "gui.settings.provider.advanced_config_required": "Najprv načítajte konfiguráciu, aby ste povolili pokročilý režim",
+  "gui.settings.provider.catalog_load_error": "Nepodarilo sa načítať katalóg poskytovateľov",
+  "gui.settings.provider.config_load_error": "Nepodarilo sa načítať konfiguráciu poskytovateľa",
+  "gui.settings.provider.custom_fields_required": "Vlastný poskytovateľ pre {agent} vyžaduje API základnú URL, model a názov na zobrazenie"
 }

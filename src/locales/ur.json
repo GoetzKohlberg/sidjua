@@ -989,5 +989,16 @@
   "gui.audit.aria_to_date": "آخری تاریخ",
   "gui.audit.aria_filter_division": "ڈویژن",
   "gui.audit.aria_agent_id": "ایجنٹ ID",
-  "gui.audit.aria_event_type": "ایونٹ کی قسم"
+  "gui.audit.aria_event_type": "ایونٹ کی قسم",
+  "error.PCFG-006.message": "API key ایک ماسک شدہ پیش‌نظر ہے، اصل key نہیں",
+  "error.PCFG-006.suggestion": "اپنے پرووائیڈر ڈیش بورڈ سے مکمل API key درج کریں۔ یہ پیش‌نظر صرف دکھانے کے لیے ہے۔",
+  "gui.agents.onboarding.no_provider_emphasis": "رہنما",
+  "gui.agents.onboarding.no_provider_lead": "یہ 6 ایجنٹس آپ کی ابتدائی ٹیم ہیں۔ وہ مکمل طور پر فعال ہو جائیں گے جب آپ",
+  "gui.agents.onboarding.no_provider_link": "ایک LLM پرووائیڈر ترتیب دیں",
+  "gui.agents.onboarding.no_provider_mid": "ترتیبات میں۔ یہ",
+  "gui.agents.onboarding.no_provider_tail": "ایجنٹ آپ کا پہلا رابطہ نقطہ ہے — وہاں سے شروع کریں تاکہ SIDJUA کیسے کام کرتا ہے سیکھیں۔",
+  "gui.settings.provider.advanced_config_required": "ترقی یافتہ موڈ فعال کرنے کے لیے پہلے ترتیب لوڈ کریں",
+  "gui.settings.provider.catalog_load_error": "پرووائیڈر فہرست لوڈ کرنے میں ناکام",
+  "gui.settings.provider.config_load_error": "پرووائیڈر ترتیب لوڈ کرنے میں ناکام",
+  "gui.settings.provider.custom_fields_required": "{agent} کے لیے اپنا پرووائیڈر کو API بیس URL، ماڈل، اور ایک دکھایا جانے والا نام درکار ہے"
 }

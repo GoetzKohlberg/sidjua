@@ -997,5 +997,16 @@
   "gui.audit.aria_to_date": "종료 날짜",
   "gui.audit.aria_filter_division": "부서",
   "gui.audit.aria_agent_id": "에이전트 ID",
-  "gui.audit.aria_event_type": "이벤트 유형"
+  "gui.audit.aria_event_type": "이벤트 유형",
+  "error.PCFG-006.message": "API 키는 실제 키가 아닌 마스킹된 미리보기입니다",
+  "error.PCFG-006.suggestion": "제공자 대시보드에서 전체 API 키를 입력하세요. 미리보기는 표시 전용입니다.",
+  "gui.agents.onboarding.no_provider_emphasis": "가이드",
+  "gui.agents.onboarding.no_provider_lead": "이 6개의 에이전트는 시작 팀입니다. 다음을 수행하면 완전히 작동합니다:",
+  "gui.agents.onboarding.no_provider_link": "LLM 제공자를 구성하세요",
+  "gui.agents.onboarding.no_provider_mid": "설정에서. 이",
+  "gui.agents.onboarding.no_provider_tail": "에이전트는 첫 번째 연락 지점입니다 — SIDJUA 작동 방식을 배우려면 거기서 시작하세요.",
+  "gui.settings.provider.advanced_config_required": "고급 모드를 활성화하려면 먼저 구성을 로드하세요",
+  "gui.settings.provider.catalog_load_error": "제공자 카탈로그를 로드하는 데 실패했습니다",
+  "gui.settings.provider.config_load_error": "제공자 구성을 로드하는 데 실패했습니다",
+  "gui.settings.provider.custom_fields_required": "{agent}의 사용자 지정 제공자에는 API 기본 URL, 모델 및 표시 이름이 필요합니다"
 }

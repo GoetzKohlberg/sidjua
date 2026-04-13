@@ -997,5 +997,16 @@
   "gui.audit.aria_to_date": "Bitiş tarihi",
   "gui.audit.aria_filter_division": "Bölüm",
   "gui.audit.aria_agent_id": "Ajan Kimliği",
-  "gui.audit.aria_event_type": "Olay türü"
+  "gui.audit.aria_event_type": "Olay türü",
+  "error.PCFG-006.message": "API anahtarı maskelenmiş bir önizleme olup, gerçek anahtar değildir",
+  "error.PCFG-006.suggestion": "Sağlayıcı yönetim panelinizden tam API anahtarını girin. Önizleme yalnızca görüntüleme amaçlıdır.",
+  "gui.agents.onboarding.no_provider_emphasis": "Kılavuz",
+  "gui.agents.onboarding.no_provider_lead": "Bu 6 ajan başlangıç ekibinizdir. Tamamen işlevsel hale gelmeleri için",
+  "gui.agents.onboarding.no_provider_link": "bir LLM sağlayıcısı yapılandırın",
+  "gui.agents.onboarding.no_provider_mid": "Ayarlar'da. Kılavuz",
+  "gui.agents.onboarding.no_provider_tail": "ajan ilk temas noktanızdır — SIDJUA'nın nasıl çalıştığını öğrenmek için oradan başlayın.",
+  "gui.settings.provider.advanced_config_required": "Gelişmiş modu etkinleştirmek için önce yapılandırmayı yükleyin",
+  "gui.settings.provider.catalog_load_error": "Sağlayıcı kataloğu yüklenemedi",
+  "gui.settings.provider.config_load_error": "Sağlayıcı yapılandırması yüklenemedi",
+  "gui.settings.provider.custom_fields_required": "{agent} için özel sağlayıcı API taban URL'si, model ve bir ekran adı gerektirir"
 }

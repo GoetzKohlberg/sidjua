@@ -989,5 +989,16 @@
   "gui.audit.aria_to_date": "Do datuma",
   "gui.audit.aria_filter_division": "Odjel",
   "gui.audit.aria_agent_id": "ID agenta",
-  "gui.audit.aria_event_type": "Vrsta događaja"
+  "gui.audit.aria_event_type": "Vrsta događaja",
+  "error.PCFG-006.message": "API ključ je maskirani pregled, a ne pravi ključ",
+  "error.PCFG-006.suggestion": "Unesite puni API ključ iz nadzorne ploče vašeg pružatelja. Pregled služi samo za prikaz.",
+  "gui.agents.onboarding.no_provider_emphasis": "Vodič",
+  "gui.agents.onboarding.no_provider_lead": "Ovih 6 agenata je vaš početni tim. Postaju potpuno operativni čim",
+  "gui.agents.onboarding.no_provider_link": "konfigurirate pružatelja LLM-a",
+  "gui.agents.onboarding.no_provider_mid": "u Postavkama. Agenti",
+  "gui.agents.onboarding.no_provider_tail": "su vaša prva kontakt točka — počnite tamo da biste saznali kako SIDJUA radi.",
+  "gui.settings.provider.advanced_config_required": "Prvo učitajte konfiguraciju da biste omogućili napredni način",
+  "gui.settings.provider.catalog_load_error": "Neuspješno učitavanje kataloga pružatelja",
+  "gui.settings.provider.config_load_error": "Neuspješno učitavanje konfiguracije pružatelja",
+  "gui.settings.provider.custom_fields_required": "Prilagođeni pružatelj za {agent} zahtijeva API bazni URL, model i naziv za prikaz"
 }

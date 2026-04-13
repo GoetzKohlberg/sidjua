@@ -997,5 +997,16 @@
   "gui.audit.aria_to_date": "Tot datum",
   "gui.audit.aria_filter_division": "Divisie",
   "gui.audit.aria_agent_id": "Agent-ID",
-  "gui.audit.aria_event_type": "Gebeurtenistype"
+  "gui.audit.aria_event_type": "Gebeurtenistype",
+  "error.PCFG-006.message": "API-sleutel is een gemaskeerde voorbeeldweergave, geen echte sleutel",
+  "error.PCFG-006.suggestion": "Voer de volledige API-sleutel in vanuit het dashboard van uw provider. De voorbeeldweergave is alleen voor weergave.",
+  "gui.agents.onboarding.no_provider_emphasis": "Gids",
+  "gui.agents.onboarding.no_provider_lead": "Deze 6 agents vormen uw startteam. Ze worden volledig operationeel zodra u",
+  "gui.agents.onboarding.no_provider_link": "een LLM-provider configureert",
+  "gui.agents.onboarding.no_provider_mid": "in Instellingen. De",
+  "gui.agents.onboarding.no_provider_tail": "agent is uw eerste aanspreekpunt — begin daar om te leren hoe SIDJUA werkt.",
+  "gui.settings.provider.advanced_config_required": "Laad eerst de configuratie om geavanceerde modus in te schakelen",
+  "gui.settings.provider.catalog_load_error": "Kon de providercatalogus niet laden",
+  "gui.settings.provider.config_load_error": "Kon de providerconfiguratie niet laden",
+  "gui.settings.provider.custom_fields_required": "Aangepaste provider voor {agent} vereist API-basis-URL, model en een weergavenaam"
 }

@@ -997,5 +997,16 @@
   "gui.audit.aria_to_date": "До дати",
   "gui.audit.aria_filter_division": "Підрозділ",
   "gui.audit.aria_agent_id": "ID агента",
-  "gui.audit.aria_event_type": "Тип події"
+  "gui.audit.aria_event_type": "Тип події",
+  "error.PCFG-006.message": "Ключ API є замаскованою попередньою версією, а не справжнім ключем",
+  "error.PCFG-006.suggestion": "Введіть повний ключ API з панелі керування вашого постачальника. Попередній перегляд призначений лише для відображення.",
+  "gui.agents.onboarding.no_provider_emphasis": "Гід",
+  "gui.agents.onboarding.no_provider_lead": "Ці 6 агентів — ваша стартова команда. Вони стануть повністю операційними, щойно ви",
+  "gui.agents.onboarding.no_provider_link": "налаштуєте постачальника LLM",
+  "gui.agents.onboarding.no_provider_mid": "у Налаштуваннях. Агент",
+  "gui.agents.onboarding.no_provider_tail": "є вашим першим пунктом контакту — почніть з нього, щоб дізнатися, як працює SIDJUA.",
+  "gui.settings.provider.advanced_config_required": "Спочатку завантажте конфігурацію, щоб увімкнути розширений режим",
+  "gui.settings.provider.catalog_load_error": "Не вдалося завантажити каталог постачальників",
+  "gui.settings.provider.config_load_error": "Не вдалося завантажити конфігурацію постачальника",
+  "gui.settings.provider.custom_fields_required": "Користувацький постачальник для {agent} вимагає базовий URL API, модель та назву для відображення"
 }

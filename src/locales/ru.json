@@ -997,5 +997,16 @@
   "gui.audit.aria_to_date": "Дата по",
   "gui.audit.aria_filter_division": "Подразделение",
   "gui.audit.aria_agent_id": "ID агента",
-  "gui.audit.aria_event_type": "Тип события"
+  "gui.audit.aria_event_type": "Тип события",
+  "error.PCFG-006.message": "Ключ API — это замаскированная предварительная версия, а не настоящий ключ",
+  "error.PCFG-006.suggestion": "Введите полный ключ API из панели управления вашего провайдера. Предварительная версия предназначена только для просмотра.",
+  "gui.agents.onboarding.no_provider_emphasis": "Гид",
+  "gui.agents.onboarding.no_provider_lead": "Эти 6 агентов — ваша стартовая команда. Они станут полностью функциональными, как только вы",
+  "gui.agents.onboarding.no_provider_link": "настроите провайдера LLM",
+  "gui.agents.onboarding.no_provider_mid": "в Настройках. Агент",
+  "gui.agents.onboarding.no_provider_tail": "«Гид» — ваша первая точка контакта — начните с него, чтобы узнать, как работает SIDJUA.",
+  "gui.settings.provider.advanced_config_required": "Сначала загрузите конфигурацию, чтобы включить расширенный режим",
+  "gui.settings.provider.catalog_load_error": "Не удалось загрузить каталог провайдеров",
+  "gui.settings.provider.config_load_error": "Не удалось загрузить конфигурацию провайдера",
+  "gui.settings.provider.custom_fields_required": "Пользовательский провайдер для {agent} требует базовый URL API, модель и отображаемое имя"
 }

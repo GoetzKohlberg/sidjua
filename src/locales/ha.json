@@ -989,5 +989,16 @@
   "gui.audit.aria_to_date": "Zuwa kwana",
   "gui.audit.aria_filter_division": "Sashi",
   "gui.audit.aria_agent_id": "ID Wakili",
-  "gui.audit.aria_event_type": "Nau'in al'amari"
+  "gui.audit.aria_event_type": "Nau'in al'amari",
+  "error.PCFG-006.message": "Maƙullin API wannan nunin da aka ɓoye ne, ba maƙullin gaske ba",
+  "error.PCFG-006.suggestion": "Shigar da cikakken maƙullin API daga dashin mai samarwa. Nunin wannan don nuni kawai ne.",
+  "gui.agents.onboarding.no_provider_emphasis": "Jagora",
+  "gui.agents.onboarding.no_provider_lead": "Waɗannan wakilai 6 sune ƙungiyar farkon ku. Suna zama cikakken aiki da zarar ku",
+  "gui.agents.onboarding.no_provider_link": "saita mai samar da LLM",
+  "gui.agents.onboarding.no_provider_mid": "a cikin Saita. Wakilin",
+  "gui.agents.onboarding.no_provider_tail": "shine wurin sadarwa na farko ku — fara can don koyon yadda SIDJUA ke aiki.",
+  "gui.settings.provider.advanced_config_required": "Ƙawo da zaɓin farkon don kunna yanayin ci gaba",
+  "gui.settings.provider.catalog_load_error": "Ya kasa ƙawo da kasidar mai samarwa",
+  "gui.settings.provider.config_load_error": "Ya kasa ƙawo da zaɓin mai samarwa",
+  "gui.settings.provider.custom_fields_required": "Mai samarwa na al'ada don {agent} yana buƙatar URL tushe na API, samfura, da sunan nuni"
 }

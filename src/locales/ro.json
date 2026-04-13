@@ -997,5 +997,16 @@
   "gui.audit.aria_to_date": "Până la dată",
   "gui.audit.aria_filter_division": "Divizie",
   "gui.audit.aria_agent_id": "ID agent",
-  "gui.audit.aria_event_type": "Tip eveniment"
+  "gui.audit.aria_event_type": "Tip eveniment",
+  "error.PCFG-006.message": "Cheia API este o previzualizare mascată, nu cheia reală",
+  "error.PCFG-006.suggestion": "Introduceți cheia API completă din panoul de control al furnizorului. Previzualizarea este doar pentru afișare.",
+  "gui.agents.onboarding.no_provider_emphasis": "Ghid",
+  "gui.agents.onboarding.no_provider_lead": "Acești 6 agenți sunt echipa ta de start. Devine operaționali complet odată ce",
+  "gui.agents.onboarding.no_provider_link": "configurați un furnizor LLM",
+  "gui.agents.onboarding.no_provider_mid": "în Setări. Aceștia",
+  "gui.agents.onboarding.no_provider_tail": "agent este primul tău punct de contact — începe de acolo pentru a învăța cum funcționează SIDJUA.",
+  "gui.settings.provider.advanced_config_required": "Încărcați mai întâi configurația pentru a activa modul avansat",
+  "gui.settings.provider.catalog_load_error": "Încărcarea catalogului de furnizori a eșuat",
+  "gui.settings.provider.config_load_error": "Încărcarea configurației furnizorului a eșuat",
+  "gui.settings.provider.custom_fields_required": "Furnizorul personalizat pentru {agent} necesită URL de bază API, model și un nume de afișare"
 }

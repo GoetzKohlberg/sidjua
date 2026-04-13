@@ -997,5 +997,16 @@
   "gui.audit.aria_to_date": "समाप्ति तिथि",
   "gui.audit.aria_filter_division": "विभाग",
   "gui.audit.aria_agent_id": "एजेंट आईडी",
-  "gui.audit.aria_event_type": "घटना प्रकार"
+  "gui.audit.aria_event_type": "घटना प्रकार",
+  "error.PCFG-006.message": "API कुंजी एक मास्क किया गया पूर्वावलोकन है, वास्तविक कुंजी नहीं",
+  "error.PCFG-006.suggestion": "अपने प्रदाता डैशबोर्ड से पूर्ण API कुंजी दर्ज करें। पूर्वावलोकन केवल प्रदर्शन के लिए है।",
+  "gui.agents.onboarding.no_provider_emphasis": "मार्गदर्शक",
+  "gui.agents.onboarding.no_provider_lead": "ये 6 एजेंट आपकी प्रारंभिक टीम हैं। वे पूरी तरह सक्रिय हो जाते हैं जब आप",
+  "gui.agents.onboarding.no_provider_link": "एक LLM प्रदाता कॉन्फ़िगर करें",
+  "gui.agents.onboarding.no_provider_mid": "सेटिंग्स में। यह",
+  "gui.agents.onboarding.no_provider_tail": "एजेंट आपका पहला संपर्क बिंदु है — वहाँ से शुरू करें ताकि SIDJUA के कार्य करने का तरीका सीख सकें।",
+  "gui.settings.provider.advanced_config_required": "उन्नत मोड सक्षम करने के लिए पहले कॉन्फ़िगरेशन लोड करें",
+  "gui.settings.provider.catalog_load_error": "प्रदाता कैटलॉग लोड करने में विफल",
+  "gui.settings.provider.config_load_error": "प्रदाता कॉन्फ़िगरेशन लोड करने में विफल",
+  "gui.settings.provider.custom_fields_required": "{agent} के लिए कस्टम प्रदाता को API बेस URL, मॉडल और प्रदर्शन नाम की आवश्यकता है"
 }

@@ -989,5 +989,16 @@
   "gui.audit.aria_to_date": "முடிவு தேதி",
   "gui.audit.aria_filter_division": "பிரிவு",
   "gui.audit.aria_agent_id": "ஏஜெண்ட் ID",
-  "gui.audit.aria_event_type": "நிகழ்வு வகை"
+  "gui.audit.aria_event_type": "நிகழ்வு வகை",
+  "error.PCFG-006.message": "API சாவி மறைக்கப்பட்ட முன்னோட்டம், உண்மையான சாவி அல்ல",
+  "error.PCFG-006.suggestion": "உங்கள் வழங்குநர் டாஷ்போர்ட்டிலிருந்து முழு API சாவியை உள்ளிடவும். முன்னோட்டம் காட்சிக்காக மட்டுமே.",
+  "gui.agents.onboarding.no_provider_emphasis": "வழிகாட்டி",
+  "gui.agents.onboarding.no_provider_lead": "இந்த 6 ஏஜென்ட்கள் உங்கள் தொடக்கக் குழு. அவை முழுமையாக இயங்கும் நிலைக்கு மாறும் உங்கள்",
+  "gui.agents.onboarding.no_provider_link": "ஒரு LLM வழங்குநரை அமைக்கவும்",
+  "gui.agents.onboarding.no_provider_mid": "அமைப்புகளில். அது",
+  "gui.agents.onboarding.no_provider_tail": "ஏஜென்ட் உங்கள் முதல் தொடர்பு புள்ளி — SIDJUA எப்படி வேலை செய்கிறது என்பதை அறிய அங்கிருந்து தொடங்கவும்.",
+  "gui.settings.provider.advanced_config_required": "மேம்பட்ட நிலையை செயல்படுத்த முதலில் அமைப்பை ஏற்றவும்",
+  "gui.settings.provider.catalog_load_error": "வழங்குநர் பட்டியலை ஏற்றத் தவறியது",
+  "gui.settings.provider.config_load_error": "வழங்குநர் அமைப்பை ஏற்றத் தவறியது",
+  "gui.settings.provider.custom_fields_required": "{agent} க்கான தனிப்பயன் வழங்குநருக்கு API அடிப்படை URL, மாதிரி, மற்றும் காட்சி பெயர் தேவை"
 }

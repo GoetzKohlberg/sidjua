@@ -997,5 +997,16 @@
   "gui.audit.aria_to_date": "終了日",
   "gui.audit.aria_filter_division": "部門",
   "gui.audit.aria_agent_id": "エージェント ID",
-  "gui.audit.aria_event_type": "イベントの種類"
+  "gui.audit.aria_event_type": "イベントの種類",
+  "error.PCFG-006.message": "API キーはマスクされたプレビューで、本物のキーではありません",
+  "error.PCFG-006.suggestion": "プロバイダーのダッシュボードから完全な API キーを入力してください。プレビューは表示専用です。",
+  "gui.agents.onboarding.no_provider_emphasis": "ガイド",
+  "gui.agents.onboarding.no_provider_lead": "これらの 6 つのエージェントがあなたのスターターチームです。以下の操作を行うと完全に運用可能になります。",
+  "gui.agents.onboarding.no_provider_link": "LLM プロバイダーを設定する",
+  "gui.agents.onboarding.no_provider_mid": "設定内で。",
+  "gui.agents.onboarding.no_provider_tail": "エージェントが最初の連絡先です — そこから SIDJUA の使い方を学びましょう。",
+  "gui.settings.provider.advanced_config_required": "詳細モードを有効にするには、まず設定を読み込んでください",
+  "gui.settings.provider.catalog_load_error": "プロバイダーカタログの読み込みに失敗しました",
+  "gui.settings.provider.config_load_error": "プロバイダー設定の読み込みに失敗しました",
+  "gui.settings.provider.custom_fields_required": "{agent} のカスタムプロバイダーには、API ベース URL、モデル、表示名が必要です"
 }

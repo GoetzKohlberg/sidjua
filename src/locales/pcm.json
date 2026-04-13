@@ -989,5 +989,16 @@
   "gui.audit.aria_to_date": "To date",
   "gui.audit.aria_filter_division": "Divison",
   "gui.audit.aria_agent_id": "Agent ID",
-  "gui.audit.aria_event_type": "Event type"
+  "gui.audit.aria_event_type": "Event type",
+  "error.PCFG-006.message": "API key na masked preview, e no be di real key",
+  "error.PCFG-006.suggestion": "Enter di full API key from your provider dashboard. Di preview na display-only.",
+  "gui.agents.onboarding.no_provider_emphasis": "Gide",
+  "gui.agents.onboarding.no_provider_lead": "Dis 6 agents na your starter team. Dem go fully operational wen you",
+  "gui.agents.onboarding.no_provider_link": "configure one LLM provider",
+  "gui.agents.onboarding.no_provider_mid": "inside Settings. Di",
+  "gui.agents.onboarding.no_provider_tail": "agent na your first point of contact — start dia to learn how SIDJUA dey work.",
+  "gui.settings.provider.advanced_config_required": "Load di configuration first to enable advanced mode",
+  "gui.settings.provider.catalog_load_error": "No fit load di provider catalog",
+  "gui.settings.provider.config_load_error": "No fit load provider configuration",
+  "gui.settings.provider.custom_fields_required": "Custom provider for {agent} dey need API base URL, model, and display name"
 }

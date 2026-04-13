@@ -997,5 +997,16 @@
   "gui.audit.aria_to_date": "তারিখ পর্যন্ত",
   "gui.audit.aria_filter_division": "বিভাগ",
   "gui.audit.aria_agent_id": "এজেন্ট আইডি",
-  "gui.audit.aria_event_type": "ইভেন্টের ধরন"
+  "gui.audit.aria_event_type": "ইভেন্টের ধরন",
+  "error.PCFG-006.message": "API কীটি একটি মুখোশযুক্ত প্রিভিউ, প্রকৃত কী নয়",
+  "error.PCFG-006.suggestion": "আপনার প্রোভাইডার ড্যাশবোর্ড থেকে সম্পূর্ণ API কী প্রবেশ করুন। প্রিভিউট শুধুমাত্র প্রদর্শনের জন্য।",
+  "gui.agents.onboarding.no_provider_emphasis": "গাইড",
+  "gui.agents.onboarding.no_provider_lead": "এই ৬টি এজেন্ট আপনার প্রাথমিক দল। তারা সম্পূর্ণ কার্যকর হবে যখন আপনি",
+  "gui.agents.onboarding.no_provider_link": "একটি LLM প্রোভাইডার কনফিগার করেন",
+  "gui.agents.onboarding.no_provider_mid": "সেটিংসে। এই",
+  "gui.agents.onboarding.no_provider_tail": "এজেন্টটি আপনার প্রথম যোগাযোগের বিন্দু — SIDJUA কীভাবে কাজ করে তা শিখতে সেখান থেকে শুরু করুন।",
+  "gui.settings.provider.advanced_config_required": "অ্যাডভান্সড মোড সক্ষম করতে প্রথমে কনফিগারেশন লোড করুন",
+  "gui.settings.provider.catalog_load_error": "প্রোভাইডার ক্যাটালগ লোড করতে ব্যর্থ",
+  "gui.settings.provider.config_load_error": "প্রোভাইডার কনফিগারেশন লোড করতে ব্যর্থ",
+  "gui.settings.provider.custom_fields_required": "{agent}-এর জন্য কাস্টম প্রোভাইডারে API বেস URL, মডেল এবং একটি প্রদর্শন নাম প্রয়োজন"
 }

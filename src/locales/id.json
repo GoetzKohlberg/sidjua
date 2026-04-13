@@ -997,5 +997,16 @@
   "gui.audit.aria_to_date": "Sampai tanggal",
   "gui.audit.aria_filter_division": "Divisi",
   "gui.audit.aria_agent_id": "ID Agen",
-  "gui.audit.aria_event_type": "Jenis peristiwa"
+  "gui.audit.aria_event_type": "Jenis peristiwa",
+  "error.PCFG-006.message": "Kunci API adalah pratinjau yang disamarkan, bukan kunci asli",
+  "error.PCFG-006.suggestion": "Masukkan kunci API lengkap dari dasbor penyedia Anda. Pratinjau hanya untuk tampilan.",
+  "gui.agents.onboarding.no_provider_emphasis": "Panduan",
+  "gui.agents.onboarding.no_provider_lead": "6 agen ini adalah tim awal Anda. Mereka menjadi sepenuhnya operasional setelah Anda",
+  "gui.agents.onboarding.no_provider_link": "mengonfigurasi penyedia LLM",
+  "gui.agents.onboarding.no_provider_mid": "di Pengaturan. Agen",
+  "gui.agents.onboarding.no_provider_tail": "adalah titik kontak pertama Anda — mulai dari sana untuk mempelajari cara kerja SIDJUA.",
+  "gui.settings.provider.advanced_config_required": "Muat konfigurasi terlebih dahulu untuk mengaktifkan mode lanjutan",
+  "gui.settings.provider.catalog_load_error": "Gagal memuat katalog penyedia",
+  "gui.settings.provider.config_load_error": "Gagal memuat konfigurasi penyedia",
+  "gui.settings.provider.custom_fields_required": "Penyedia kustom untuk {agent} memerlukan URL dasar API, model, dan nama tampilan"
 }

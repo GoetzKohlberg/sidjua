@@ -989,5 +989,16 @@
   "gui.audit.aria_to_date": "Bis Datum",
   "gui.audit.aria_filter_division": "Abteilung",
   "gui.audit.aria_agent_id": "Agent-ID",
-  "gui.audit.aria_event_type": "Ereignistyp"
+  "gui.audit.aria_event_type": "Ereignistyp",
+  "error.PCFG-006.message": "API-Schlüssel ist eine maskierte Vorschau, kein echter Schlüssel",
+  "error.PCFG-006.suggestion": "Geben Sie den vollständigen API-Schlüssel aus dem Dashboard Ihres Anbieters ein. Die Vorschau dient nur der Anzeige.",
+  "gui.agents.onboarding.no_provider_emphasis": "Guide",
+  "gui.agents.onboarding.no_provider_lead": "Diese 6 Agents sind Ihr Startteam. Sie werden vollständig einsatzbereit, sobald Sie",
+  "gui.agents.onboarding.no_provider_link": "einen LLM-Anbieter konfigurieren",
+  "gui.agents.onboarding.no_provider_mid": "in den Einstellungen. Der",
+  "gui.agents.onboarding.no_provider_tail": "Agent ist Ihr erster Ansprechpartner — starten Sie dort, um zu lernen, wie SIDJUA funktioniert.",
+  "gui.settings.provider.advanced_config_required": "Laden Sie zuerst die Konfiguration, um den erweiterten Modus zu aktivieren",
+  "gui.settings.provider.catalog_load_error": "Fehler beim Laden des Anbieterkatalogs",
+  "gui.settings.provider.config_load_error": "Fehler beim Laden der Anbieterkonfiguration",
+  "gui.settings.provider.custom_fields_required": "Benutzerdefinierter Anbieter für {agent} erfordert API-Basis-URL, Modell und einen Anzeigenamen"
 }

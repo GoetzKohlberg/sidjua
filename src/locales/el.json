@@ -989,5 +989,16 @@
   "gui.audit.aria_to_date": "Έως ημερομηνία",
   "gui.audit.aria_filter_division": "Τμήμα",
   "gui.audit.aria_agent_id": "Ταυτότητα πράκτορα",
-  "gui.audit.aria_event_type": "Τύπος συμβάντος"
+  "gui.audit.aria_event_type": "Τύπος συμβάντος",
+  "error.PCFG-006.message": "Το κλειδί API είναι μάσκα προεπισκόπησης, όχι το πραγματικό κλειδί",
+  "error.PCFG-006.suggestion": "Εισαγάγετε το πλήρες κλειδί API από τον πίνακα ελέγχου του παρόχου σας. Η προεπισκόπηση προορίζεται μόνο για εμφάνιση.",
+  "gui.agents.onboarding.no_provider_emphasis": "Οδηγός",
+  "gui.agents.onboarding.no_provider_lead": "Αυτοί οι 6 πράκτορες είναι η αρχική σας ομάδα. Γίνονται πλήρως λειτουργικοί μόλις σας",
+  "gui.agents.onboarding.no_provider_link": "ρυθμίσετε έναν πάροχο LLM",
+  "gui.agents.onboarding.no_provider_mid": "στις Ρυθμίσεις. Ο",
+  "gui.agents.onboarding.no_provider_tail": "πράκτορας είναι το πρώτο σας σημείο επαφής — ξεκινήστε από εκεί για να μάθετε πώς λειτουργεί το SIDJUA.",
+  "gui.settings.provider.advanced_config_required": "Φορτώστε πρώτα τη διαμόρφωση για να ενεργοποιήσετε τη λειτουργία προχωρημένων",
+  "gui.settings.provider.catalog_load_error": "Αποτυχία φόρτωσης καταλόγου παρόχου",
+  "gui.settings.provider.config_load_error": "Αποτυχία φόρτωσης διαμόρφωσης παρόχου",
+  "gui.settings.provider.custom_fields_required": "Ο προσαρμοσμένος πάροχος για τον {agent} απαιτεί URL βάσης API, μοντέλο και όνομα εμφάνισης"
 }

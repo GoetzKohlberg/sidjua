@@ -989,5 +989,16 @@
   "gui.audit.aria_to_date": "Go dtí dáta",
   "gui.audit.aria_filter_division": "Roinn",
   "gui.audit.aria_agent_id": "ID Gníomhaí",
-  "gui.audit.aria_event_type": "Cineál imeachta"
+  "gui.audit.aria_event_type": "Cineál imeachta",
+  "error.PCFG-006.message": "Is réamhamharc folaithe é an eochair API, ní an eochair fhíor",
+  "error.PCFG-006.suggestion": "Iontráil an eochair API iomlán ó phainéal do sholáthraí. Tá an réamhamharc le haghaidh taispeána amháin.",
+  "gui.agents.onboarding.no_provider_emphasis": "Treoraí",
+  "gui.agents.onboarding.no_provider_lead": "Is iad na 6 ghníomhaí seo d'fhoireann thosaithe. Éiríonn siad ag feidhmiú go hiomlán nuair a",
+  "gui.agents.onboarding.no_provider_link": "chumraíonn tú soláthraí LLM",
+  "gui.agents.onboarding.no_provider_mid": "i Socruithe. An",
+  "gui.agents.onboarding.no_provider_tail": "gníomhaí is do chéad phointe teagmhála — tús a chur ann chun foghlaim conas a oibríonn SIDJUA.",
+  "gui.settings.provider.advanced_config_required": "Lódáil an chumraíocht ar dtús chun mód ardleibhéal a chumhachtú",
+  "gui.settings.provider.catalog_load_error": "Theip ar an gcatalóg soláthraí a lódáil",
+  "gui.settings.provider.config_load_error": "Theip ar chumraíocht an tsoláthraí a lódáil",
+  "gui.settings.provider.custom_fields_required": "Téann soláthraí saincheaptha do {agent} URL bonn API, samhail, agus ainm taispeána de dhíth"
 }

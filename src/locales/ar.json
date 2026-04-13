@@ -997,5 +997,16 @@
   "gui.audit.aria_to_date": "إلى التاريخ",
   "gui.audit.aria_filter_division": "القسم",
   "gui.audit.aria_agent_id": "معرف الوكيل",
-  "gui.audit.aria_event_type": "نوع الحدث"
+  "gui.audit.aria_event_type": "نوع الحدث",
+  "error.PCFG-006.message": "مفتاح API هو معاينة مقنّعة، وليس المفتاح الحقيقي",
+  "error.PCFG-006.suggestion": "أدخل مفتاح API الكامل من لوحة تحكم المزود. المعاينة للعرض فقط.",
+  "gui.agents.onboarding.no_provider_emphasis": "دليل",
+  "gui.agents.onboarding.no_provider_lead": "هؤلاء 6 وكلاء هم فريق البداية الخاص بك. يصبحون جاهزين للعمل بالكامل بمجرد أن",
+  "gui.agents.onboarding.no_provider_link": "تقوم بتكوين مزود LLM",
+  "gui.agents.onboarding.no_provider_mid": "في الإعدادات. ال",
+  "gui.agents.onboarding.no_provider_tail": "وكيل هو نقطة الاتصال الأولى الخاصة بك — ابدأ من هناك لتعلم كيفية عمل SIDJUA.",
+  "gui.settings.provider.advanced_config_required": "قم بتحميل التكوين أولاً لتمكين الوضع المتقدم",
+  "gui.settings.provider.catalog_load_error": "فشل في تحميل كتالوج المزود",
+  "gui.settings.provider.config_load_error": "فشل في تحميل تكوين المزود",
+  "gui.settings.provider.custom_fields_required": "مزود مخصص لـ {agent} يتطلب رابط URL الأساسي لـ API، والنموذج، واسم عرض"
 }

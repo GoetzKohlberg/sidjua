@@ -989,5 +989,16 @@
   "gui.audit.aria_to_date": "Kuni kuupäevani",
   "gui.audit.aria_filter_division": "Osakond",
   "gui.audit.aria_agent_id": "Agendi ID",
-  "gui.audit.aria_event_type": "Sündmuse tüüp"
+  "gui.audit.aria_event_type": "Sündmuse tüüp",
+  "error.PCFG-006.message": "API-võti on maskitud eelvaade, mitte tegelik võti",
+  "error.PCFG-006.suggestion": "Sisestage täielik API-võti oma teenusepakkuja juhtpaneelist. Eelvaade on ainult kuvamiseks.",
+  "gui.agents.onboarding.no_provider_emphasis": "Juhend",
+  "gui.agents.onboarding.no_provider_lead": "Need 6 agent on teie stardimeeskond. Nad muutuvad täielikult operatiivseks, kui te",
+  "gui.agents.onboarding.no_provider_link": "konfigureerite LLM-teenusepakkujat",
+  "gui.agents.onboarding.no_provider_mid": "seadetes. See",
+  "gui.agents.onboarding.no_provider_tail": "agent on teie esimene kontaktpunkt — alustage sealt, et õppida, kuidas SIDJUA töötab.",
+  "gui.settings.provider.advanced_config_required": "Laadige esmalt konfiguratsioon täpsema režiimi lubamiseks",
+  "gui.settings.provider.catalog_load_error": "Ei õnnestunud laadida teenusepakkujate kataloogi",
+  "gui.settings.provider.config_load_error": "Ei õnnestunud laadida teenusepakkuja konfiguratsiooni",
+  "gui.settings.provider.custom_fields_required": "Kohandatud teenusepakkujale {agent} vajatakse API baas-URLi, mudelit ja kuvandit"
 }

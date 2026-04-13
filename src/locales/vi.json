@@ -997,5 +997,16 @@
   "gui.audit.aria_to_date": "Đến ngày",
   "gui.audit.aria_filter_division": "Bộ phận",
   "gui.audit.aria_agent_id": "ID tác nhân",
-  "gui.audit.aria_event_type": "Loại sự kiện"
+  "gui.audit.aria_event_type": "Loại sự kiện",
+  "error.PCFG-006.message": "Khóa API là bản xem trước bị che, không phải khóa thật",
+  "error.PCFG-006.suggestion": "Nhập khóa API đầy đủ từ bảng điều khiển nhà cung cấp của bạn. Bản xem trước chỉ dùng để hiển thị.",
+  "gui.agents.onboarding.no_provider_emphasis": "Hướng dẫn",
+  "gui.agents.onboarding.no_provider_lead": "6 tác nhân này là đội khởi đầu của bạn. Chúng sẽ hoạt động đầy đủ khi bạn",
+  "gui.agents.onboarding.no_provider_link": "cấu hình nhà cung cấp LLM",
+  "gui.agents.onboarding.no_provider_mid": "trong Cài đặt. Tác nhân",
+  "gui.agents.onboarding.no_provider_tail": "là điểm liên hệ đầu tiên của bạn — bắt đầu từ đó để tìm hiểu cách SIDJUA hoạt động.",
+  "gui.settings.provider.advanced_config_required": "Tải cấu hình trước để kích hoạt chế độ nâng cao",
+  "gui.settings.provider.catalog_load_error": "Không thể tải danh mục nhà cung cấp",
+  "gui.settings.provider.config_load_error": "Không thể tải cấu hình nhà cung cấp",
+  "gui.settings.provider.custom_fields_required": "Nhà cung cấp tùy chỉnh cho {agent} yêu cầu URL cơ sở API, mô hình và tên hiển thị"
 }

@@ -989,5 +989,16 @@
   "gui.audit.aria_to_date": "तारीखपर्यंत",
   "gui.audit.aria_filter_division": "विभाग",
   "gui.audit.aria_agent_id": "एजंट ID",
-  "gui.audit.aria_event_type": "घटना प्रकार"
+  "gui.audit.aria_event_type": "घटना प्रकार",
+  "error.PCFG-006.message": "API की ही मास्क केलेली पूर्वावलोकन आहे, खरी की नाही",
+  "error.PCFG-006.suggestion": "प्रदात्याच्या डॅशबोर्डमधून पूर्ण API की प्रविष्ट करा. ही पूर्वावलोकन फक्त दर्शनार्थ आहे.",
+  "gui.agents.onboarding.no_provider_emphasis": "मार्गदर्शक",
+  "gui.agents.onboarding.no_provider_lead": "हे ६ एजंट्स हे तुमचे सुरुवातीचे टीम आहेत. ते पूर्णपणे कार्यरत होतात जेव्हा तुम्ही",
+  "gui.agents.onboarding.no_provider_link": "LLM प्रदाता संरचित करा",
+  "gui.agents.onboarding.no_provider_mid": "सेटिंग्जमध्ये. ही",
+  "gui.agents.onboarding.no_provider_tail": "एजंट ही तुमचा पहिला संपर्क बिंदू आहे — SIDJUA कसे कार्य करते ते जाणून घेण्यासाठी तेथून सुरुवात करा.",
+  "gui.settings.provider.advanced_config_required": "प्रगत मोड सक्रिय करण्यासाठी प्रथम संरचना लोड करा",
+  "gui.settings.provider.catalog_load_error": "प्रदाता सूची लोड होऊ शकली नाही",
+  "gui.settings.provider.config_load_error": "प्रदाता संरचना लोड होऊ शकली नाही",
+  "gui.settings.provider.custom_fields_required": "{agent} साठी सानुकूल प्रदात्यासाठी API आधार URL, मॉडेल आणि प्रदर्शन नाव आवश्यक आहे"
 }

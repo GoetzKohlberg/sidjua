@@ -989,5 +989,16 @@
   "gui.audit.aria_to_date": "Hadi tarehe",
   "gui.audit.aria_filter_division": "Idara",
   "gui.audit.aria_agent_id": "Kitambulisho cha Wakala",
-  "gui.audit.aria_event_type": "Aina ya tukio"
+  "gui.audit.aria_event_type": "Aina ya tukio",
+  "error.PCFG-006.message": "Kitufe cha API ni onyesho lililofichwa, si kitufe cha kweli",
+  "error.PCFG-006.suggestion": "Ingiza kitufe kamili cha API kutoka dashibodi ya mtoa huduma wako. Onyesho ni la kuonyesha pekee.",
+  "gui.agents.onboarding.no_provider_emphasis": "Mwongozo",
+  "gui.agents.onboarding.no_provider_lead": "Wakala hawa 6 ni timu yako ya kuanza. Wanakuwa wanaofanya kazi kikamilifu mara tu u",
+  "gui.agents.onboarding.no_provider_link": "sanidi mtoa huduma wa LLM",
+  "gui.agents.onboarding.no_provider_mid": "katika Mipangilio. ",
+  "gui.agents.onboarding.no_provider_tail": "wakala ni sehemu yako ya kwanza ya mawasiliano — anza hapo kujifunza jinsi SIDJUA inavyofanya kazi.",
+  "gui.settings.provider.advanced_config_required": "Pakua usanidi kwanza ili kuwezesha hali ya kina",
+  "gui.settings.provider.catalog_load_error": "Imeshindwa kupakia katabu ya mtoa huduma",
+  "gui.settings.provider.config_load_error": "Imeshindwa kupakia usanidi wa mtoa huduma",
+  "gui.settings.provider.custom_fields_required": "Mtoa huduma wa kibinafsi kwa {agent} unahitaji URL ya msingi ya API, muundo, na jina la kuonyesha"
 }

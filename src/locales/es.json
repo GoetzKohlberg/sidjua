@@ -997,5 +997,16 @@
   "gui.audit.aria_to_date": "Hasta la fecha",
   "gui.audit.aria_filter_division": "División",
   "gui.audit.aria_agent_id": "ID de agente",
-  "gui.audit.aria_event_type": "Tipo de evento"
+  "gui.audit.aria_event_type": "Tipo de evento",
+  "error.PCFG-006.message": "La clave API es una vista previa enmascarada, no la clave real",
+  "error.PCFG-006.suggestion": "Ingrese la clave API completa desde el panel de su proveedor. La vista previa es solo para visualización.",
+  "gui.agents.onboarding.no_provider_emphasis": "Guía",
+  "gui.agents.onboarding.no_provider_lead": "Estos 6 agentes son su equipo inicial. Se vuelven completamente operativos una vez que",
+  "gui.agents.onboarding.no_provider_link": "configure un proveedor de LLM",
+  "gui.agents.onboarding.no_provider_mid": "en Configuración. El",
+  "gui.agents.onboarding.no_provider_tail": "agente es su primer punto de contacto — comience allí para aprender cómo funciona SIDJUA.",
+  "gui.settings.provider.advanced_config_required": "Cargue la configuración primero para habilitar el modo avanzado",
+  "gui.settings.provider.catalog_load_error": "Error al cargar el catálogo de proveedores",
+  "gui.settings.provider.config_load_error": "Error al cargar la configuración del proveedor",
+  "gui.settings.provider.custom_fields_required": "El proveedor personalizado para {agent} requiere la URL base de la API, el modelo y un nombre de visualización"
 }

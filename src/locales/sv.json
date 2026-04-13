@@ -997,5 +997,16 @@
   "gui.audit.aria_to_date": "Till datum",
   "gui.audit.aria_filter_division": "Division",
   "gui.audit.aria_agent_id": "Agent-ID",
-  "gui.audit.aria_event_type": "Händelsetyp"
+  "gui.audit.aria_event_type": "Händelsetyp",
+  "error.PCFG-006.message": "API-nyckeln är en maskerad förhandsgranskning, inte den riktiga nyckeln",
+  "error.PCFG-006.suggestion": "Ange hela API-nyckeln från din leverantörsinstrumentpanel. Förhandsgranskningen är endast för visning.",
+  "gui.agents.onboarding.no_provider_emphasis": "Guider",
+  "gui.agents.onboarding.no_provider_lead": "Dessa 6 agenter är ditt startteam. De blir fullt operativa när du",
+  "gui.agents.onboarding.no_provider_link": "konfigurerar en LLM-leverantör",
+  "gui.agents.onboarding.no_provider_mid": "i Inställningar. Den",
+  "gui.agents.onboarding.no_provider_tail": "agenten är din första kontaktpunkt — börja där för att lära dig hur SIDJUA fungerar.",
+  "gui.settings.provider.advanced_config_required": "Ladda konfigurationen först för att aktivera avancerat läge",
+  "gui.settings.provider.catalog_load_error": "Kunde inte ladda leverantörskatalogen",
+  "gui.settings.provider.config_load_error": "Kunde inte ladda leverantörskonfigurationen",
+  "gui.settings.provider.custom_fields_required": "Anpassad leverantör för {agent} kräver API-bas-URL, modell och ett visningsnamn"
 }

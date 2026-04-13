@@ -997,5 +997,16 @@
   "gui.audit.aria_to_date": "Do daty",
   "gui.audit.aria_filter_division": "Dział",
   "gui.audit.aria_agent_id": "ID agenta",
-  "gui.audit.aria_event_type": "Typ zdarzenia"
+  "gui.audit.aria_event_type": "Typ zdarzenia",
+  "error.PCFG-006.message": "Klucz API to zamaskowany podgląd, a nie prawdziwy klucz",
+  "error.PCFG-006.suggestion": "Wprowadź pełny klucz API z panelu dostawcy. Podgląd służy tylko do wyświetlania.",
+  "gui.agents.onboarding.no_provider_emphasis": "Przewodnik",
+  "gui.agents.onboarding.no_provider_lead": "Ci 6 agenci to twój zespół startowy. Zostaną w pełni operacyjni, gdy",
+  "gui.agents.onboarding.no_provider_link": "skonfigurujesz dostawcę LLM",
+  "gui.agents.onboarding.no_provider_mid": "w Ustawieniach. Ten",
+  "gui.agents.onboarding.no_provider_tail": "agent jest twoim pierwszym punktem kontaktowym — zacznij od niego, aby dowiedzieć się, jak działa SIDJUA.",
+  "gui.settings.provider.advanced_config_required": "Najpierw załaduj konfigurację, aby włączyć tryb zaawansowany",
+  "gui.settings.provider.catalog_load_error": "Nie udało się załadować katalogu dostawców",
+  "gui.settings.provider.config_load_error": "Nie udało się załadować konfiguracji dostawcy",
+  "gui.settings.provider.custom_fields_required": "Niestandardowy dostawca dla {agent} wymaga bazowego adresu URL API, modelu i nazwy wyświetlanej"
 }
