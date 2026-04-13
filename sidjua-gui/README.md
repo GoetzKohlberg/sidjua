@@ -1,12 +1,12 @@
-# SIDJUA Desktop GUI
+# SIDJUA GUI
 
-Native desktop application for the [SIDJUA](../README.md) AI agent governance platform, built with **Tauri 2.0**, **React 18**, **TypeScript**, and **Vite 6**.
+Browser-native web UI for the [SIDJUA](../README.md) AI agent governance platform, built with **React 18**, **TypeScript**, and **Vite 6**.
 
 ---
 
 ## Overview
 
-The SIDJUA Desktop GUI provides a real-time monitoring and governance dashboard that connects to a running SIDJUA server over its REST API. It is a **pure API client** — all data and governance logic lives in the SIDJUA server process; the GUI only displays and controls it.
+The SIDJUA GUI provides a real-time monitoring and governance dashboard that connects to a running SIDJUA server over its REST API. It is a **pure API client** — all data and governance logic lives in the SIDJUA server process; the GUI only displays and controls it.
 
 ### Features
 
@@ -28,7 +28,6 @@ The SIDJUA Desktop GUI provides a real-time monitoring and governance dashboard 
 |---|---|
 | Node.js | 22+ |
 | npm | 10+ |
-| Rust + Cargo | stable (install from [rustup.rs](https://rustup.rs)) |
 
 ---
 
@@ -38,14 +37,11 @@ The SIDJUA Desktop GUI provides a real-time monitoring and governance dashboard 
 # Install dependencies
 npm install
 
-# Start Vite dev server only (no Tauri window)
+# Start Vite dev server
 npm run dev
-
-# Start with native Tauri window (requires Rust)
-npm run tauri:dev
 ```
 
-Open `http://localhost:1420` in a browser for the Vite-only dev experience (no native features).
+Open `http://localhost:1420` in a browser.
 
 ---
 
@@ -55,31 +51,17 @@ Open `http://localhost:1420` in a browser for the Vite-only dev experience (no n
 # Using the build script (recommended)
 ./scripts/build.sh
 
-# Specific platform cross-check
-./scripts/build.sh --target linux
-./scripts/build.sh --target macos
-./scripts/build.sh --target windows
-
-# Debug build (faster, larger binary)
-./scripts/build.sh --debug
-
-# Direct Tauri CLI
-npm run tauri:build
+# Direct Vite CLI
+npm run build
 ```
 
-Artifacts are produced in `src-tauri/target/release/bundle/`:
-
-| Platform | Format |
-|---|---|
-| Linux | `.deb`, `.rpm`, `.AppImage` |
-| macOS | `.dmg`, `.app` |
-| Windows | `.msi`, `.exe` (NSIS) |
+Web assets are produced in `dist/`.
 
 ---
 
 ## Configuration
 
-Connection settings (server URL + API key) are saved to browser `localStorage` by the Settings page. No config files are written to disk beyond Tauri's own state.
+Connection settings (server URL + API key) are saved to browser `localStorage` by the Settings page.
 
 ### Environment variables (Vite build time)
 
@@ -140,13 +122,8 @@ sidjua-gui/
 │   │   └── globals.css     # CSS custom properties, dark/light themes
 │   ├── App.tsx
 │   └── main.tsx
-├── src-tauri/
-│   ├── tauri.conf.json     # Tauri configuration, CSP, bundle metadata
-│   ├── Cargo.toml
-│   └── src/
-│       └── main.rs
 ├── scripts/
-│   └── build.sh            # Cross-platform build helper
+│   └── build.sh            # Web build helper
 ├── package.json
 ├── tsconfig.json
 └── vite.config.ts
