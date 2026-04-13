@@ -218,8 +218,8 @@ function AgentDetail({ agentId, onClose }: { agentId: string; onClose: () => voi
           })()}
         </div>
 
-        <DetailRow label="Created"  value={formatRelative(agent.created_at)} />
-        <DetailRow label="Updated"  value={formatRelative(agent.updated_at)} />
+        <DetailRow label={t('gui.agents.detail_created')}  value={formatRelative(agent.created_at)} />
+        <DetailRow label={t('gui.agents.detail_updated')}  value={formatRelative(agent.updated_at)} />
         <DetailRow label="Tasks done"   value={String(doneTotal)} />
         <DetailRow label="Tasks failed" value={String(failedTotal)} color={failedTotal > 0 ? 'var(--color-danger)' : undefined} />
       </div>

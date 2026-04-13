@@ -251,7 +251,7 @@ function ApiKeySection({ provider, isCustom, onSaved }: ApiKeySectionProps) {
               type="text"
               value={customName}
               onChange={(e) => setCustomName(e.target.value)}
-              placeholder="e.g. My Ollama, Anthropic Claude"
+              placeholder={t('gui.settings.provider.custom_name_example')}
               className="page-settings--input"
             />
           </label>
@@ -261,7 +261,7 @@ function ApiKeySection({ provider, isCustom, onSaved }: ApiKeySectionProps) {
               type="url"
               value={customBase}
               onChange={(e) => setCustomBase(e.target.value)}
-              placeholder="https://api.openai.com/v1 or http://localhost:11434/v1"
+              placeholder={t('gui.settings.provider.api_base_example')}
               className="page-settings--input"
               spellCheck={false}
             />
@@ -272,7 +272,7 @@ function ApiKeySection({ provider, isCustom, onSaved }: ApiKeySectionProps) {
               type="text"
               value={customModel}
               onChange={(e) => setCustomModel(e.target.value)}
-              placeholder="e.g. claude-sonnet-4-20250514, llama3.3:70b"
+              placeholder={t('gui.settings.provider.model_example')}
               className="page-settings--input"
               spellCheck={false}
             />
@@ -320,7 +320,7 @@ function ApiKeySection({ provider, isCustom, onSaved }: ApiKeySectionProps) {
       {/* Test result */}
       {testStatus === 'ok' && (
         <div className="page-settings--test-ok">
-          ✅ {testMessage}{responseMs !== null ? ` Response in ${responseMs}ms.` : ''}
+          ✅ {testMessage}{responseMs !== null ? ` ${t('gui.settings.provider.response_time', { ms: String(responseMs) })}` : ''}
         </div>
       )}
       {testStatus === 'error' && (
@@ -952,15 +952,15 @@ export function Settings() {
       <div>
         {/* Admin Password (P434c) */}
         <section className="page-settings--section">
-          <h2 className="page-settings--section-h2">Admin Password</h2>
+          <h2 className="page-settings--section-h2">{t('gui.settings.admin_password_header')}</h2>
 
           <label className="page-settings--label">
-            Current password
+            {t('gui.settings.current_password')}
             <input
               type="password"
               value={currentPw}
               onChange={(e) => setCurrentPw(e.target.value)}
-              placeholder="Current password"
+              placeholder={t('gui.settings.current_password')}
               className="page-settings--input"
               autoComplete="current-password"
               spellCheck={false}
@@ -968,12 +968,12 @@ export function Settings() {
           </label>
 
           <label className="page-settings--label">
-            New password
+            {t('gui.settings.new_password')}
             <input
               type="password"
               value={newPw}
               onChange={(e) => setNewPw(e.target.value)}
-              placeholder="At least 12 characters"
+              placeholder={t('gui.settings.new_password_hint')}
               className="page-settings--input"
               autoComplete="new-password"
               spellCheck={false}
@@ -981,12 +981,12 @@ export function Settings() {
           </label>
 
           <label className="page-settings--label">
-            Confirm new password
+            {t('gui.settings.confirm_new_password')}
             <input
               type="password"
               value={confirmPw}
               onChange={(e) => setConfirmPw(e.target.value)}
-              placeholder="Repeat new password"
+              placeholder={t('gui.settings.confirm_new_password_hint')}
               className="page-settings--input"
               autoComplete="new-password"
               spellCheck={false}
@@ -1003,7 +1003,7 @@ export function Settings() {
               disabled={pwBusy || !currentPw || !newPw || !confirmPw}
               style={primaryButtonStyle(pwBusy || !currentPw || !newPw || !confirmPw)}
             >
-              {pwBusy ? <LoadingSpinner size="sm" label="Saving…" /> : 'Change Password'}
+              {pwBusy ? <LoadingSpinner size="sm" label="Saving…" /> : t('gui.settings.change_password_button')}
             </button>
           </div>
         </section>

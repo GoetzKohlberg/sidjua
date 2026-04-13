@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { API_PATHS } from '../api/paths';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
+import { useTranslation } from '../hooks/useTranslation';
 
 
 const MIN_PASSWORD_LENGTH = 12;
@@ -14,6 +15,7 @@ const MIN_PASSWORD_LENGTH = 12;
 export function Setup() {
   const navigate           = useNavigate();
   const { onLoginSuccess } = useAuth();
+  const { t }              = useTranslation();
 
   const [password,  setPassword]  = useState('');
   const [confirm,   setConfirm]   = useState('');
@@ -98,7 +100,7 @@ export function Setup() {
             color:     'var(--color-text-secondary)',
             marginTop: '6px',
           }}>
-            Set an admin password to continue
+            {t('gui.setup.subtitle')}
           </p>
         </div>
 

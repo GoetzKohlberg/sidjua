@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useRef, useCallback } from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export interface UploadResult {
   upload_id:         string;
@@ -37,6 +38,7 @@ export function ChatUploadZone({
   disabled,
   children,
 }: ChatUploadZoneProps) {
+  const { t }                                  = useTranslation();
   const [isDragging,      setIsDragging]      = useState(false);
   const [uploading,       setUploading]       = useState(false);
   const [uploadProgress,  setUploadProgress]  = useState<string | null>(null);
@@ -148,7 +150,7 @@ export function ChatUploadZone({
             <polyline points="17 8 12 3 7 8"/>
             <line x1="12" y1="3" x2="12" y2="15"/>
           </svg>
-          Drop file to upload
+          {t('gui.chat.drop_file')}
         </div>
       )}
 

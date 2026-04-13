@@ -110,7 +110,7 @@ export function AgentCard({ agent, selected = false, onClick, llmStatus, provide
 
             {/* Status dot */}
             <span
-              title={active ? 'Active' : 'Inactive'}
+              title={active ? t('gui.agents.status_active') : t('gui.agents.status_inactive')}
               style={{
                 display:      'inline-flex',
                 alignItems:   'center',
@@ -126,7 +126,7 @@ export function AgentCard({ agent, selected = false, onClick, llmStatus, provide
                 background:   active ? 'var(--color-success)' : 'var(--color-text-muted)',
                 flexShrink:   0,
               }} />
-              {active ? 'active' : 'inactive'}
+              {(active ? t('gui.agents.status_active') : t('gui.agents.status_inactive')).toLowerCase()}
             </span>
           </div>
         </div>

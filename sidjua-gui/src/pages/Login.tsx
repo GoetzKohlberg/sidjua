@@ -7,11 +7,13 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { API_PATHS } from '../api/paths';
 import { LoadingSpinner } from '../components/shared/LoadingSpinner';
+import { useTranslation } from '../hooks/useTranslation';
 
 
 export function Login() {
   const navigate           = useNavigate();
   const { onLoginSuccess } = useAuth();
+  const { t }              = useTranslation();
 
   const [password, setPassword] = useState('');
   const [loading,  setLoading]  = useState(false);
@@ -90,7 +92,7 @@ export function Login() {
             color:     'var(--color-text-secondary)',
             marginTop: '6px',
           }}>
-            Sign in to continue
+            {t('gui.login.subtitle')}
           </p>
         </div>
 

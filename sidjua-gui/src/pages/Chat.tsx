@@ -112,11 +112,12 @@ function ChatHeader({
   onBack:     () => void;
   showApply?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="page-chat--header">
       <button
         onClick={onBack}
-        aria-label="Back to Agents"
+        aria-label={t('gui.chat.back_to_agents')}
         className="page-chat--back-btn"
       >
         <ArrowLeft size={16} />
@@ -138,8 +139,8 @@ function ChatHeader({
       {showApply && <button
         onClick={onApply}
         disabled={applyState === 'running'}
-        aria-label="Apply configuration"
-        title="Apply configuration"
+        aria-label={t('gui.chat.apply_config_title')}
+        title={t('gui.chat.apply_config_title')}
         style={{
           display:      'inline-flex',
           alignItems:   'center',
@@ -176,13 +177,14 @@ function ChatHeader({
 
 
 function ToolCallCard({ message }: { message: Message }) {
+  const { t } = useTranslation();
   return (
     <div className="page-chat--tool-call-wrap">
       <div className="page-chat--tool-call-card">
         <div className="page-chat--tool-call-header">
           <span className="page-chat--tool-icon">⚙</span>
           <strong style={{ color: 'var(--color-text-secondary)' }}>
-            Calling tool: {message.toolName ?? message.content}
+            {t('gui.chat.calling_tool_prefix')} {message.toolName ?? message.content}
           </strong>
         </div>
         {message.toolName && (

@@ -924,5 +924,34 @@
   "gui.roles.system_seed.finance.name": "Financial Controller",
   "gui.roles.system_seed.finance.description": "Tracks budgets, generates cost reports, monitors spending across agents and divisions, and handles invoicing.",
   "gui.roles.system_seed.librarian.name": "Librarian",
-  "gui.roles.system_seed.librarian.description": "Knowledge curator — manages documents, maintains the archive, handles search and retrieval, and keeps the knowledge base organized."
+  "gui.roles.system_seed.librarian.description": "Knowledge curator — manages documents, maintains the archive, handles search and retrieval, and keeps the knowledge base organized.",
+
+  "gui.settings.admin_password_header": "Admin Password",
+  "gui.settings.change_password_button": "Change Password",
+  "gui.settings.confirm_new_password": "Confirm new password",
+  "gui.settings.confirm_new_password_hint": "Repeat new password",
+  "gui.settings.current_password": "Current password",
+  "gui.settings.new_password": "New password",
+  "gui.settings.new_password_hint": "At least 12 characters",
+  "gui.settings.provider.api_base_example": "https://api.openai.com/v1 or http://localhost:11434/v1",
+  "gui.settings.provider.custom_name_example": "e.g. My Ollama, Anthropic Claude",
+  "gui.settings.provider.model_example": "e.g. claude-sonnet-4-20250514, llama3.3:70b",
+  "gui.settings.provider.response_time": "Response in {ms}ms.",
+
+  "gui.agents.detail_created": "Created",
+  "gui.agents.detail_updated": "Updated",
+  "gui.agents.status_active": "Active",
+  "gui.agents.status_inactive": "Inactive",
+
+  "gui.audit.detail_entry_id": "Entry ID",
+  "gui.audit.detail_outcome": "Outcome",
+
+  "gui.chat.apply_config_title": "Apply configuration",
+  "gui.chat.back_to_agents": "Back to Agents",
+  "gui.chat.calling_tool_prefix": "Calling tool:",
+  "gui.chat.drop_file": "Drop file to upload",
+
+  "gui.login.subtitle": "Sign in to continue",
+
+  "gui.setup.subtitle": "Set an admin password to continue"
 }

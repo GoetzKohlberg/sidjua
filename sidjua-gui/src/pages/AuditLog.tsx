@@ -173,8 +173,8 @@ function DetailPanel({ entry, onClose }: { entry: AuditEntry; onClose: () => voi
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 24px', marginBottom: '16px' }}>
         {[
-          { label: 'Entry ID',    value: String(entry.id) },
-          { label: 'Outcome',     value: entry.outcome ?? '—' },
+          { label: t('gui.audit.detail_entry_id'),  value: String(entry.id) },
+          { label: t('gui.audit.detail_outcome'),   value: entry.outcome ?? '—' },
           { label: 'Agent',       value: entry.agent_id ?? '—' },
           { label: 'Division',    value: entry.division_code ?? '—' },
           { label: 'Task',        value: entry.parent_task_id ?? '—' },
