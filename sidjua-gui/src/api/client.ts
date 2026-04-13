@@ -388,8 +388,9 @@ export class SidjuaApiClient {
 
   saveProviderConfig(body: {
     mode: 'simple' | 'advanced';
-    default_provider: { provider_id: string; api_key: string; api_base?: string; model?: string; custom_name?: string } | null;
-    agent_overrides?: Record<string, { provider_id: string; api_key: string; api_base?: string; model?: string }>;
+    // api_key is optional: omit to keep existing server-side key (D5 mandate)
+    default_provider: { provider_id: string; api_key?: string; api_base?: string; model?: string; custom_name?: string } | null;
+    agent_overrides?: Record<string, { provider_id: string; api_key?: string; api_base?: string; model?: string; custom_name?: string }>;
   }): Promise<ProviderConfigResponse> { return this.put(API_PATHS.providerConfig(), body); }
 
   deleteProviderConfig(): Promise<{ configured: false; message: string }> { return this.delete(API_PATHS.providerConfig()); }
