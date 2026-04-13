@@ -15,14 +15,13 @@
  *   5. All interpolation placeholders {name} from en.json preserved in every locale
  *   6. _template.json has same keys as en.json (ignoring _meta keys)
  *   7. No orphan keys (keys in locale but not in en.json)
- *   8. [XX] placeholder stubs: failure by default; use --allow-stubs for
- *      transition period (remove --allow-stubs flag after PM1 fills all stubs)
+ *   8. [XX] placeholder stubs are treated as failures. Run `npm run i18n:translate`
+ *      to fill missing translations.
  *
  * Exit code: 0 = all green, 1 = warnings only, 2 = failures
  *
  * Usage:
- *   npm run i18n:check          # --allow-stubs mode (transition period)
- *   npm run i18n:check:strict   # stubs treated as failures
+ *   npm run i18n:check
  */
 
 import { readFileSync, existsSync, readdirSync } from "node:fs";
@@ -81,10 +80,6 @@ function pad(s: string, n: number): string {
 // ---------------------------------------------------------------------------
 
 function main(): void {
-  // --allow-stubs: transition flag — remove after PM1 fills all stubs.
-  // Default: stubs are FAILURES. With --allow-stubs: stubs are warnings.
-  const allowStubs = process.argv.includes("--allow-stubs");
-
   const enPath = join(LOCALES, "en.json");
   if (!existsSync(enPath)) {
     process.stderr.write("FATAL: src/locales/en.json not found\n");
@@ -224,14 +219,9 @@ function main(): void {
   // Check 8: [XX] placeholder stubs
   const stubLocales = results.filter((r) => r.stubs > 0);
   if (stubLocales.length > 0) {
-    const msg = `${stubLocales.length} locale(s) contain [XX] placeholder stubs (untranslated). Run npm run i18n:translate after PM1 ships.`;
-    if (allowStubs) {
-      process.stdout.write(`\nWARN (--allow-stubs): ${msg}\n`);
-      hasWarnings = true;
-    } else {
-      process.stderr.write(`\nFAIL: ${msg}\n`);
-      hasFailures = true;
-    }
+    const msg = `${stubLocales.length} locale(s) contain [XX] placeholder stubs (untranslated). Run npm run i18n:translate to fill them.`;
+    process.stderr.write(`\nFAIL: ${msg}\n`);
+    hasFailures = true;
   }
 
   if (hasFailures) {

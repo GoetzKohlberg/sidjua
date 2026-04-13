@@ -575,7 +575,10 @@ async function translateLocale(
   const sampleSize = Math.max(1, Math.floor(keys.length * 0.1));
   const sample     = keys.slice(0, sampleSize);
   const identical  = sample.filter((k) => translations![k] === enData[k]).length;
-  if (identical / sampleSize > 0.20 && locale !== "en") {
+  // pcm (Nigerian Pidgin) legitimately shares a large vocabulary with English;
+  // high lexical overlap is expected and is not an indication of a failed translation.
+  const englishLeakExempt = new Set(["pcm"]);
+  if (identical / sampleSize > 0.20 && locale !== "en" && !englishLeakExempt.has(locale)) {
     process.stderr.write(
       `  [${locale}] SKIP: English-leak check — ${identical}/${sampleSize} sample translations identical to source.\n`
     );
