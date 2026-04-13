@@ -14,6 +14,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useToast } from './Toast';
 import { useAppConfig } from '../../lib/config';
+import { LOCALE_REGISTRY, REGION_ORDER } from '../../i18n/locale-registry';
 
 
 function GlobeIcon() {
@@ -37,43 +38,6 @@ function GlobeIcon() {
 }
 
 
-interface LangMeta {
-  name:        string;   // English name
-  nativeName:  string;   // Native name
-  region:      string;   // Region group for UI
-  aiGenerated: boolean;
-}
-
-const LANG_META: Record<string, LangMeta> = {
-  en:    { name: 'English',               nativeName: 'English',             region: 'Americas',      aiGenerated: false },
-  es:    { name: 'Spanish',               nativeName: 'Español',             region: 'Americas',      aiGenerated: true  },
-  'pt-BR': { name: 'Portuguese (Brazil)', nativeName: 'Português (Brasil)',  region: 'Americas',      aiGenerated: true  },
-  de:    { name: 'German',                nativeName: 'Deutsch',             region: 'Europe',        aiGenerated: false },
-  fr:    { name: 'French',                nativeName: 'Français',            region: 'Europe',        aiGenerated: true  },
-  it:    { name: 'Italian',               nativeName: 'Italiano',            region: 'Europe',        aiGenerated: true  },
-  nl:    { name: 'Dutch',                 nativeName: 'Nederlands',          region: 'Europe',        aiGenerated: true  },
-  pl:    { name: 'Polish',                nativeName: 'Polski',              region: 'Europe',        aiGenerated: true  },
-  cs:    { name: 'Czech',                 nativeName: 'Čeština',             region: 'Europe',        aiGenerated: true  },
-  ro:    { name: 'Romanian',              nativeName: 'Română',              region: 'Europe',        aiGenerated: true  },
-  ru:    { name: 'Russian',               nativeName: 'Русский',             region: 'Europe',        aiGenerated: true  },
-  uk:    { name: 'Ukrainian',             nativeName: 'Українська',          region: 'Europe',        aiGenerated: true  },
-  sv:    { name: 'Swedish',               nativeName: 'Svenska',             region: 'Europe',        aiGenerated: true  },
-  tr:    { name: 'Turkish',               nativeName: 'Türkçe',              region: 'Europe',        aiGenerated: true  },
-  ar:    { name: 'Arabic',                nativeName: 'العربية',             region: 'Middle East',   aiGenerated: true  },
-  hi:    { name: 'Hindi',                 nativeName: 'हिन्दी',               region: 'Asia',          aiGenerated: true  },
-  bn:    { name: 'Bengali',               nativeName: 'বাংলা',               region: 'Asia',          aiGenerated: true  },
-  fil:   { name: 'Filipino',              nativeName: 'Filipino',            region: 'Asia',          aiGenerated: true  },
-  id:    { name: 'Indonesian',            nativeName: 'Bahasa Indonesia',    region: 'Asia',          aiGenerated: true  },
-  ms:    { name: 'Malay',                 nativeName: 'Bahasa Melayu',       region: 'Asia',          aiGenerated: true  },
-  th:    { name: 'Thai',                  nativeName: 'ไทย',                 region: 'Asia',          aiGenerated: true  },
-  vi:    { name: 'Vietnamese',            nativeName: 'Tiếng Việt',          region: 'Asia',          aiGenerated: true  },
-  ja:    { name: 'Japanese',              nativeName: '日本語',               region: 'Asia',          aiGenerated: true  },
-  ko:    { name: 'Korean',                nativeName: '한국어',               region: 'Asia',          aiGenerated: true  },
-  'zh-CN': { name: 'Chinese (Simplified)',   nativeName: '简体中文',          region: 'Asia',          aiGenerated: true  },
-  'zh-TW': { name: 'Chinese (Traditional)', nativeName: '繁體中文',          region: 'Asia',          aiGenerated: true  },
-};
-
-const REGION_ORDER = ['Americas', 'Europe', 'Middle East', 'Asia'];
 
 
 export function LanguageSelector() {
@@ -81,7 +45,7 @@ export function LanguageSelector() {
   const { config }                = useAppConfig();
   const toast                     = useToast();
   const [open, setOpen]           = useState(false);
-  const [available, setAvailable] = useState<string[]>(['en', 'de']);
+  const [available, setAvailable] = useState<string[]>(Object.keys(LOCALE_REGISTRY));
   const containerRef              = useRef<HTMLDivElement>(null);
 
   // Fetch available locales from the API on mount
@@ -128,14 +92,14 @@ export function LanguageSelector() {
   // Group available locales by region
   const byRegion: Record<string, string[]> = {};
   for (const code of available) {
-    const region = LANG_META[code]?.region ?? 'Other';
+    const region = LOCALE_REGISTRY[code]?.region ?? 'Other';
     if (!byRegion[region]) byRegion[region] = [];
     byRegion[region].push(code);
   }
   const regions = REGION_ORDER.filter((r) => byRegion[r]?.length);
   if (byRegion['Other']?.length) regions.push('Other');
 
-  const currentMeta = LANG_META[locale];
+  const currentMeta = LOCALE_REGISTRY[locale];
 
   return (
     <div ref={containerRef} style={{ position: 'relative', flexShrink: 0 }}>
@@ -203,7 +167,7 @@ export function LanguageSelector() {
 
               {/* Languages in this region */}
               {(byRegion[region] ?? []).map((code) => {
-                const meta      = LANG_META[code];
+                const meta      = LOCALE_REGISTRY[code];
                 const isSelected = code === locale;
                 return (
                   <div key={code} role="option" aria-selected={isSelected}>
