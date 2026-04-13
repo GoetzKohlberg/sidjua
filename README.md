@@ -720,6 +720,35 @@ Found a translation error? Please open a GitHub Issue with:
 - The incorrect text or the key from the locale file (e.g. `gui.nav.dashboard`)
 - The correct translation
 
+### i18n workflow — mandatory
+
+SIDJUA has 44 production locales. Every key in `src/locales/en.json` must have
+a real translation in every other production locale. There are no stubs,
+no whitelists, no soft locales.
+
+When you add a new user-facing string:
+
+1. Add the key to `src/locales/en.json`. Use a natural English source string
+   with `{placeholder}` tokens for interpolation.
+2. Use `t('your.key')` in the component or backend response.
+3. Run `npm run i18n:translate` — propagates the key to every other locale
+   via xAI grok-4-1-fast (one call per locale, 2M context). Preserves
+   existing translations for unrelated keys. A full sweep takes 3-8 minutes;
+   incremental `--only-new` takes seconds. Cost is negligible (under
+   $0.01 for a handful of new keys at xAI pricing).
+4. Review the diff. Commit `src/locales/` changes in the same commit as the
+   `en.json` change. One commit, all locales.
+
+Requirements:
+- API keys live in `$HOME/.sidjua-env` on the dev host — populated once during PM1.
+  Default provider: `xai` (grok-4-1-fast, 2M context, one call per locale). Override
+  via `I18N_TRANSLATE_PROVIDER=deepseek` if xAI is down or a specific locale
+  produces gibberish.
+- CI enforces this: `scripts/check-i18n-completeness.ts` fails the build if
+  `en.json` has keys that any production locale is missing or stubbing.
+- Never hand-edit a non-English locale file. The translate script is the
+  only path that writes to those files.
+
 Want to maintain a language? See [CONTRIBUTING.md](CONTRIBUTING.md#translations) — we use a per-language maintainer model.
 
 ---
