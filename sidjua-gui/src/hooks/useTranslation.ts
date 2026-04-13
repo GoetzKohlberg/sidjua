@@ -28,16 +28,52 @@ import type { LocaleStringsResponse } from '../api/types';
 const _cache       = new Map<string, Record<string, string>>();
 const _subscribers = new Set<() => void>();
 
-// Detect browser locale on module init (runs once when the module is first imported).
-// Uses navigator.language (e.g. "de-DE") → strips region → "de".
+const LS_KEY = 'sidjua_locale';
+
+// Detect locale on module init (runs once when the module is first imported).
+// Priority: localStorage saved preference → navigator.language → "en".
 // Falls back to "en" in SSR/test environments where window is undefined.
 function detectInitialLocale(): string {
   if (typeof window === 'undefined') return 'en';
+  const saved = localStorage.getItem(LS_KEY);
+  if (saved && saved.trim() !== '') return saved.trim();
   const lang = navigator.language ?? 'en';
   return lang.split('-')[0].toLowerCase() || 'en';
 }
 
 let _locale = detectInitialLocale();
+
+// On startup, reconcile localStorage locale with server (best-effort, fire-and-forget).
+// This ensures that a locale saved in localStorage from a previous session is reflected
+// in the server's workspace_config, enabling consistent behaviour across GUI and CLI.
+if (typeof window !== 'undefined') {
+  const _savedLocale = localStorage.getItem(LS_KEY);
+  if (_savedLocale && _savedLocale.trim() !== '') {
+    // Defer to avoid blocking module init — run after the current microtask queue.
+    Promise.resolve().then(async () => {
+      try {
+        // Import lazily to avoid circular dependency on getRuntimeApiKey at module init
+        const { getRuntimeApiKey } = await import('../lib/config');
+        const { getCsrfToken }     = await import('../lib/csrf');
+        const key  = getRuntimeApiKey();
+        const csrf = getCsrfToken();
+        const headers: Record<string, string> = {
+          'Content-Type':     'application/json',
+          'X-SIDJUA-Request': '1',
+        };
+        if (key)  headers['Authorization'] = `Bearer ${key}`;
+        if (csrf) headers['X-CSRF-Token']  = csrf;
+        await fetch(API_PATHS.localeSet(), {
+          method:  'POST',
+          headers,
+          body:    JSON.stringify({ locale: _savedLocale.trim() }),
+        });
+      } catch (_e) {
+        // Non-fatal — server reconciliation is best-effort
+      }
+    });
+  }
+}
 
 function _notify() {
   for (const fn of _subscribers) fn();
@@ -141,13 +177,15 @@ export function useTranslation(): UseTranslationResult {
     // Load locale data (no-op if already cached)
     await _loadLocale(newLocale);
 
+    // Persist to localStorage immediately — survives page reload independently of server.
+    try { localStorage.setItem(LS_KEY, newLocale); } catch (_e) { /* quota or privacy mode */ }
+
     // Update GUI locale UNCONDITIONALLY — independent of server persistence.
     // All mounted useTranslation hooks re-render with the new strings immediately.
     _locale = newLocale;
     _notify();
 
     // Best-effort persist to server (include auth headers so the endpoint accepts the request).
-    // Non-server-supported locales (e.g. es, fil) return 400 — that is expected and non-fatal.
     let serverPersisted = false;
     try {
       const key  = getRuntimeApiKey();
@@ -165,7 +203,7 @@ export function useTranslation(): UseTranslationResult {
       });
       serverPersisted = res.ok;
     } catch (_e) {
-      // Non-fatal — locale already switched in-browser
+      // Non-fatal — locale already switched in-browser and persisted to localStorage
     }
 
     return { serverPersisted };

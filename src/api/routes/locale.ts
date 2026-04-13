@@ -27,16 +27,16 @@ import {
 import { runWorkspaceConfigMigration } from "../workspace-config-migration.js";
 
 // ---------------------------------------------------------------------------
-// Server-supported locales
+// CLI locales
 //
-// The server uses locale strings in CLI output and API error messages.
-// Only locales with human-maintained translations are "server-supported".
-// GUI clients may use any locale client-side — they download strings directly
-// via GET /api/v1/locale/:locale and render everything in the browser.
+// The server uses these for CLI output and API error messages only.
+// GUI clients work with all available locales client-side — they download
+// strings via GET /api/v1/locale/:locale and render in the browser.
+// Persistence (POST /api/v1/config/locale) accepts any available locale.
 // ---------------------------------------------------------------------------
 
-/** Locales with full, human-maintained server-side translation support. */
-const SERVER_SUPPORTED_LOCALES: string[] = ["en", "de"];
+/** Locales used for server-side CLI output and API error messages. */
+const SERVER_CLI_LOCALES: string[] = ["en", "de"];
 
 
 /**
@@ -159,7 +159,16 @@ export function registerLocaleRoutes(
     return c.json({ locale, strings, completeness });
   });
 
-  // POST /api/v1/config/locale — set workspace locale
+  // GET /api/v1/config/locale — return persisted locale (or current in-process locale)
+  app.get("/api/v1/config/locale", requireScope("operator"), (c) => {
+    const persisted = db !== null && db !== undefined
+      ? getCurrentLocaleFromDb(db) ?? getLocale()
+      : getLocale();
+    const isCli = SERVER_CLI_LOCALES.includes(persisted);
+    return c.json({ locale: persisted, serverCli: isCli });
+  });
+
+  // POST /api/v1/config/locale — set workspace locale (any available locale accepted)
   app.post("/api/v1/config/locale", requireScope("operator"), async (c) => {
     let body: { locale?: string };
     try {
@@ -175,20 +184,6 @@ export function registerLocaleRoutes(
       return c.json({ error: { code: "LOCALE-003", message: `Unknown locale: ${locale ?? ""}` } }, 400);
     }
 
-    // Restrict server-side persistence to fully-supported locales.
-    // GUI clients work with all 26 languages client-side; the server only
-    // uses the locale for CLI output and API error messages.
-    if (!SERVER_SUPPORTED_LOCALES.includes(locale)) {
-      return c.json({
-        error: {
-          code:        "LOCALE-001",
-          message:     `Locale '${locale}' is not fully supported on the server. Supported: ${SERVER_SUPPORTED_LOCALES.join(", ")}`,
-          recoverable: true,
-          suggestion:  "Use a supported locale or contribute translations",
-        },
-      }, 400);
-    }
-
     // Persist to DB if available
     if (db !== null && db !== undefined) {
       try {
@@ -201,10 +196,11 @@ export function registerLocaleRoutes(
       }
     }
 
-    // Update in-process locale
+    // Update in-process locale (affects CLI output and API error messages for CLI locales)
     setLocale(locale);
 
-    return c.json({ success: true, locale });
+    const serverCli = SERVER_CLI_LOCALES.includes(locale);
+    return c.json({ success: true, locale, serverCli });
   });
 }
 

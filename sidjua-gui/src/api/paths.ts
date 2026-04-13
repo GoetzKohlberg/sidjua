@@ -77,6 +77,7 @@ export const API_PATHS = {
   // Locale (i18n)
   locale:                ()             => `${API_PREFIX}/locale`,
   localeStrings:         (code: string) => `${API_PREFIX}/locale/${code}`,
+  localeGet:             ()             => `${API_PREFIX}/config/locale`,
   localeSet:             ()             => `${API_PREFIX}/config/locale`,
 
   // Apply configuration
