@@ -206,6 +206,7 @@ const ERROR_REGISTRY: Readonly<Record<string, ErrorCodeEntry>> = {
 
   // Provider config disk persistence
   "PCFG-005": { code: "PCFG-005", category: ErrorCategory.PROVIDER_CONFIG, message: "Provider config disk write failed", recoverable: false, suggestion: "Ensure the data directory is writable or set SIDJUA_EPHEMERAL=true for in-memory mode" },
+  "PCFG-006": { code: "PCFG-006", category: ErrorCategory.PROVIDER_CONFIG, message: "API key is a masked preview, not the real key", recoverable: false, suggestion: "Enter the full API key from your provider dashboard. The preview is display-only and cannot be used for authentication." },
 
   // Module sandbox
   "MOD-001": { code: "MOD-001", category: ErrorCategory.MODULE, message: "Module tool execution failed in sandbox", recoverable: true,  suggestion: "Check module configuration and retry" },
