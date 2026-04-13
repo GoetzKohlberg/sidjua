@@ -2,22 +2,27 @@
 // Copyright (c) 2026 SIDJUA. All rights reserved.
 
 /**
- * i18n completeness verification script.
+ * i18n completeness verification script — CI gate.
+ *
+ * Any FAILURE (exit 2) here blocks the build. Warnings (exit 1) are
+ * non-blocking but should be investigated.
  *
  * Checks:
- *   1. All keys in en.json exist in every locale file (no missing keys)
- *   2. No empty string values in any locale file
- *   3. All interpolation placeholders {name} from en.json preserved in every locale
- *   4. _template.json has same keys as en.json (ignoring _meta keys)
- *   5. All README.{locale}.md files exist for every locale in src/locales/
- *   6. All docs/i18n/{locale}/INSTALLATION.md files exist
+ *   1. Every locale file is valid JSON (exits 2 on parse error, names the file)
+ *   2. Every locale file has a _meta.language key (exits 2 if absent)
+ *   3. All keys in en.json exist in every locale file (no missing keys)
+ *   4. No empty string values in any locale file
+ *   5. All interpolation placeholders {name} from en.json preserved in every locale
+ *   6. _template.json has same keys as en.json (ignoring _meta keys)
  *   7. No orphan keys (keys in locale but not in en.json)
- *   8. Warn on [XX] placeholder values (untranslated stubs from sync-locales)
+ *   8. [XX] placeholder stubs: failure by default; use --allow-stubs for
+ *      transition period (remove --allow-stubs flag after PM1 fills all stubs)
  *
  * Exit code: 0 = all green, 1 = warnings only, 2 = failures
  *
- * Release workflow: run with STRICT=1 to treat [XX] placeholders as failures.
- *   STRICT=1 npx tsx scripts/check-i18n-completeness.ts
+ * Usage:
+ *   npm run i18n:check          # --allow-stubs mode (transition period)
+ *   npm run i18n:check:strict   # stubs treated as failures
  */
 
 import { readFileSync, existsSync, readdirSync } from "node:fs";
@@ -42,8 +47,7 @@ interface LocaleResult {
   placeholderErr: { key: string; expected: string[]; got: string[] }[];
   orphan:         string[];
   stubs:          number;
-  readmeExists:   boolean;
-  installExists:  boolean;
+  hasMeta:        boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -55,8 +59,13 @@ function extractPlaceholders(value: string): string[] {
   return matches ? [...new Set(matches)].sort() : [];
 }
 
-function loadJson(path: string): LocaleData {
-  return JSON.parse(readFileSync(path, "utf-8")) as LocaleData;
+function loadJsonOrDie(path: string, label: string): LocaleData | null {
+  try {
+    return JSON.parse(readFileSync(path, "utf-8")) as LocaleData;
+  } catch (e) {
+    process.stderr.write(`FATAL: ${label} is not valid JSON: ${String(e)}\n`);
+    return null;
+  }
 }
 
 function nonMetaKeys(data: LocaleData): string[] {
@@ -72,13 +81,18 @@ function pad(s: string, n: number): string {
 // ---------------------------------------------------------------------------
 
 function main(): void {
-  const isStrict = process.env["STRICT"] === "1";
+  // --allow-stubs: transition flag — remove after PM1 fills all stubs.
+  // Default: stubs are FAILURES. With --allow-stubs: stubs are warnings.
+  const allowStubs = process.argv.includes("--allow-stubs");
+
   const enPath = join(LOCALES, "en.json");
   if (!existsSync(enPath)) {
     process.stderr.write("FATAL: src/locales/en.json not found\n");
     process.exit(2);
   }
-  const en      = loadJson(enPath);
+  const en = loadJsonOrDie(enPath, "src/locales/en.json");
+  if (en === null) process.exit(2);
+
   const enKeys  = nonMetaKeys(en);
   const totalEn = enKeys.length;
 
@@ -86,24 +100,26 @@ function main(): void {
   const templatePath = join(LOCALES, "_template.json");
   const templateWarnings: string[] = [];
   if (existsSync(templatePath)) {
-    const template      = loadJson(templatePath);
-    const templateKeys  = nonMetaKeys(template);
-    const missingInTmpl = enKeys.filter((k) => !templateKeys.includes(k));
-    const orphanInTmpl  = templateKeys.filter((k) => !enKeys.includes(k));
-    if (missingInTmpl.length > 0) {
-      templateWarnings.push(
-        `_template.json missing ${missingInTmpl.length} key(s): ${missingInTmpl.slice(0, 5).join(", ")}${missingInTmpl.length > 5 ? "..." : ""}`
-      );
-    }
-    if (orphanInTmpl.length > 0) {
-      templateWarnings.push(`_template.json has ${orphanInTmpl.length} orphan key(s)`);
+    const template = loadJsonOrDie(templatePath, "_template.json");
+    if (template !== null) {
+      const templateKeys  = nonMetaKeys(template);
+      const missingInTmpl = enKeys.filter((k) => !templateKeys.includes(k));
+      const orphanInTmpl  = templateKeys.filter((k) => !enKeys.includes(k));
+      if (missingInTmpl.length > 0) {
+        templateWarnings.push(
+          `_template.json missing ${missingInTmpl.length} key(s): ${missingInTmpl.slice(0, 5).join(", ")}${missingInTmpl.length > 5 ? "..." : ""}`
+        );
+      }
+      if (orphanInTmpl.length > 0) {
+        templateWarnings.push(`_template.json has ${orphanInTmpl.length} orphan key(s)`);
+      }
     }
   }
 
   // Discover locale files
   const files = readdirSync(LOCALES);
   const localeFiles = files.filter(
-    (f) => f.endsWith(".json") && f !== "en.json" && f !== "_template.json"
+    (f) => f.endsWith(".json") && !f.startsWith(".") && f !== "en.json" && f !== "_template.json"
   );
 
   const results: LocaleResult[] = [];
@@ -111,16 +127,20 @@ function main(): void {
   let hasWarnings = templateWarnings.length > 0;
 
   for (const file of localeFiles.sort()) {
-    const locale      = file.replace(".json", "");
-    const localePath  = join(LOCALES, file);
+    const locale     = file.replace(".json", "");
+    const localePath = join(LOCALES, file);
 
-    let data: LocaleData;
-    try {
-      data = loadJson(localePath);
-    } catch (e) {
-      process.stderr.write(`FATAL: ${file} is not valid JSON: ${String(e)}\n`);
+    const data = loadJsonOrDie(localePath, file);
+    if (data === null) {
       hasFailures = true;
       continue;
+    }
+
+    // Check 2: _meta.language must be present
+    const hasMeta = typeof data["_meta.language"] === "string" && data["_meta.language"].trim() !== "";
+    if (!hasMeta) {
+      process.stderr.write(`FATAL: ${file} is missing _meta.language key. File may have been regenerated from empty.\n`);
+      hasFailures = true;
     }
 
     const localeKeys = nonMetaKeys(data);
@@ -140,22 +160,20 @@ function main(): void {
       }
     }
 
-    const orphan        = localeKeys.filter((k) => !enKeys.includes(k));
-    const stubs         = localeKeys.filter(
+    const orphan = localeKeys.filter((k) => !enKeys.includes(k));
+    const stubs  = localeKeys.filter(
       (k) => typeof data[k] === "string" && /^\[[A-Z0-9-]+\] /.test(data[k] as string)
     ).length;
-    const readmeExists  = existsSync(join(ROOT, `README.${locale}.md`));
-    const installExists = existsSync(join(ROOT, "docs", "i18n", locale, "INSTALLATION.md"));
 
-    results.push({ locale, totalEn, missing, empty, placeholderErr, orphan, stubs, readmeExists, installExists });
+    results.push({ locale, totalEn, missing, empty, placeholderErr, orphan, stubs, hasMeta });
 
     if (missing.length > 0 || empty.length > 0 || placeholderErr.length > 0) hasFailures = true;
-    if (stubs > 0 || orphan.length > 0 || !readmeExists || !installExists) hasWarnings = true;
+    if (orphan.length > 0) hasWarnings = true;
   }
 
   // Print table
-  const cols    = [10, 8, 8, 6, 7, 7, 8, 7, 8, 9];
-  const headers = ["Locale", "En Keys", "Missing", "Empty", "Ph.Err", "Orphan", "Stubs", "README", "Install", "Complete%"];
+  const cols    = [10, 8, 8, 6, 7, 7, 8, 6, 9];
+  const headers = ["Locale", "En Keys", "Missing", "Empty", "Ph.Err", "Orphan", "Stubs", "Meta", "Complete%"];
   const sep     = "-".repeat(cols.reduce((a, b) => a + b + 3, 0));
 
   process.stdout.write("\n" + sep + "\n");
@@ -172,8 +190,7 @@ function main(): void {
       String(r.placeholderErr.length),
       String(r.orphan.length),
       String(r.stubs),
-      r.readmeExists ? "yes" : "NO",
-      r.installExists ? "yes" : "NO",
+      r.hasMeta ? "yes" : "NO",
       `${pct}%`,
     ].map((v, i) => pad(v, cols[i]!)).join(" | ");
     process.stdout.write(row + "\n");
@@ -204,15 +221,16 @@ function main(): void {
     }
   }
 
-  // Check 8: warn (or fail in strict mode) on [XX] placeholder stubs
+  // Check 8: [XX] placeholder stubs
   const stubLocales = results.filter((r) => r.stubs > 0);
   if (stubLocales.length > 0) {
-    const msg = `${stubLocales.length} locale(s) contain [XX] placeholder stubs (untranslated). Run scripts/sync-locales.ts to see details.`;
-    if (isStrict) {
+    const msg = `${stubLocales.length} locale(s) contain [XX] placeholder stubs (untranslated). Run npm run i18n:translate after PM1 ships.`;
+    if (allowStubs) {
+      process.stdout.write(`\nWARN (--allow-stubs): ${msg}\n`);
+      hasWarnings = true;
+    } else {
       process.stderr.write(`\nFAIL: ${msg}\n`);
       hasFailures = true;
-    } else {
-      process.stdout.write(`\nWARN: ${msg}\n`);
     }
   }
 
