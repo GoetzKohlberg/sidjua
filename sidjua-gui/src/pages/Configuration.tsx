@@ -33,8 +33,8 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={handleCopy}
-      title="Copy to clipboard"
-      aria-label="Copy to clipboard"
+      title={t('gui.common.copy_to_clipboard')}
+      aria-label={t('gui.common.copy_to_clipboard')}
       style={{
         display:      'inline-flex',
         alignItems:   'center',

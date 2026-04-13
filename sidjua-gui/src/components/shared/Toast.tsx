@@ -19,6 +19,7 @@ import React, {
   useState,
 } from 'react';
 import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
@@ -146,6 +147,7 @@ function ToastItem({
   toast:     ToastEntry;
   onDismiss: (id: string) => void;
 }) {
+  const { t }       = useTranslation();
   const borderColor = TYPE_BORDER[toast.type];
   const bgColor     = TYPE_BG[toast.type];
 
@@ -211,7 +213,7 @@ function ToastItem({
           )}
           <button
             onClick={() => onDismiss(toast.id)}
-            aria-label="Dismiss notification"
+            aria-label={t('gui.common.aria_dismiss')}
             style={{
               background: 'none',
               border:     'none',

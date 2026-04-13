@@ -174,7 +174,7 @@ export function Setup() {
               type={showPass ? 'text' : 'password'}
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              placeholder="Repeat password"
+              placeholder={t('gui.setup.repeat_password_placeholder')}
               autoComplete="new-password"
               required
               disabled={loading}

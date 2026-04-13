@@ -113,7 +113,7 @@ export function Login() {
                 type={showPass ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Admin password"
+                placeholder={t('gui.login.password_placeholder')}
                 autoComplete="current-password"
                 autoFocus
                 required

@@ -164,7 +164,7 @@ function DetailPanel({ entry, onClose }: { entry: AuditEntry; onClose: () => voi
         </div>
         <button
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t('gui.common.aria_close')}
           style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)' }}
         >
           <X size={16} />
@@ -307,11 +307,11 @@ export function AuditLog() {
         flexWrap:     'wrap',
         alignItems:   'center',
       }}>
-        <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} aria-label="From date" style={inputStyle} />
+        <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} aria-label={t('gui.audit.aria_from_date')} style={inputStyle} />
         <span style={{ color: 'var(--color-text-muted)', fontSize: '16px' }}>to</span>
-        <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} aria-label="To date" style={inputStyle} />
+        <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} aria-label={t('gui.audit.aria_to_date')} style={inputStyle} />
 
-        <select value={division} onChange={(e) => setDivision(e.target.value)} aria-label="Division" style={inputStyle}>
+        <select value={division} onChange={(e) => setDivision(e.target.value)} aria-label={t('gui.audit.aria_filter_division')} style={inputStyle}>
           <option value="">{t('gui.audit.all_divisions')}</option>
           {(divRes.data?.divisions ?? []).map((d) => (
             <option key={d.code} value={d.code}>{d.name || d.code}</option>
@@ -322,8 +322,8 @@ export function AuditLog() {
           type="text"
           value={agentId}
           onChange={(e) => setAgentId(e.target.value)}
-          placeholder="Agent ID…"
-          aria-label="Agent ID"
+          placeholder={t('gui.audit.filter_agent_id_placeholder')}
+          aria-label={t('gui.audit.aria_agent_id')}
           style={{ ...inputStyle, width: '130px' }}
         />
 
@@ -331,8 +331,8 @@ export function AuditLog() {
           type="text"
           value={eventType}
           onChange={(e) => setEventType(e.target.value)}
-          placeholder="Event type…"
-          aria-label="Event type"
+          placeholder={t('gui.audit.filter_event_type_placeholder')}
+          aria-label={t('gui.audit.aria_event_type')}
           style={{ ...inputStyle, width: '140px' }}
         />
 
@@ -462,7 +462,7 @@ export function AuditLog() {
             <button
               onClick={() => void fetch(Math.max(0, offset - PAGE_SIZE))}
               disabled={offset === 0 || loading}
-              aria-label="Previous page"
+              aria-label={t('gui.common.aria_previous_page')}
               style={{
                 display:      'inline-flex',
                 alignItems:   'center',
@@ -482,7 +482,7 @@ export function AuditLog() {
             <button
               onClick={() => void fetch(offset + PAGE_SIZE)}
               disabled={offset + PAGE_SIZE >= total || loading}
-              aria-label="Next page"
+              aria-label={t('gui.common.aria_next_page')}
               style={{
                 display:      'inline-flex',
                 alignItems:   'center',

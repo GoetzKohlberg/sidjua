@@ -238,13 +238,14 @@ export function PaperclipButton({
   onClick:   () => void;
   disabled?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      title="Upload file (xlsx, docx, pdf, csv, txt, md, png, jpg)"
-      aria-label="Upload file"
+      title={t('gui.chat.upload_file_types_title')}
+      aria-label={t('gui.chat.aria_upload_file')}
       style={{
         background:   'none',
         border:       '1px solid var(--color-border)',

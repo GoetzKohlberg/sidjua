@@ -172,7 +172,7 @@ function AgentDetail({ agentId, onClose }: { agentId: string; onClose: () => voi
               void handleProviderChange(e.target.value, prov?.model ?? agent.model);
             }}
             style={{ ...detailSelectStyle, width: '100%' }}
-            aria-label="Agent provider"
+            aria-label={t('gui.agents.aria_provider')}
           >
             {catalogRes.data?.providers.map((p) => (
               <option key={p.id} value={p.id}>{p.display_name}</option>
@@ -203,7 +203,7 @@ function AgentDetail({ agentId, onClose }: { agentId: string; onClose: () => voi
                   void handleProviderChange(match?.id ?? agent.provider, e.target.value);
                 }}
                 style={{ ...detailSelectStyle, width: '100%' }}
-                aria-label="Agent model"
+                aria-label={t('gui.agents.aria_model')}
               >
                 {familyEntries.map((p) => (
                   <option key={p.id} value={p.model}>
@@ -259,12 +259,13 @@ function AgentDetail({ agentId, onClose }: { agentId: string; onClose: () => voi
 }
 
 function PanelShell({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
+  const { t } = useTranslation();
   return (
     <div className="sidjua-card sidjua-card--elevated">
       <div className="page-agents--panel-close-wrap">
         <button
           onClick={onClose}
-          aria-label="Close detail panel"
+          aria-label={t('gui.common.aria_close_detail_panel')}
           className="page-agents--icon-btn"
         >
           <X size={16} />
@@ -307,7 +308,7 @@ function StarterAgentDetail({ agent, onClose, providerConfigured }: { agent: Sta
         </div>
         <button
           onClick={onClose}
-          aria-label="Close detail"
+          aria-label={t('gui.common.aria_close_detail')}
           className="page-agents--close-btn"
         >
           <X size={18} />
@@ -425,8 +426,7 @@ function YourTeamPanel() {
           </button>
           {showCreateTooltip && llmStatus !== 'configured' && (
             <div className="page-agents--tooltip">
-              Agent creation will be available after LLM provider configuration.
-              Your <strong>HR Manager</strong> agent will help you define new roles.
+              {t('gui.agents.tooltip_create_hint')}
             </div>
           )}
         </div>
@@ -622,7 +622,7 @@ export function Agents() {
         <select
           value={divisionFilter}
           onChange={(e) => { setDivisionFilter(e.target.value); updateFilter('division', e.target.value); }}
-          aria-label="Filter by division"
+          aria-label={t('gui.agents.aria_filter_division')}
           style={selectStyle}
         >
           <option value="">{t('gui.agents.all_divisions')}</option>
@@ -634,7 +634,7 @@ export function Agents() {
         <select
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); updateFilter('status', e.target.value); }}
-          aria-label="Filter by status"
+          aria-label={t('gui.agents.aria_filter_status')}
           style={selectStyle}
         >
           <option value="">{t('gui.agents.all_statuses')}</option>
@@ -647,14 +647,14 @@ export function Agents() {
           type="search"
           value={search}
           onChange={(e) => { setSearch(e.target.value); updateFilter('q', e.target.value); }}
-          placeholder="Search agents…"
-          aria-label="Search agents"
+          placeholder={t('gui.agents.search_placeholder')}
+          aria-label={t('gui.agents.aria_search')}
           style={{ ...selectStyle, flex: 1, minWidth: '160px' }}
         />
 
         <button
           onClick={() => setRefreshKey((k) => k + 1)}
-          aria-label="Refresh agents"
+          aria-label={t('gui.agents.aria_refresh')}
           className="page-agents--refresh-btn"
         >
           <RefreshCw size={13} />

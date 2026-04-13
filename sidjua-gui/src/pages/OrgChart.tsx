@@ -137,7 +137,7 @@ export function OrgChart() {
           )}
           <button
             onClick={refresh}
-            aria-label="Refresh"
+            aria-label={t('gui.common.aria_refresh')}
             style={{
               background:   'none',
               border:       '1px solid var(--color-border)',

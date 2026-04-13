@@ -349,8 +349,8 @@ function ChatMessages({
         <div className="page-chat--empty-state">
           <span className="page-chat--empty-emoji">💬</span>
           <p style={{ margin: 0 }}>
-            {providerConfigured ? (<>Start a conversation with <strong>{agentName}</strong>.<br /></>) : (<>{t('gui.chat.no_provider')}<br />{t('gui.chat.setup_provider')}<br /></>)}
-            Type a message below.
+            {providerConfigured ? (<>{t('gui.chat.empty_state_prompt', { agentName })}<br /></>) : (<>{t('gui.chat.no_provider')}<br />{t('gui.chat.setup_provider')}<br /></>)}
+            {t('gui.chat.type_message_below')}
           </p>
         </div>
       )}
@@ -395,6 +395,7 @@ function ChatInput({
 }) {
   const [value, setValue] = useState('');
   const textareaRef       = useRef<HTMLTextAreaElement>(null);
+  const { t }             = useTranslation();
 
   function handleSend() {
     const msg = value.trim();
@@ -465,7 +466,7 @@ function ChatInput({
         <button
           onClick={handleSend}
           disabled={disabled || value.trim() === ''}
-          aria-label="Send message"
+          aria-label={t('gui.chat.aria_send_message')}
           style={{
             padding:      '10px 16px',
             borderRadius: 'var(--radius-md)',
@@ -822,12 +823,12 @@ export function Chat() {
   if (!currentAgent) {
     return (
       <div className="page-chat--not-found">
-        <p>Agent <strong>{agentId}</strong> not found.</p>
+        <p>{t('gui.chat.agent_not_found', { agentId })}</p>
         <button
           onClick={() => navigate('/agents')}
           className="page-chat--link-btn"
         >
-          Back to Agents
+          {t('gui.chat.back_to_agents')}
         </button>
       </div>
     );

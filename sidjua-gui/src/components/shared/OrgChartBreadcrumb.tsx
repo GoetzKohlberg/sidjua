@@ -3,6 +3,7 @@
 // Dual licensed: AGPL-3.0 + SIDJUA Commercial License. See LICENSE.
 
 import React from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export interface BreadcrumbItem {
   id:        string;
@@ -16,9 +17,10 @@ interface OrgChartBreadcrumbProps {
 }
 
 export function OrgChartBreadcrumb({ path, onNavigate }: OrgChartBreadcrumbProps) {
+  const { t } = useTranslation();
   return (
     <nav
-      aria-label="Org chart navigation"
+      aria-label={t('gui.orgchart.aria_nav')}
       style={{
         display:    'flex',
         alignItems: 'center',
