@@ -108,6 +108,7 @@ function httpStatusForSidjuaError(err: SidjuaError): number {
   if (code === "PCFG-002") return 400;
   if (code === "PCFG-003") return 404;
   if (code === "PCFG-004") return 400;
+  if (code === "PCFG-006") return 400; // preview-mask rejection — client error
 
   // Chat errors
   if (code === "CHAT-001" || code === "CHAT-003") return 400;

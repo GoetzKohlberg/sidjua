@@ -71,6 +71,15 @@ function isValidApiBase(url: string): boolean {
   return validateProviderUrl(url, { allowCustom: true }).valid;
 }
 
+/**
+ * D2/D5: Detect preview-mask strings that the GUI masked for display.
+ * A masked key contains "..." or "…" (Unicode ellipsis) or 4+ consecutive "*".
+ * These must never be stored as real keys.
+ */
+function isPreviewMask(key: string): boolean {
+  return key.includes('...') || key.includes('\u2026') || /\*{4,}/.test(key);
+}
+
 function maskApiKey(key: string): string {
   if (!key || key.length < 4) return "****";
   const underscoreIdx = key.indexOf("_");
@@ -175,18 +184,26 @@ export function registerProviderRoutes(app: Hono): void {
     const apiKeyRaw = defaultProviderRaw["api_key"];
     const isCustom  = providerId === "custom";
 
-    // If api_key is omitted or empty and there is an existing stored config for the
-    // same provider_id, fall back to the stored key (keep-existing behavior).
-    // This allows Advanced-mode saves that do not re-transmit the plaintext key.
+    // D2/D5: Validate api_key when present.
+    // - Empty string → reject (client should omit, not send "")
+    // - Preview mask → reject with PCFG-006 (defense-in-depth against GUI bug)
+    // - Omitted (undefined) → keep existing stored key
+    if (typeof apiKeyRaw === "string") {
+      if (apiKeyRaw.trim() === "") {
+        throw SidjuaError.from("PCFG-004", "default_provider.api_key must not be empty; omit the field to keep the existing key");
+      }
+      if (isPreviewMask(apiKeyRaw.trim())) {
+        throw SidjuaError.from("PCFG-006", "default_provider.api_key appears to be a masked preview value; enter the full API key");
+      }
+    }
+
+    // D5: omitted api_key → keep existing stored key for this provider.
     const existingStoredConfig = getProviderConfig();
     const storedKey =
       existingStoredConfig?.default_provider?.provider_id === providerId.trim()
         ? existingStoredConfig.default_provider.api_key
         : "";
-    const apiKey =
-      typeof apiKeyRaw === "string" && apiKeyRaw.trim() !== ""
-        ? apiKeyRaw.trim()
-        : storedKey;
+    const apiKey = typeof apiKeyRaw === "string" ? apiKeyRaw.trim() : storedKey;
 
     // For custom providers, api_key is optional (Ollama doesn't need one).
     // For approved providers, api_key is required.
@@ -226,18 +243,51 @@ export function registerProviderRoutes(app: Hono): void {
       ...(typeof customNameRaw  === "string" ? { custom_name: customNameRaw.trim() }  : {}),
     };
 
-    // Handle agent_overrides (advanced mode)
+    // Handle agent_overrides (advanced mode) — D2/D5/D6
     const agentOverrides: Record<string, ConfiguredProvider> = {};
     const overridesRaw = body["agent_overrides"] as Record<string, unknown> | undefined;
     if (overridesRaw !== undefined && typeof overridesRaw === "object") {
       for (const [agentId, pRaw] of Object.entries(overridesRaw)) {
         const p = pRaw as Record<string, unknown>;
         const oProviderId = p["provider_id"];
-        const oApiKey     = p["api_key"];
         if (typeof oProviderId !== "string") continue;
+
+        const oIsCustom  = oProviderId === "custom";
+        const oApiKeyRaw = p["api_key"];
+
+        // D2/D5: Validate api_key when present in override
+        if (typeof oApiKeyRaw === "string") {
+          if (oApiKeyRaw.trim() === "") {
+            throw SidjuaError.from("PCFG-004", `agent_overrides['${agentId}'].api_key must not be empty; omit to inherit default`);
+          }
+          if (isPreviewMask(oApiKeyRaw.trim())) {
+            throw SidjuaError.from("PCFG-006", `agent_overrides['${agentId}'].api_key appears to be a masked preview value`);
+          }
+        }
+
+        // D5: omitted api_key in override → keep existing override key (or "" for new overrides)
+        const oStoredKey = existingStoredConfig?.agent_overrides?.[agentId]?.api_key ?? "";
+        const oApiKey    = typeof oApiKeyRaw === "string" ? oApiKeyRaw.trim() : oStoredKey;
+
+        // D6: custom agent override requires api_base, model, custom_name
+        if (oIsCustom) {
+          const oApiBase    = p["api_base"];
+          const oModel      = p["model"];
+          const oCustomName = p["custom_name"];
+          if (typeof oApiBase !== "string" || oApiBase.trim() === "") {
+            throw SidjuaError.from("PCFG-004", `agent_overrides['${agentId}']: custom provider requires api_base`);
+          }
+          if (typeof oModel !== "string" || oModel.trim() === "") {
+            throw SidjuaError.from("PCFG-004", `agent_overrides['${agentId}']: custom provider requires model`);
+          }
+          if (typeof oCustomName !== "string" || oCustomName.trim() === "") {
+            throw SidjuaError.from("PCFG-004", `agent_overrides['${agentId}']: custom provider requires custom_name`);
+          }
+        }
+
         agentOverrides[agentId] = {
           provider_id: oProviderId,
-          api_key:     typeof oApiKey === "string" ? oApiKey : "",
+          api_key:     oApiKey,  // "" means "inherit default at runtime" for new custom overrides
           ...(typeof p["api_base"]    === "string" ? { api_base:    p["api_base"] }    : {}),
           ...(typeof p["model"]       === "string" ? { model:       p["model"] }       : {}),
           ...(typeof p["custom_name"] === "string" ? { custom_name: p["custom_name"] } : {}),

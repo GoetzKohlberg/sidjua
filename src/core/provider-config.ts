@@ -352,7 +352,13 @@ export function getProviderForAgent(agentId: string): ConfiguredProvider | null 
   if (config === null) return null;
 
   const override = config.agent_overrides[agentId];
-  if (override !== undefined) return override;
+  if (override !== undefined) {
+    // D6: custom override with empty api_key → inherit default_provider.api_key at runtime
+    if (override.api_key === "" && config.default_provider !== null) {
+      return { ...override, api_key: config.default_provider.api_key };
+    }
+    return override;
+  }
 
   return config.default_provider;
 }
