@@ -17,6 +17,7 @@ import { ChatUploadZone, PaperclipButton } from '../components/chat/ChatUploadZo
 import { FileReferenceCard }               from '../components/chat/FileReferenceCard';
 import { useSse }                          from '../hooks/useSse';
 import { RedactionDialog }                 from '../components/chat/RedactionDialog';
+import { uuidV4 }                          from '../lib/uuid';
 
 
 interface Message {
@@ -565,7 +566,7 @@ export function Chat() {
         return;
       }
       setMessages(res.messages.map((m) => ({
-        id:        crypto.randomUUID(),
+        id:        uuidV4(),
         role:      m.role,
         content:   m.content,
         timestamp: m.timestamp,
@@ -590,7 +591,7 @@ export function Chat() {
     if (!client || isStreaming) return;
 
     const userMsg: Message = {
-      id:        crypto.randomUUID(),
+      id:        uuidV4(),
       role:      'user',
       content:   text,
       timestamp: new Date().toISOString(),
@@ -601,7 +602,7 @@ export function Chat() {
     const controller = new AbortController();
     abortRef.current = controller;
 
-    const assistantId = crypto.randomUUID();
+    const assistantId = uuidV4();
 
     try {
       const res = await fetch(`${baseUrl}/api/v1/chat/${agentId}`, {
@@ -689,7 +690,7 @@ export function Chat() {
               setMessages((prev) => [
                 ...prev,
                 {
-                  id:        crypto.randomUUID(),
+                  id:        uuidV4(),
                   role:      'tool_call' as const,
                   content:   paramsStr,
                   timestamp: new Date().toISOString(),
@@ -700,7 +701,7 @@ export function Chat() {
               setMessages((prev) => [
                 ...prev,
                 {
-                  id:          crypto.randomUUID(),
+                  id:          uuidV4(),
                   role:        'tool_result' as const,
                   content:     '',
                   timestamp:   new Date().toISOString(),
@@ -919,7 +920,7 @@ export function Chat() {
           setMessages((prev) => [
             ...prev,
             {
-              id:              crypto.randomUUID(),
+              id:              uuidV4(),
               role:            'file_upload' as const,
               content:         '',
               timestamp:       new Date().toISOString(),

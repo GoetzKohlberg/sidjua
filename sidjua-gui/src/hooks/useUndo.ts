@@ -12,6 +12,7 @@
 
 import { useCallback, useEffect, useRef } from 'react';
 import { useToast } from '../components/shared/Toast';
+import { uuidV4 }   from '../lib/uuid';
 
 interface UndoEntry {
   id:  string;
@@ -60,7 +61,7 @@ export function useUndo() {
    */
   const addUndo = useCallback(
     (toastMessage: string, undoFn: () => void | Promise<void>): string => {
-      const id: string = crypto.randomUUID();
+      const id: string = uuidV4();
       stack.push({ id, fn: undoFn });
       if (stack.length > MAX_ENTRIES) stack.shift();
 

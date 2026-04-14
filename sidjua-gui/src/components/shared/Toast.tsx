@@ -20,6 +20,7 @@ import React, {
 } from 'react';
 import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
+import { uuidV4 }         from '../../lib/uuid';
 
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
@@ -66,7 +67,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const show = useCallback((message: string, opts: ToastOptions = {}): string => {
-    const id       = crypto.randomUUID();
+    const id       = uuidV4();
     const type     = opts.type ?? 'info';
     const duration = opts.duration !== undefined
       ? opts.duration

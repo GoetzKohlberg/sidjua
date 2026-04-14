@@ -17,6 +17,7 @@ import { useSse }          from '../hooks/useSse';
 import { useAppConfig }    from '../lib/config';
 import { useTranslation }  from '../hooks/useTranslation';
 import { formatCurrency, formatUptime, todayIso, describeEvent } from '../lib/format';
+import { uuidV4 }                                                 from '../lib/uuid';
 import { MetricCard }      from '../components/shared/MetricCard';
 import { LoadingSpinner }  from '../components/shared/LoadingSpinner';
 import { ActivityFeed }    from '../components/shared/ActivityFeed';
@@ -86,7 +87,7 @@ export function Dashboard() {
     if (!lastEvent) return;
     const data = lastEvent.data as Record<string, unknown>;
     const ev: ActivityEvent = {
-      id:          lastEvent.id ?? crypto.randomUUID(),
+      id:          lastEvent.id ?? uuidV4(),
       timestamp:   new Date().toISOString(),
       type:        lastEvent.type,
       description: describeEvent(lastEvent.type, data),
