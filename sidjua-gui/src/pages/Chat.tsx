@@ -914,7 +914,7 @@ export function Chat() {
         agentId={agentId}
         conversationId={convId ?? undefined}
         baseUrl={baseUrl}
-        authHeaders={() => client ? client.authHeaders() : {}}
+        authHeaders={(opts) => client ? client.authHeaders(opts) : {}}
         onUploadComplete={(upload) => {
           setMessages((prev) => [
             ...prev,

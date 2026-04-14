@@ -21,7 +21,7 @@ interface ChatUploadZoneProps {
   agentId:            string;
   conversationId?:    string;
   baseUrl:            string;
-  authHeaders:        () => Record<string, string>;
+  authHeaders:        (opts?: { json?: boolean }) => Record<string, string>;
   onUploadComplete?:  (upload: UploadResult) => void;
   disabled?:          boolean;
   children:           React.ReactNode;
@@ -60,7 +60,7 @@ export function ChatUploadZone({
 
       const res = await fetch(`${baseUrl}/api/v1/chat/${agentId}/upload`, {
         method:  'POST',
-        headers: authHeaders(),
+        headers: authHeaders({ json: false }),  // omit Content-Type: browser sets multipart boundary
         body:    formData,
       });
 

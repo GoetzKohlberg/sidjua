@@ -15,7 +15,8 @@
  * Respects Last-Event-ID for missed-event replay.
  */
 
-import { API_PATHS } from './paths';
+import { API_PATHS }      from './paths';
+import { rawFetchHeaders } from './client';
 
 export type SseEventType =
   // Agent events
@@ -179,11 +180,7 @@ export class SidjuaSSEClient {
   private async fetchTicket(): Promise<string> {
     const res = await fetch(`${this.opts.baseUrl}${API_PATHS.sseTicket()}`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${this.opts.apiKey}`,
-        'Content-Type':  'application/json',
-        'Accept':        'application/json',
-      },
+      headers: rawFetchHeaders(this.opts.apiKey),
       signal: AbortSignal.timeout(10_000),
     });
 

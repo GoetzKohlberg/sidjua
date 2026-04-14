@@ -172,6 +172,31 @@ const TIMEOUT_MS = {
   long:    60_000,  // backup, wipe, and other long-running operations
 } as const;
 
+/**
+ * Build a header set for raw fetch() calls that cannot go through the
+ * SidjuaApiClient get/post/put/delete wrappers (streaming, FormData, SSE
+ * ticket). Includes the CSRF double-submit token and X-SIDJUA-Request
+ * marker so that session-authenticated requests pass csrfMiddleware.
+ *
+ * @param apiKey  Bearer token (may be empty string for session-only auth)
+ * @param opts    Pass { json: false } to omit Content-Type — required for
+ *                multipart/FormData uploads so the browser sets the boundary.
+ */
+export function rawFetchHeaders(
+  apiKey: string,
+  opts?: { json?: boolean },
+): Record<string, string> {
+  const h: Record<string, string> = {
+    'Authorization':    `Bearer ${apiKey}`,
+    'Accept':           'application/json',
+    'X-SIDJUA-Request': '1',
+  };
+  if (opts?.json !== false) h['Content-Type'] = 'application/json';
+  const csrf = getCsrfToken();
+  if (csrf !== null) h['X-CSRF-Token'] = csrf;
+  return h;
+}
+
 export class SidjuaApiClient {
   constructor(
     private readonly baseUrl: string,
@@ -402,12 +427,13 @@ export class SidjuaApiClient {
     model?:       string;
   }): Promise<ProviderTestResult> { return this.post(API_PATHS.providerTest(), body); }
 
-  /** Return a Headers object for making manual fetch calls (e.g. streaming). */
-  authHeaders(): Record<string, string> {
-    return {
-      'Authorization': `Bearer ${this.apiKey}`,
-      'Content-Type': 'application/json',
-    };
+  /**
+   * Return a header set for raw fetch() calls (streaming, FormData, SSE).
+   * Delegates to rawFetchHeaders() so CSRF token + X-SIDJUA-Request are
+   * always included. Pass { json: false } for multipart/FormData uploads.
+   */
+  authHeaders(opts?: { json?: boolean }): Record<string, string> {
+    return rawFetchHeaders(this.apiKey, opts);
   }
 
   getChatHistory(agentId: string, params?: { conversation_id?: string; limit?: number }): Promise<ChatHistoryResponse> {
