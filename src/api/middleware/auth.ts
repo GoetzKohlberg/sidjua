@@ -119,6 +119,20 @@ export const authenticate = (
     return next();
   }
 
+  // ── Session-cookie auth — runs before Bearer-header check ─────────────────
+  // Browser clients (GUI) never send Authorization: Bearer; they authenticate
+  // via the sidjua_sid session cookie.  sessionMiddleware is wired before
+  // authenticate in server.ts and populates SESSION_KEY when a valid cookie is
+  // present.  Check here first so browser requests are granted before the
+  // Bearer-only guard fires.  Bearer-token clients never have a session cookie
+  // in practice, so this branch is a no-op for API / CLI callers.
+  const session = c.get(SESSION_KEY as string) as SessionData | undefined;
+  if (session !== undefined) {
+    const ctx: CallerContext = { role: "admin" };
+    c.set(CALLER_CONTEXT_KEY, ctx);
+    return next();
+  }
+
   // Normalize overloaded signature
   let getApiKey: () => string;
   let getPending: (() => string | null) | undefined;
@@ -170,18 +184,6 @@ export const authenticate = (
       c.set(CALLER_CONTEXT_KEY, ctx);
       return next();
     }
-  }
-
-  // ── 1b. Session-cookie auth (P434b GUI auth) ───────────────────────────────
-  // sessionMiddleware must run before authenticate in the chain to populate
-  // SESSION_KEY.  If a valid session is present, grant admin-scoped access for
-  // the browser user.  Bearer-token clients never have a session; this branch
-  // only activates for cookie-authenticated requests.
-  const session = c.get(SESSION_KEY as string) as SessionData | undefined;
-  if (session !== undefined) {
-    const ctx: CallerContext = { role: "admin" };
-    c.set(CALLER_CONTEXT_KEY, ctx);
-    return next();
   }
 
   // ── 2. Fall back to legacy single API key ──────────────────────────────────
