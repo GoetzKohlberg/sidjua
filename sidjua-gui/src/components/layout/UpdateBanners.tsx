@@ -12,8 +12,9 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useTranslation } from '../../hooks/useTranslation';
-import { useAppConfig }   from '../../lib/config';
+import { useTranslation }   from '../../hooks/useTranslation';
+import { useAppConfig }     from '../../lib/config';
+import { rawFetchHeaders }  from '../../api/client';
 
 // ---------------------------------------------------------------------------
 // UpdateBanner
@@ -234,12 +235,9 @@ export function UpdateProgressDialog({ targetVersion, onClose }: UpdateProgressD
     try {
       res = await fetch(url, {
         method:  'POST',
-        headers: {
-          Authorization:  `Bearer ${config.apiKey ?? ''}`,
-          'Content-Type': 'application/json',
-        },
-        body:   body ? JSON.stringify(body) : undefined,
-        signal: ac.signal,
+        headers: rawFetchHeaders(config.apiKey ?? ''),
+        body:    body ? JSON.stringify(body) : undefined,
+        signal:  ac.signal,
       });
     } catch (_err) {
       if (!ac.signal.aborted) setError('Connection lost');
