@@ -48,15 +48,14 @@ services:
   # Port 4200 (SIDJUA_PORT) is internal only; Caddy proxies external traffic
   # ---------------------------------------------------------------------------
   sidjua_blue:
-    image: ghcr.io/goetzkohlberg/sidjua:1.0.1
+    image: ghcr.io/goetzkohlberg/sidjua:${SIDJUA_VERSION:-1.1.0}
     container_name: sidjua_blue
     restart: unless-stopped
     environment:
       - NODE_ENV=production
       - SIDJUA_PORT=4200
-      - SIDJUA_DATA_DIR=/app/data
-      - SIDJUA_CONFIG_DIR=/app/config
-      - SIDJUA_LOG_DIR=/app/logs
+      # SIDJUA_DATA_DIR and SIDJUA_UPLOADS_DIR are set by Dockerfile ENV to /data and /data/uploads.
+      # SIDJUA_CONFIG_DIR and SIDJUA_LOG_DIR are V1.0.x env vars, not used in V1.1.0 paths.ts.
       - INSTANCE_SLOT=blue
       - UPDATER_URL=http://sidjua-updater:8090
       # Optional — set to enable semantic search (V0.9.5+)
@@ -64,12 +63,9 @@ services:
       - SIDJUA_API_KEY=${SIDJUA_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
     volumes:
-      - sidjua-data:/app/data
-      - sidjua-config:/app/config
-      - sidjua-logs:/app/logs
-      - sidjua-system:/app/.system
-      - sidjua-workspace:/app/agents
-      - sidjua-governance:/app/governance
+      # P2b (P454 Option 1): single /data volume replaces six named volumes.
+      # All persistent state (DB, config, governance, uploads, sessions, logs) lands here.
+      - sidjua-data:/data
     security_opt:
       - "seccomp=seccomp-profile.json"
       - "no-new-privileges:true"
@@ -94,7 +90,9 @@ services:
     container_name: sidjua-updater
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - sidjua-config:/app/config:ro
+      # P2b: sidjua-config removed; updater reads data volume read-only.
+      # Full updater V1.1.0 compatibility requires updater image update (separate task).
+      - sidjua-data:/data:ro
     environment:
       - SIDJUA_COMPOSE_PROJECT=${COMPOSE_PROJECT_NAME:-sidjua}
       - REGISTRY=ghcr.io/goetzkohlberg
@@ -161,18 +159,10 @@ services:
         condition: service_healthy
 
 volumes:
+  # P2b (P454 Option 1): single named volume replaces six.
+  # Mount: docker run -v sidjua-data:/data sidjua/sidjua:1.1.0
   sidjua-data:
     name: sidjua-data
-  sidjua-config:
-    name: sidjua-config
-  sidjua-logs:
-    name: sidjua-logs
-  sidjua-system:
-    name: sidjua-system
-  sidjua-workspace:
-    name: sidjua-workspace
-  sidjua-governance:
-    name: sidjua-governance
   qdrant-data:
     name: sidjua-qdrant-data
   grafana-data:

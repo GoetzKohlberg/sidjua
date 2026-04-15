@@ -342,8 +342,11 @@ export async function runServerStart(
 
   // ── Register all API routes (agents, tasks, costs, audit, etc.) ──────────
   const uploadStore  = db !== null ? new UploadStore(db) : null;
+  // SIDJUA_UPLOADS_DIR: set by Dockerfile ENV to /data/uploads (container).
+  // Unset in local CLI → falls back to workDir/data/uploads (Domain B unchanged).
+  const uploadBaseDir = process.env["SIDJUA_UPLOADS_DIR"] ?? join(opts.workDir, "data", "uploads");
   const fileStorage  = new FileStorage({
-    baseDir:      join(opts.workDir, "data", "uploads"),
+    baseDir:      uploadBaseDir,
     maxSizeBytes: 10 * 1024 * 1024,
   });
   const uploadEmbedder = uploadStore !== null

@@ -243,21 +243,29 @@ npx tsc --noEmit            # type check only
 
 ## 4. Directory Layout
 
-### Docker Deployment Paths
+### Docker Deployment Paths (V1.1.0)
 
-| Path | Docker Volume | Purpose | Managed By |
-|------|---------------|---------|------------|
-| `/app/dist/` | Image layer | Compiled application | SIDJUA |
-| `/app/node_modules/` | Image layer | Node.js dependencies | SIDJUA |
-| `/app/system/` | Image layer | Built-in defaults and templates | SIDJUA |
-| `/app/defaults/` | Image layer | Default config files | SIDJUA |
-| `/app/docs/` | Image layer | Bundled documentation | SIDJUA |
-| `/app/data/` | `sidjua-data` | SQLite databases, backups, knowledge collections | User |
-| `/app/config/` | `sidjua-config` | `divisions.yaml` and custom config | User |
-| `/app/logs/` | `sidjua-logs` | Structured log files | User |
-| `/app/.system/` | `sidjua-system` | API key, update state, process lock | SIDJUA managed |
-| `/app/agents/` | `sidjua-workspace` | Agent definitions, skills, templates | User |
-| `/app/governance/` | `sidjua-governance` | Audit trail, governance snapshots | User |
+All persistent state lives under the single `/data` volume (`sidjua-data`).
+`/app` contains read-only image content and is never written to at runtime.
+
+| Path | Layer | Purpose | Managed By |
+|------|-------|---------|------------|
+| `/app/dist/` | Image layer (read-only) | Compiled application | SIDJUA |
+| `/app/node_modules/` | Image layer (read-only) | Node.js dependencies | SIDJUA |
+| `/app/system/` | Image layer (read-only) | Built-in defaults and templates | SIDJUA |
+| `/app/defaults/` | Image layer (read-only) | Default config files | SIDJUA |
+| `/app/docs/` | Image layer (read-only) | Bundled documentation | SIDJUA |
+| `/data/.system/` | `sidjua-data` volume | SQLite database, process lock | SIDJUA managed |
+| `/data/config/` | `sidjua-data` volume | Admin config, MCP config | User |
+| `/data/governance/` | `sidjua-data` volume | Orchestrator config, audit trail | User |
+| `/data/uploads/` | `sidjua-data` volume | Uploaded files | User |
+| `/data/logs/` | `sidjua-data` volume | Error log, structured logs | User |
+
+> **Note:** Sessions (`/data/.system/sessions/`) are wiped on every container start.
+> Users must re-authenticate after a container restart or replacement.
+>
+> For the security threat model and data-at-rest risk statement, see
+> [`docs/security/v1.1-threat-model.md`](security/v1.1-threat-model.md).
 
 ---
 
@@ -617,41 +625,62 @@ sudo swapon /swapfile
 
 ---
 
-## 11. Docker Volume Reference
+## 11. Docker Volume Reference (V1.1.0)
 
-### Named Volumes
+### Single Named Volume
 
-| Volume Name | Container Path | Purpose |
-|-------------|---------------|---------|
-| `sidjua-data` | `/app/data` | SQLite databases, backup archives, knowledge collections |
-| `sidjua-config` | `/app/config` | `divisions.yaml`, custom configuration |
-| `sidjua-logs` | `/app/logs` | Structured application logs |
-| `sidjua-system` | `/app/.system` | API key, update state, process lock file |
-| `sidjua-workspace` | `/app/agents` | Agent skill directories, definitions, templates |
-| `sidjua-governance` | `/app/governance` | Immutable audit trail, governance snapshots |
-| `qdrant-storage` | `/qdrant/storage` | Qdrant vector index (semantic search profile only) |
+SIDJUA V1.1.0 uses a single named volume for all persistent state.
+
+| Volume Name | Container Path | Contents |
+|-------------|---------------|----------|
+| `sidjua-data` | `/data` | Database, config, governance, uploads, logs |
+| `qdrant-data` | `/qdrant/storage` | Qdrant vector index (semantic search profile only) |
+
+### docker-compose Quick Start
+
+```bash
+cp .env.example .env          # copy environment template
+# edit .env: set ANTHROPIC_API_KEY (and any other API keys you need)
+docker compose up -d
+docker compose exec sidjua_blue sidjua --version
+```
+
+### Standalone docker run
+
+```bash
+docker volume create sidjua-data
+docker run -d \
+  --name sidjua \
+  -p 47821:47821 \
+  -v sidjua-data:/data \
+  ghcr.io/goetzkohlberg/sidjua:1.1.0
+```
 
 ### Using a Host Directory
 
-To mount your own `divisions.yaml` instead of editing inside the container:
-
-```yaml
-# docker-compose.override.yml
-services:
-  sidjua:
-    volumes:
-      - ./my-config:/app/config   # replaces the sidjua-config named volume
+```bash
+# Mount a host directory instead of a named volume:
+docker run -d \
+  --name sidjua \
+  -p 47821:47821 \
+  -v /your/data/path:/data \
+  ghcr.io/goetzkohlberg/sidjua:1.1.0
 ```
 
 ### Backup
 
 ```bash
-sidjua backup create                    # from inside the container
+sidjua backup create                         # from inside the container
 # or
-docker compose exec sidjua sidjua backup create
+docker compose exec sidjua_blue sidjua backup create
 ```
 
-Backups are HMAC-signed archives stored in `/app/data/backups/`.
+Backups are stored under `/data/backups/`.
+
+### Data at Rest
+
+The `/data` volume is stored in plaintext on the host filesystem.
+See [`docs/security/v1.1-threat-model.md`](security/v1.1-threat-model.md) for the accepted risk statement.
 
 ---
 

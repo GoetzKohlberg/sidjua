@@ -67,6 +67,7 @@ ENV SIDJUA_VERSION=$VERSION \
     SIDJUA_DATA_DIR=/data \
     SIDJUA_LOG_LEVEL=info \
     SIDJUA_GUI_BOOTSTRAP=true \
+    SIDJUA_UPLOADS_DIR=/data/uploads \
     NODE_ENV=production
 
 LABEL org.opencontainers.image.title="SIDJUA Free" \
@@ -191,4 +192,7 @@ HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=10s \
 # --host 0.0.0.0 is required so Docker port mapping works (default 127.0.0.1 is loopback-only)
 # Port is injected by docker-entrypoint.sh from SIDJUA_PORT (default 47821)
 ENTRYPOINT ["/sbin/tini", "--", "/app/docker-entrypoint.sh"]
-CMD ["node", "dist/index.js", "server", "start", "--host", "0.0.0.0"]
+# --work-dir /data: canonical owner is CMD (not docker-entrypoint.sh) so all CLI
+# exec calls via docker exec bypass this flag correctly. The /data volume must be
+# mounted at runtime: docker run -v sidjua-data:/data ...
+CMD ["node", "dist/index.js", "server", "start", "--host", "0.0.0.0", "--work-dir", "/data"]

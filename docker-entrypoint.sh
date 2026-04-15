@@ -1,23 +1,28 @@
 #!/bin/sh
 set -e
 
-# Ensure data directories exist (volumes may be freshly mounted)
-mkdir -p /app/data/backups /app/data/knowledge /app/data/governance-snapshots
-mkdir -p /app/config /app/logs /data/logs
+# P2b (P454 Option 1): workDir is now /data (the Docker volume mount point).
+# --work-dir /data is passed in the Dockerfile CMD (CMD is the canonical owner of --work-dir).
+# All persistent state (DB, config, governance, uploads, sessions) lands on the /data volume.
+# /app remains the process CWD for read-only image content (dist, locales, static, sidjua-gui).
 
-# Error log with PII redaction (written by the Node.js process)
+# Ensure persistent data directories exist on the /data volume (idempotent, first-boot safe).
+mkdir -p /data/.system /data/config /data/governance /data/uploads /data/logs
+
+# Error log with PII redaction (written by the Node.js process via SIDJUA_ERROR_LOG env).
 export SIDJUA_ERROR_LOG="/data/logs/sidjua-error.log"
 
-# First-run detection: copy bundled default config if none exists
-if [ ! -f /app/config/divisions.yaml ]; then
-  echo "First run detected — creating default divisions.yaml"
-  cp /app/defaults/divisions.yaml /app/config/divisions.yaml 2>/dev/null || true
+# First-run detection: seed default divisions.yaml into /data if not present.
+# sidjua apply (--work-dir /data) resolves the config path as /data/divisions.yaml.
+if [ ! -f /data/divisions.yaml ]; then
+  echo "First run detected — seeding default divisions.yaml into /data"
+  cp /app/defaults/divisions.yaml /data/divisions.yaml 2>/dev/null || true
 fi
 
-# Ensure divisions.yaml is available at /app/divisions.yaml (default config path for `sidjua apply`)
-if [ ! -f /app/divisions.yaml ]; then
-  cp /app/defaults/divisions.yaml /app/divisions.yaml 2>/dev/null || true
-fi
+# Q4 (P454 CEO decision): wipe session files on every container start so users
+# must re-authenticate after a container replacement or restart. Simpler and more
+# secure than session survival across container boundaries.
+rm -rf /data/.system/sessions 2>/dev/null || true
 
 # --- Startup Info ---
 # Security check: warn if running as root
@@ -31,13 +36,14 @@ echo "[INFO] SIDJUA ${SIDJUA_VERSION:-unknown} starting on port ${SIDJUA_PORT:-4
 # Apply divisions + agents on every startup (idempotent).
 # Ensures starter agents are registered in the DB even on first boot.
 echo "[INFO] Running provisioning (sidjua apply)..."
-sidjua apply --force --work-dir /app 2>&1 || {
+sidjua apply --force --work-dir /data 2>&1 || {
   echo "[WARN] Provisioning failed — server will start but agents may be missing"
 }
 
 # Inject --port from SIDJUA_PORT env var when starting the API server.
 # This lets operators override the port without rebuilding the image:
 #   docker run -e SIDJUA_PORT=8080 -p 8080:8080 sidjua/sidjua:1.0.0
+# --work-dir /data is already embedded in the Dockerfile CMD, not re-injected here.
 PORT="${SIDJUA_PORT:-47821}"
 
 # Only inject --port when the CMD looks like a server start invocation.
