@@ -611,7 +611,7 @@ interface ProviderSettingsProps {
 }
 
 function ProviderSettings({ onConfigChange }: ProviderSettingsProps) {
-  const { client }       = useAppConfig();
+  const { client, testConnection } = useAppConfig();
   const { t }            = useTranslation();
   const toast            = useToast();
 
@@ -787,7 +787,7 @@ function ProviderSettings({ onConfigChange }: ProviderSettingsProps) {
           catalog={catalog}
           config={currentConfig}
           configAvailable={configAvailable}
-          onSaved={() => { loadData(); onConfigChange(); }}
+          onSaved={() => { loadData(); onConfigChange(); void testConnection(); }}
         />
       )}
 
@@ -812,7 +812,7 @@ function ProviderSettings({ onConfigChange }: ProviderSettingsProps) {
                     <ApiKeySection
                       provider={p}
                       isCustom={false}
-                      onSaved={() => { void loadData(); onConfigChange(); }}
+                      onSaved={() => { void loadData(); onConfigChange(); void testConnection(); }}
                     />
                   </div>
                 )}
@@ -838,7 +838,7 @@ function ProviderSettings({ onConfigChange }: ProviderSettingsProps) {
                     <ApiKeySection
                       provider={p}
                       isCustom={false}
-                      onSaved={() => { void loadData(); onConfigChange(); }}
+                      onSaved={() => { void loadData(); onConfigChange(); void testConnection(); }}
                     />
                   </div>
                 )}
@@ -870,7 +870,7 @@ function ProviderSettings({ onConfigChange }: ProviderSettingsProps) {
                 <ApiKeySection
                   provider={null}
                   isCustom={true}
-                  onSaved={() => { void loadData(); onConfigChange(); }}
+                  onSaved={() => { void loadData(); onConfigChange(); void testConnection(); }}
                 />
               </div>
             )}

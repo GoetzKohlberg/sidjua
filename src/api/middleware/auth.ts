@@ -70,12 +70,25 @@ const PUBLIC_PREFIXES = [
 ];
 
 /**
+ * Paths that require authentication despite matching a PUBLIC_PREFIXES entry.
+ * /api/v1/locale prefix is broad (covers public locale-string endpoints like
+ * /api/v1/locale/:code) but language-management sub-paths use requireScope("operator").
+ * Checked before the prefix loop so session-cookie auth runs for these paths.
+ */
+const PROTECTED_SUBPATHS = new Set([
+  "/api/v1/locale/installed",
+  "/api/v1/locale/install",
+  "/api/v1/locale/uninstall",
+]);
+
+/**
  * Return true if the path should be served without authentication.
  * GUI static files and the health probe are public; all /api/* routes require auth.
  */
 function isPublicPath(path: string): boolean {
   if (path === "/" || path === "/index.html") return true;
   if (PUBLIC_PATHS.has(path)) return true;
+  if (PROTECTED_SUBPATHS.has(path)) return false;
   for (const prefix of PUBLIC_PREFIXES) {
     if (path.startsWith(prefix)) return true;
   }
