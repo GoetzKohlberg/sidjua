@@ -109,8 +109,8 @@ export function StartOverModal({ onComplete, onCancel }: StartOverModalProps) {
     if (!client) return;
     setPhase('backup');
     try {
-      const data = await client.post<{ backup_path: string }>('/api/v1/workspace/backup', undefined, 60_000);
-      setBackupPath(data.backup_path);
+      const data = await client.post<{ path: string }>('/api/v1/backup', undefined, 60_000);
+      setBackupPath(data.path);
       setPhase('learn');
     } catch (err: unknown) {
       setError(formatGuiError(err));
