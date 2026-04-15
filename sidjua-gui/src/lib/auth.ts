@@ -28,6 +28,7 @@ import {
 } from 'react';
 import { API_PATHS } from '../api/paths';
 import { setCsrfToken, getCsrfToken } from './csrf';
+import { runLocaleReconciliationIfPending } from '../hooks/useTranslation';
 
 
 // ---------------------------------------------------------------------------
@@ -110,6 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         : {};
       applyToken(csrfData.csrfToken ?? null);
       setAuthState({ status: 'authenticated', isFirstRun, isRecoveryMode, firstRunCompleted });
+      void runLocaleReconciliationIfPending();
     } catch {
       applyToken(null);
       setAuthState({ status: 'unauthenticated', isFirstRun: false, isRecoveryMode: false, firstRunCompleted: false });
@@ -139,6 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const onLoginSuccess = useCallback((token: string) => {
     applyToken(token);
     setAuthState((prev) => ({ ...prev, status: 'authenticated' }));
+    void runLocaleReconciliationIfPending();
   }, [applyToken]);
 
   const logout = useCallback(async () => {

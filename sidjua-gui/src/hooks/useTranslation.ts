@@ -43,35 +43,35 @@ function detectInitialLocale(): string {
 
 let _locale = detectInitialLocale();
 
-// On startup, reconcile localStorage locale with server (best-effort, fire-and-forget).
-// This ensures that a locale saved in localStorage from a previous session is reflected
-// in the server's workspace_config, enabling consistent behaviour across GUI and CLI.
-if (typeof window !== 'undefined') {
-  const _savedLocale = localStorage.getItem(LS_KEY);
-  if (_savedLocale && _savedLocale.trim() !== '') {
-    // Defer to avoid blocking module init — run after the current microtask queue.
-    Promise.resolve().then(async () => {
-      try {
-        // Import lazily to avoid circular dependency on getRuntimeApiKey at module init
-        const { getRuntimeApiKey } = await import('../lib/config');
-        const { getCsrfToken }     = await import('../lib/csrf');
-        const key  = getRuntimeApiKey();
-        const csrf = getCsrfToken();
-        const headers: Record<string, string> = {
-          'Content-Type':     'application/json',
-          'X-SIDJUA-Request': '1',
-        };
-        if (key)  headers['Authorization'] = `Bearer ${key}`;
-        if (csrf) headers['X-CSRF-Token']  = csrf;
-        await fetch(API_PATHS.localeSet(), {
-          method:  'POST',
-          headers,
-          body:    JSON.stringify({ locale: _savedLocale.trim() }),
-        });
-      } catch (_e) {
-        // Non-fatal — server reconciliation is best-effort
-      }
+/**
+ * Reconcile the localStorage locale preference with the server.
+ * Called by AuthProvider after session restore or successful login so the
+ * POST /api/v1/config/locale only fires when an authenticated context
+ * exists. The module-init unconditional call was removed because auth
+ * signals (getRuntimeApiKey, getCsrfToken) are always falsy at module-init
+ * time — they are set asynchronously by AppConfigProvider / AuthProvider
+ * AFTER React renders, so the early call always hit the server unauthenticated.
+ */
+export async function runLocaleReconciliationIfPending(): Promise<void> {
+  if (typeof window === 'undefined') return;
+  const savedLocale = localStorage.getItem(LS_KEY);
+  if (!savedLocale || savedLocale.trim() === '') return;
+  try {
+    const key  = getRuntimeApiKey();
+    const csrf = getCsrfToken();
+    const headers: Record<string, string> = {
+      'Content-Type':     'application/json',
+      'X-SIDJUA-Request': '1',
+    };
+    if (key)  headers['Authorization'] = `Bearer ${key}`;
+    if (csrf) headers['X-CSRF-Token']  = csrf;
+    await fetch(API_PATHS.localeSet(), {
+      method:  'POST',
+      headers,
+      body:    JSON.stringify({ locale: savedLocale.trim() }),
     });
+  } catch {
+    // Non-fatal — server reconciliation is best-effort
   }
 }
 
