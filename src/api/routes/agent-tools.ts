@@ -33,6 +33,8 @@ import type { CallerContext }                          from "../caller-context.j
 import type { Database }                               from "better-sqlite3";
 import { isToolVisibleForAgent, type AgentVisibilityContext } from "../../tool-integration/tool-visibility.js";
 import type { ToolAccess }                             from "../../tool-integration/types.js";
+import { scanForSensitiveData }                        from "../../core/bouncer/sensitive-filter.js";
+import { getBouncerConfig }                            from "../../core/bouncer/bouncer-config.js";
 
 export type { AgentVisibilityContext };
 
@@ -808,6 +810,17 @@ async function toolAskAgent(
 }
 
 
+function collectStringValues(obj: Record<string, unknown>): string[] {
+  const result: string[] = [];
+  const visit = (val: unknown): void => {
+    if (typeof val === "string") result.push(val);
+    else if (Array.isArray(val)) val.forEach(visit);
+    else if (val !== null && typeof val === "object") Object.values(val as Record<string, unknown>).forEach(visit);
+  };
+  visit(obj);
+  return result;
+}
+
 /**
  * Execute a named tool on behalf of an agent.
  *
@@ -825,6 +838,33 @@ export async function executeToolCall(
   const gov = checkToolGovernance({ agentId, toolName, params, callerContext: callerCtx, db: ctx.db });
   if (!gov.allowed) {
     return { success: false, error: gov.reason ?? "Tool call denied by governance" };
+  }
+
+  const bouncerCfg = getBouncerConfig(ctx.db);
+  if (bouncerCfg.enabled) {
+    const allStrings = collectStringValues(params);
+    for (const str of allStrings) {
+      const scan = scanForSensitiveData(str, bouncerCfg.sensitivity);
+      if (scan.detected) {
+        const labels = scan.matches.map((m) => m.label).join(", ");
+        logger.warn("bouncer_tool_scan", `Sensitive data in tool params: ${labels}`, {
+          metadata: { agent_id: agentId, tool: toolName, labels },
+        });
+        recordAuditEvent({
+          type:      "TOOL_CALL",
+          agentId,
+          toolName,
+          allowed:   false,
+          reason:    `Bouncer: sensitive data detected (${labels})`,
+          paramKeys: Object.keys(params),
+          timestamp: new Date().toISOString(),
+        });
+        return {
+          success: false,
+          error: `Sensitive data detected in tool parameters (${labels}). Remove credentials before retrying.`,
+        };
+      }
+    }
   }
 
   switch (toolName) {
