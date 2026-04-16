@@ -7,25 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.1.0] - 2026-04-XX
+## [1.1.0] - 2026-04-18
+
+> Deep security-hardening pass, native LLM tool calling, blue/green updates, webhook inbound, observability foundation, migration system, and i18n rebuild. Consolidates scope from skipped V1.0.2 and V1.0.3. Some features announced for V1.1 (Brainpool, Translation Agent, Documentation Site, Community Skill System, MCP Server Mode, Agent Training Pipeline, user-facing Chat Memory, user-facing Built-in Self-Audit) moved to V1.2.
 
 ### Added
+- Native LLM tool calling — full reasoning loop with provider-side tool-use, memory verification, and context budget tracking, abstracted across Claude, GPT, Gemini, Llama, Mistral, DeepSeek, and local Ollama
+- Webhook inbound adapter with per-webhook token store, rate limiter, REST routes, and CLI management
+- Blue/green update infrastructure: agent freeze/resume lifecycle, drain middleware, GUI update and maintenance banners
 - GUI Update Check panel in Settings/About with configurable auto-check interval
 - Updater container self-shutdown sequence after a verified, successful update
-- Blue/green update infrastructure: agent freeze/resume lifecycle, drain middleware, GUI update and maintenance banners
-- Tool calling in the LLM orchestrator — full reasoning loop with provider-side tool-use, memory verification, and context budget tracking
-- Webhook inbound adapter with per-webhook token store, rate limiter, REST routes, and CLI management
-- Prometheus metrics endpoint and bundled Grafana dashboard for runtime observability
-- REST Tool Factory and Qdrant REST adapter for vector-store-backed tool retrieval
-- Governed memory consolidation pipeline with feature flag infrastructure
-- Composite tool wiring with HR dual-strategy extension and REST tool catalog
-- YAML schema validation and MCP client integration
+- Prometheus-compatible `/metrics` endpoint and bundled Grafana dashboard (foundation, full OpenTelemetry integration lands later) [Prepared]
+- Versioned migration system: SQLite schema upgrades with integrity checks and automatic backup/restore on failure
+- Settings / LLM Provider Redesign — provider configuration UI reworked; 44/44 backend and 25/25 GUI tests pass
+- i18n architecture rebuild — 44 supported locale languages (18 added in this release), key-gap-free and machine-verified
+- OpenClaw agent import pipeline — parser, field mapper, and executor, end-to-end
+- Qdrant REST adapter for vector-store-backed tool retrieval, plus feature-flag-gated memory consolidation pipeline (backend only; user-facing Chat Memory arrives in V1.2) [Prepared]
+- MCP client integration — SIDJUA agents can consume any MCP-compatible external tool; YAML schema validation and full client lifecycle
+- Module SDK Light — lightweight authoring API for agent modules
+- LLM SSE streaming — real-time inference output across providers
 - Agent runtime benchmark suite with configurable load scenarios
-- Migration system: versioned SQLite migrations with integrity checks and automatic backup/restore on failure
-- Module SDK Light for lightweight agent module authoring; LLM SSE streaming for real-time inference output
-- OpenClaw agent import pipeline — parser, field mapper, and executor
+- Composite tool wiring with HR dual-strategy extension and REST tool catalog
 - Documentation generator scripts and CI pipeline; PDF report generator with HTML templates
-- 18 additional locale languages (total 26+ supported)
+- Zammad public support at tickets.sidjua.com with five-tier defence stack (nginx rate-limiting, CrowdSec, bot filtering, allowlist, Zammad-native guards)
+- V1.2 architecture groundwork: Security Abstraction Layer, Tool Contract v2, Central Policy Decision Point, Consent Grant Service, Policy Migration, and Enterprise Backend Adapters — specification-complete, implementation post-Golden [Prepared]
 - Agent definition templates, skill files, delegation protocol, and config templates
 - Knip dead-code detection, `npm audit`, and Playwright smoke tests integrated into the dev pipeline
 
@@ -43,21 +48,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Variable naming in bare `catch` blocks in the definition loader (prevents `ReferenceError` at runtime)
 
 ### Security
-- Symlinks with non-existent targets are now rejected in `resolveSkillPath`
-- Vulnerable dependencies updated (`npm audit fix`)
 - Gate-4 comprehensive audit remediation — 135 files, 2 116 insertions, 441 deletions
-- Division isolation hardened; cross-division messaging restricted at the adapter and gateway layers
-- Module security hardening: capability checks enforced at load time
+- Dual-audit review — 24 independently verified security findings addressed
+- Multi-layer bouncer chain — seven pre-execution gates per agent action, tool-call parameter filter redacts sensitive data before it reaches the LLM, input sanitizer blocks prompt-injection patterns (redaction-approval persistence lands in V1.2)
+- Auth, CSRF, and session hardening — session-cookie ordering, CSRF on raw fetch flows, cryptographic UUIDs replace weak random, save-activate connection-status stabilised, end-to-end authentication chain reviewed
+- Division isolation hardened — cross-division messaging restricted at adapter and gateway layers; IPC authentication between agent processes with 0600 socket permissions; module capability checks enforced at load time
+- Path and symlink security — path traversal guards, real-path normalisation, symlinks with non-existent targets rejected
+- Secret pipeline hardening — bootstrap key migration, CSRF protection on secrets routes, secret audit pipeline hardened
+- CLI governance gate — historical bypass paths closed, admission checks enforced before task submission
 - Token and auth hardening: scoped bearer validation, stricter SSE ticket binding
-- Path security: additional traversal guards and real-path normalisation
-- CLI governance gate: admission checks enforced before task submission
-- Dual-audit review — 24 verified security findings addressed
-- Bootstrap key migration, CSRF protection, and secret audit pipeline hardening
 - WAL checkpoint failure mode changed to non-fatal (prevents service disruption on checkpoint error)
+- Vulnerable dependencies updated (`npm audit fix`)
+
+### Known Limitations
+
+These issues ship with V1.1.0 Golden and are scheduled for V1.1.1 (2026-05-10):
+
+- Organization page displays "0 agents" for populated organizations (backend data is correct; GUI counter miscount only) — issue #819
+- Chat redaction approval is not persisted to the tool-call bouncer; users must re-approve per session — issue #836
+- Multi-tab provider configuration can become stale after a switch; a page reload resolves it — issue #829
+- Copy-to-clipboard button in the Management Console fails silently over plain HTTP on non-localhost origins (browser `navigator.clipboard` secure-context restriction); use HTTPS or localhost — issue #824
+- Locale dropdown shows internal `_de`, `_it`, `_pl` template entries alongside user-facing locales — issue #830
 
 ---
 
-## [1.0.1] - 2025-12-XX
+## [1.0.1] - 2026-03-31
 
 ### Added
 - Governance admission gate for external task creation (TaskAdmissionGate with division and budget pre-check)
@@ -95,7 +110,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [1.0.0] - 2025-10-XX
+## [1.0.0] - 2026-03-25
 
 Initial stable release of SIDJUA Community Edition (V1.0.0 Golden).
 
