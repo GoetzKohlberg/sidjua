@@ -178,10 +178,41 @@ const V1_7_DAEMON_RATE_STATE: DbMigration = {
 };
 
 
+// #833 (S809): One-shot migration — flip legacy starter agents from default-stopped to default-active.
+// Version "1.7a" chosen to sort correctly AFTER "1.7" via String.localeCompare (verified:
+// "1.7a".localeCompare("1.7") > 0). "1.10" was rejected: localeCompare sorts "1.10" before "1.5",
+// which would cause UPDATE to run before CREATE TABLE on fresh DBs.
+const V1_7A_AGENT_DEFAULT_ACTIVE: DbMigration = {
+  version: "1.7a",
+  description: "#833 — flip legacy starter agents from default-stopped to default-active",
+  up: `
+    -- Goetz product decision S809: status='active' is the correct default for
+    -- agent_definitions. Existing pre-fix DBs have starter agents stuck at
+    -- 'stopped', which causes Tool-Governance (agent-tools.ts) to reject every
+    -- tool call. This one-shot migration flips them. Future user-issued
+    -- 'sidjua agent stop <id>' calls happen AFTER this migration runs and are
+    -- preserved (migrations execute exactly once per version per DB).
+    --
+    -- Excludes status='deleted' (soft-deleted, do not resurrect).
+    UPDATE agent_definitions
+       SET status = 'active',
+           updated_at = datetime('now')
+     WHERE status = 'stopped';
+  `,
+  down: `
+    -- Down-migration intentionally no-op: we cannot distinguish between
+    -- pre-migration 'stopped' (the bug) and post-migration user-issued
+    -- 'stopped' (legitimate pause). Manual rollback only.
+    SELECT 1;
+  `,
+};
+
+
 export const LIFECYCLE_MIGRATIONS: DbMigration[] = [
   V1_5_AGENT_LIFECYCLE,
   V1_6_RESILIENCE,
   V1_7_DAEMON_RATE_STATE,
+  V1_7A_AGENT_DEFAULT_ACTIVE,
 ];
 
 

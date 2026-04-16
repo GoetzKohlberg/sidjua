@@ -73,6 +73,7 @@ export class AgentRegistry {
         );
       }
 
+      // #833 (S809): default 'active' — status='stopped' is reserved for explicit pause + budget-overrun auto-stop (V1.2).
       this.insertStmt().run(
         def.id,
         def.name,
@@ -83,7 +84,7 @@ export class AgentRegistry {
         def.skill,
         configYaml,
         configHash,
-        "stopped",
+        "active",
         now,
         author,
         now,

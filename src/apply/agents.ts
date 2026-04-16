@@ -68,7 +68,8 @@ function buildStarterEntry(role: ReturnType<typeof loadDefaultRoles>[number]): A
     skill_path:  "",
     config_yaml: configYaml,
     config_hash: hashYaml(configYaml),
-    status:      "stopped",
+    // #833 (S809): default 'active' — status='stopped' is reserved for explicit pause + budget-overrun auto-stop (V1.2).
+    status:      "active",
   };
 }
 
@@ -114,7 +115,8 @@ export function parseUserAgentFile(filePath: string): AgentEntry | null {
       skill_path:  "",
       config_yaml: raw,
       config_hash: hashYaml(raw),
-      status:      "stopped",
+      // #833 (S809): default 'active' — status='stopped' is reserved for explicit pause + budget-overrun auto-stop (V1.2).
+      status:      "active",
     };
   } catch (_err) {
     return null;
