@@ -38,7 +38,8 @@ consulting/
 specs/
 assets/
 tests/
-.github/
+.github/*
+!.github/workflows/
 
 # Generated docs (typedoc output)
 docs/api/
