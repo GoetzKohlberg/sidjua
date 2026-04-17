@@ -168,7 +168,7 @@ divisions:
     name:
       en: AI Governance
       de: KI-Governance
-    scope: Agent management, protocols, audit trail, skills, orchestration, MOODEX
+    scope: Agent management, protocols, audit trail, skills, orchestration
     required: true
     active: true
     head:

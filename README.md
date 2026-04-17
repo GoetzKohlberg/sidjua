@@ -681,8 +681,8 @@ security penetration test.
 This split means the GUI team and core team never block each other. CLI-only and
 headless server deployments remain first-class citizens.
 
-**V2.0 Enterprise** — SSO/LDAP/SAML, high availability, MOODEX (patented affective
-state system), compliance packs (EU AI Act, SOC 2), tamper-evident audit export,
+**V2.0 Enterprise** — SSO/LDAP/SAML, high availability, affective
+state monitoring, compliance packs (EU AI Act, SOC 2), tamper-evident audit export,
 PostgreSQL adapter. Agent Desktop Control Layer enabling governed agents to operate
 native desktop applications via platform accessibility APIs (macOS Accessibility,
 Windows UI Automation, Linux AT-SPI2) — with full governance pre-approval, audit

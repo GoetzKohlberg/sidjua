@@ -59,3 +59,6 @@ SONNET-STATE.md
 ._*
 Makefile
 dev-pipeline.md
+
+# Session artifacts (internal reports, not for public repo)
+p[0-9]*-artifacts/
