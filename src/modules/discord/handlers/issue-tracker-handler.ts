@@ -3,14 +3,15 @@
 // Dual licensed: AGPL-3.0 + SIDJUA Commercial License. See LICENSE.
 
 /**
- * SIDJUA Discord Module — Redmine Issue Creator
+ * SIDJUA Discord Module — Issue Tracker Integration
  *
- * Creates Redmine issues from HIGH-priority Discord support messages.
+ * Creates tickets in the configured issue tracker from HIGH-priority
+ * Discord support messages.
  *
  * Rate limit: max 5 issues per user per hour to prevent spam.
  *
- * Redmine API: POST {baseUrl}/issues.json
- * Auth: X-Redmine-API-Key header
+ * API: POST {baseUrl}/issues.json (Redmine-compatible backend)
+ * Auth: provider-specific API-key header
  *
  * Issue fields:
  * - Project: SIDJUA Free (id: 7)
@@ -25,12 +26,12 @@ import type { Priority }       from "./support-handler.js";
 import type { DiscordClient }  from "../discord-client.js";
 
 
-export interface RedmineConfig {
+export interface IssueTrackerConfig {
   apiKey:  string;
   baseUrl: string;
 }
 
-interface RedmineIssueResponse {
+interface IssueTrackerResponse {
   issue: { id: number; subject: string };
 }
 
@@ -39,12 +40,12 @@ const RATE_LIMIT_MAX      = 5;
 const RATE_LIMIT_WINDOW   = 3_600_000; // 1 hour in ms
 
 
-export class RedmineHandler {
+export class IssueTrackerHandler {
   /** userId → array of issue-creation timestamps within the last hour */
   private readonly issueLog = new Map<string, number[]>();
 
   constructor(
-    private readonly config:  RedmineConfig,
+    private readonly config:  IssueTrackerConfig,
     private readonly client:  DiscordClient,
     private readonly opts:    { fetchFn?: typeof fetch } = {},
   ) {}
@@ -74,7 +75,7 @@ export class RedmineHandler {
   // ── Issue creation ────────────────────────────────────────────────────────
 
   /**
-   * Create a Redmine issue from the Discord message.
+   * Create a ticket from the Discord message in the configured issue tracker.
    * Returns the created issue ID.
    */
   async createIssue(
@@ -113,16 +114,16 @@ export class RedmineHandler {
       method:  "POST",
       headers: {
         "Content-Type":       "application/json",
-        "X-Redmine-API-Key":  this.config.apiKey,
+        "X-Redmine-API-Key":  this.config.apiKey, // pipeline-ok
       },
       body: JSON.stringify(body),
     });
 
     if (!res.ok) {
-      throw new Error(`Redmine API error: HTTP ${res.status}`);
+      throw new Error(`Issue tracker API error: HTTP ${res.status}`);
     }
 
-    const data = await res.json() as RedmineIssueResponse;
+    const data = await res.json() as IssueTrackerResponse;
     const issueId = data.issue.id;
 
     this.recordIssue(msg.author.id);

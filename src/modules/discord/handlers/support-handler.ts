@@ -11,14 +11,14 @@
  * 3. Ignores DMs (no guild_id)
  * 4. Detects priority via keyword matching
  * 5. Responds with doc match if found
- * 6. Creates Redmine issue for HIGH priority messages
+ * 6. Creates a ticket in the configured issue tracker for HIGH priority messages
  * 7. Reacts with emoji: ✅ handled, 🔍 investigating, 🎫 ticket created
  */
 
 import type { DiscordClient }   from "../discord-client.js";
 import type { GatewayMessage }  from "../discord-types.js";
 import type { DocMatcher }      from "./doc-matcher.js";
-import type { RedmineHandler }  from "./redmine-handler.js";
+import type { IssueTrackerHandler } from "./issue-tracker-handler.js";
 
 
 export type Priority = "HIGH" | "NORMAL" | "LOW";
@@ -85,7 +85,7 @@ export class SupportHandler {
   constructor(
     private readonly client:         DiscordClient,
     private readonly docMatcher:     DocMatcher,
-    private readonly redmineHandler: RedmineHandler | null,
+    private readonly issueTrackerHandler: IssueTrackerHandler | null,
     private readonly config:         SupportHandlerConfig,
   ) {}
 
@@ -139,16 +139,16 @@ export class SupportHandler {
       await this.client.addReaction(msg.channel_id, msg.id, "✅");
     }
 
-    // 5. Create Redmine issue for HIGH priority
-    if (priority === "HIGH" && this.redmineHandler !== null) {
+    // 5. Create ticket for HIGH priority
+    if (priority === "HIGH" && this.issueTrackerHandler !== null) {
       if (this.isTicketRateLimited(msg.author.id)) {
         await this.client.sendMessage(msg.channel_id, {
           content: `<@${msg.author.id}> You're submitting tickets too quickly. Please wait before creating another.`,
         });
         return;
       }
-      if (this.redmineHandler.canCreateIssue(msg.author.id)) {
-        const issueId = await this.redmineHandler.createIssue(
+      if (this.issueTrackerHandler.canCreateIssue(msg.author.id)) {
+        const issueId = await this.issueTrackerHandler.createIssue(
           msg, priority, msg.channel_id,
         );
         await this.client.sendMessage(msg.channel_id, {
@@ -159,7 +159,7 @@ export class SupportHandler {
       }
     }
 
-    // 6. No doc match, not high-priority Redmine → investigating
+    // 6. No doc match, not high-priority ticket → investigating
     if (!handledByDoc) {
       await this.client.addReaction(msg.channel_id, msg.id, "🔍");
     }

@@ -200,7 +200,9 @@ export interface DiscordModuleConfig {
   support_channel?:   string;
   /** Channel name for bug reports (default: "bug-reports") */
   bug_channel?:       string;
-  /** Redmine server URL (default: "http://localhost:8080") */
+  /** Issue tracker server URL (default: "http://localhost:8080") */
+  issue_tracker_url?: string;
+  /** @deprecated use issue_tracker_url instead. Will be removed in V1.2. */
   redmine_url?:       string;
   /**
    * Allow agents to execute destructive Discord operations
@@ -289,5 +291,8 @@ export interface GatewayMessage {
 export interface GatewayModuleConfig extends DiscordModuleConfig {
   support_channel?:   string;
   bug_channel?:       string;
+  /** Issue tracker server URL (default: "http://localhost:8080") */
+  issue_tracker_url?: string;
+  /** @deprecated use issue_tracker_url instead. Will be removed in V1.2. */
   redmine_url?:       string;
 }

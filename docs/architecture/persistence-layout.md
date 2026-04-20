@@ -1,10 +1,9 @@
 # SIDJUA Persistence Layout — Architecture Document
 
 **Status:** SIGNED-OFF — Ready for Impl Prompt 2b
-**Redmine:** #854 (P454)
 **Author:** Sonnet T2 Dev Lead
 **Date:** 2026-04-15
-**Sign-off:** CEO Goetz Kohlberg, S805 2026-04-15 PHT, via Opus T1
+**Sign-off:** CEO Goetz Kohlberg, 2026-04-15, via Opus T1
 
 ---
 
@@ -289,7 +288,7 @@ Acceptable isolation mechanisms: `SIDJUA_WORK_DIR` env var consumed only when se
 [x] **Ready for Impl Prompt 2b — Option 1 (single /data volume, workDir change to /data)**
 [ ] Blocked — Q# needs answer first
 
-### CEO Decisions (S805, 2026-04-15 PHT)
+### CEO Decisions (2026-04-15)
 
 **Q1 — Fix Option:** Option 1. Single `/data` volume, change workDir to `/data` via `--work-dir /data` in docker-entrypoint.sh and Dockerfile CMD. Simpler than 6-volume revert, matches current Dockerfile `VOLUME ["/data"]` declaration.
 
@@ -305,7 +304,7 @@ Acceptable isolation mechanisms: `SIDJUA_WORK_DIR` env var consumed only when se
 - admin password is bcrypt-hashed (not plaintext)
 - session secret is regeneratable on restart
 - Accepted threat model for V1.1 beta (no production customer data)
-- Enterprise security (volume encryption, secrets management, DSGVO Art. 32 compliance) is deferred to a post-V1.2 architecture spec — new Redmine ARCH issue to be filed as part of S805 follow-up.
+- Enterprise security (volume encryption, secrets management, DSGVO Art. 32 compliance) is deferred to a post-V1.2 architecture spec — a follow-up architecture ticket will be filed.
 
 **Q6 — docker-compose.yml:** Update in scope of P2b. Three changes:
 1. Volumes: 6 named volumes → single `/data` volume, matches Dockerfile and Option 1
@@ -328,4 +327,4 @@ Follow-up ticket (post-V1.2, not in P2b scope): parameterize build pipeline so `
 
 ### Rule Candidate Validation
 
-This sign-off validates the S803 candidate rule **DOMAIN-SEPARATION-IN-DESIGN**: the document successfully framed container vs CLI as two independent domains, kept CLI defaults untouched, and scoped all fixes to container-only. Rule candidate upgradable to permanent after P2b lands and Step 5 CLI non-regression passes.
+This sign-off validates the candidate rule **DOMAIN-SEPARATION-IN-DESIGN**: the document successfully framed container vs CLI as two independent domains, kept CLI defaults untouched, and scoped all fixes to container-only. Rule candidate upgradable to permanent after the persistence fix lands and Step 5 CLI non-regression passes.

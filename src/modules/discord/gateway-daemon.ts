@@ -34,7 +34,7 @@ import { DiscordGateway }    from "./discord-gateway.js";
 import { DiscordClient }     from "./discord-client.js";
 import { SupportHandler }    from "./handlers/support-handler.js";
 import { DocMatcher }        from "./handlers/doc-matcher.js";
-import { RedmineHandler }    from "./handlers/redmine-handler.js";
+import { IssueTrackerHandler } from "./handlers/issue-tracker-handler.js";
 import type { GatewayMessage, DiscordModuleConfig } from "./discord-types.js";
 import type { WsFactory, WsLike }  from "./discord-gateway.js";
 
@@ -56,12 +56,12 @@ export function readPidFile(pidFile: string): { pid: number; startMs: number } |
 
 
 export interface LoadedConfig {
-  token:          string;
-  guildId:        string;
-  supportChannels: string[];
-  bugChannels:     string[];
-  redmineApiKey?:  string;
-  redmineUrl:      string;
+  token:              string;
+  guildId:            string;
+  supportChannels:    string[];
+  bugChannels:        string[];
+  issueTrackerApiKey?: string;
+  issueTrackerUrl:     string;
 }
 
 /** Parse a .env file into key/value pairs. */
@@ -126,18 +126,40 @@ export function loadDaemonConfig(moduleDir: string, secretSource?: SecretEnvSour
     ? rawConfig["support_channel"] : "support";
   const bugChannel     = typeof rawConfig["bug_channel"] === "string"
     ? rawConfig["bug_channel"] : "bug-reports";
-  const redmineUrl     = typeof rawConfig["redmine_url"] === "string"
-    ? rawConfig["redmine_url"] : "http://localhost:8080";
-  const redmineApiKey  = env["REDMINE_API_KEY"] ?? envSource.get("REDMINE_API_KEY");
+
+  // OPT-B: dual-accept with deprecation warning — canonical primary, legacy fallback
+  const issueTrackerUrl = typeof rawConfig["issue_tracker_url"] === "string"
+    ? rawConfig["issue_tracker_url"]
+    : (typeof rawConfig["redmine_url"] === "string"
+        ? rawConfig["redmine_url"]
+        : "http://localhost:8080");
+  if (typeof rawConfig["redmine_url"] === "string" &&
+      typeof rawConfig["issue_tracker_url"] !== "string") {
+    process.stderr.write(
+      "[gateway-daemon] Warning: config key redmine_url is deprecated — use issue_tracker_url instead. Fallback will be removed in V1.2.\n",
+    );
+  }
+
+  let issueTrackerApiKey: string | undefined =
+    env["ISSUE_TRACKER_API_KEY"] ?? envSource.get("ISSUE_TRACKER_API_KEY");
+  if (issueTrackerApiKey === undefined) {
+    const legacyKey = env["REDMINE_API_KEY"] ?? envSource.get("REDMINE_API_KEY");
+    if (legacyKey !== undefined) {
+      process.stderr.write(
+        "[gateway-daemon] Warning: env var REDMINE_API_KEY is deprecated — use ISSUE_TRACKER_API_KEY instead. Fallback will be removed in V1.2.\n",
+      );
+      issueTrackerApiKey = legacyKey;
+    }
+  }
 
   const result: LoadedConfig = {
     token,
     guildId,
-    supportChannels: [supportChannel],
-    bugChannels:     [bugChannel],
-    redmineUrl,
+    supportChannels:  [supportChannel],
+    bugChannels:      [bugChannel],
+    issueTrackerUrl,
   };
-  if (redmineApiKey !== undefined) result.redmineApiKey = redmineApiKey;
+  if (issueTrackerApiKey !== undefined) result.issueTrackerApiKey = issueTrackerApiKey;
   return result;
 }
 
@@ -227,15 +249,15 @@ export async function startDaemon(opts: DaemonOptions): Promise<Daemon> {
   // Create handlers
   const docMatcher = new DocMatcher(docEntries);
 
-  const redmineHandler = config.redmineApiKey !== undefined
-    ? new RedmineHandler(
-        { apiKey: config.redmineApiKey, baseUrl: config.redmineUrl },
+  const issueTrackerHandler = config.issueTrackerApiKey !== undefined
+    ? new IssueTrackerHandler(
+        { apiKey: config.issueTrackerApiKey, baseUrl: config.issueTrackerUrl },
         client,
         opts.fetchFn !== undefined ? { fetchFn: opts.fetchFn } : {},
       )
     : null;
 
-  const handler = new SupportHandler(client, docMatcher, redmineHandler, {
+  const handler = new SupportHandler(client, docMatcher, issueTrackerHandler, {
     supportChannelIds,
     botUserId,
     allowedGuildIds: new Set([config.guildId]),

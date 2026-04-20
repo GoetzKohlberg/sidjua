@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Agent runtime benchmark suite with configurable load scenarios
 - Composite tool wiring with HR dual-strategy extension and REST tool catalog
 - Documentation generator scripts and CI pipeline; PDF report generator with HTML templates
-- Zammad public support at tickets.sidjua.com with five-tier defence stack (nginx rate-limiting, CrowdSec, bot filtering, allowlist, Zammad-native guards)
+- Public support channel with five-tier defence stack (nginx rate-limiting, CrowdSec, bot filtering, allowlist, application-native guards)
 - V1.2 architecture groundwork: Security Abstraction Layer, Tool Contract v2, Central Policy Decision Point, Consent Grant Service, Policy Migration, and Enterprise Backend Adapters — specification-complete, implementation post-Golden [Prepared]
 - Agent definition templates, skill files, delegation protocol, and config templates
 - Knip dead-code detection, `npm audit`, and Playwright smoke tests integrated into the dev pipeline

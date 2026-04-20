@@ -27,8 +27,8 @@ secrets:
     description: "Discord Bot Token from discord.com/developers/applications"
     required: true
     validation: "^[A-Za-z0-9._-]+$"
-  - key: REDMINE_API_KEY
-    description: "Redmine API key for auto-ticket creation from support messages"
+  - key: ISSUE_TRACKER_API_KEY
+    description: "API key for the configured issue tracker; enables auto-ticket creation from support messages (Redmine-compatible)"
     required: false
 
 config:
@@ -51,8 +51,8 @@ config:
     description: "Channel name for bug reports (Gateway listener)"
     required: false
     default: "bug-reports"
-  - key: redmine_url
-    description: "Redmine server URL for auto-ticket creation"
+  - key: issue_tracker_url
+    description: "Issue tracker server URL for auto-ticket creation (Redmine-compatible)"
     required: false
     default: "http://localhost:8080"
 
